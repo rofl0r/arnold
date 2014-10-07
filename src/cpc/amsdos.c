@@ -559,11 +559,11 @@ int AMSDOS_GetPrefixPriority(const char *pFilename)
 
 		/* default prefixes in order searched for by AMSDOS */
 		/* assign higher priority to order prefixes are used */
-		if (stricmp(pExtension,"   ")==0)
+		if (strcmp(pExtension,"   ")==0)
 			return 3;
-		if (stricmp(pExtension,"BAS")==0)
+		if (strcmp(pExtension,"BAS")==0)
 			return 2;
-		if (stricmp(pExtension,"BIN")==0)
+		if (strcmp(pExtension,"BIN")==0)
 			return 1;
 	}
 

@@ -34,7 +34,7 @@ static INLINE void debug(char *s) {
 	fprintf(stderr,"%s\n",s);
 }
 
-void sdl_InitialiseKeyboardMapping(void);
+void sdl_InitialiseKeyboardMapping(int);
 void sdl_InitialiseJoysticks(void);
 
 void sdl_SetDisplay(int Width, int Height, int Depth, BOOL fullscreen) {
