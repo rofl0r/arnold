@@ -58,18 +58,15 @@ BOOL GenericInterface_InsertDiskImage(int DriveID, const char*Filename)
 	unsigned long DiskImageLength;
 
     /* load disk image file to memory */
-    LoadFile(Filename, &pDiskImage, &DiskImageLength);
-
-	if (pDiskImage!=NULL)
+        if(LoadFile(Filename, &pDiskImage, &DiskImageLength))
 	{
-		BOOL bStatus;
-
-		bStatus = DiskImage_InsertDisk(DriveID, pDiskImage, DiskImageLength);
+		BOOL bStatus = ARNOLD_STATUS_OK ==
+		DiskImage_InsertDisk(DriveID, pDiskImage, DiskImageLength); 
 
 		free(pDiskImage);
-	
+
 		return bStatus;
-	}
+	} else
 
 	return FALSE;
 }

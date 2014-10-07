@@ -60,7 +60,7 @@ BOOL	loadBuiltin(unsigned char **pLocation, unsigned long *pLength,
 	return FALSE;
 }
 
-BOOL	LoadFile(char *Filename, char **pLocation, 
+BOOL	LoadFile(const char *Filename, char **pLocation, 
 unsigned long *pLength)
 {
 	FILE	*fh;
@@ -71,10 +71,7 @@ unsigned long *pLength)
 	*pLocation = NULL;
 	*pLength = 0;
 
-	if (Filename!=NULL)
-	{
-		if (strlen(Filename)!=0)
-		{
+	if (Filename && strlen(Filename)) {
 			/* fprintf(stderr,"Host_LoadFile(%s)\n",Filename); */
 			fh = fopen(Filename,"rb");
 
@@ -89,18 +86,18 @@ unsigned long *pLength)
 				FileSize = ftell(fh);
 
 				fseek(fh, 0, SEEK_SET);
-			
+
 				if (FileSize!=0)
 				{
-					pData = (unsigned char *)malloc(FileSize);
+					pData = malloc(FileSize);
 
 					if (pData!=NULL)
 					{
 						fread(pData,1,FileSize,fh);
-					
+
 						*pLocation = pData;
 						*pLength = FileSize;
-					
+
 						fclose(fh);
 						return TRUE;
 					}
@@ -108,7 +105,6 @@ unsigned long *pLength)
 
 				fclose(fh);
 			}
-		}
 	}
 
 	return FALSE;

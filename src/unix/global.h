@@ -26,15 +26,11 @@ typedef int BOOL;
 #endif
 
 #ifndef TRUE
-#define TRUE (1==1)
+#define TRUE 1
 #endif
 
 #ifndef FALSE
-#define FALSE (1==0)
-#endif
-
-#ifndef NULL
-#define	NULL	0
+#define FALSE 0
 #endif
 
 #ifndef _BYTE
@@ -56,7 +52,7 @@ typedef unsigned short WORD;
 #define MAXCURDIR 1024
 char	currentDir[MAXCURDIR];
 
-BOOL	LoadFile(char *, char **, unsigned long *);
+BOOL	LoadFile(const char *, char **, unsigned long *);
 BOOL	SaveFile(char *,char *,unsigned long);
 
 #endif
