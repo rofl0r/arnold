@@ -166,6 +166,7 @@ void	fill_audio(void *userdata, Uint8 *stream, int len) {
 BOOL	sdl_AudioPlaybackPossible(void)
 {
 	fprintf(stderr,"sdl_AudioPlaybackPossible(void)\n");
+return FALSE;
 	if (audio_open) return TRUE;
 	audioSpec.freq = audio_Frequency;
 	if (audio_BitsPerSample == 16) {
