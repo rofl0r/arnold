@@ -9,6 +9,17 @@ The program and source are (c) Copyright Kevin Thacker 1995-2002.
 The ROMs are (c) Copyright Amstrad plc and Locomotive Software Ltd, All 
 rights reserved.
 
+How to use CPC:
+./arnold -drivea foo.dsk
+list files:
+CAT
+mode 2:cat
+|DIR
+execute .bas or .bin
+run"batman.bas
+(note single quote)
+the file extension .bas or .bin can be omitted
+
 Software:
 
 Games:
