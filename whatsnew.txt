@@ -1,0 +1,142 @@
+4th-Jan-2004
+============
+
+General:
+- new: now using CVS source control system. This is making development much much easier! :)
+
+Core:
+- fix: fixed I/O port decoding for RAM configuration PAL inside CPC6128; and for PAL integrated
+  into CPC+ ASIC. Thankyou to Richard Wilson for his help.
+- fix: fixed a bug in the RAM configuration which prevented Overflow's Backtro and C/PM+ from running.
+- fix: sample loading: 16-bit samples were treated as unsigned, but they are 
+  actually signed. fixed.
+- fix: lots of fdc emulation bugs fixed
+- fix: lots of bugs fixed in disc image output code; applies to inserting unformatted discs; 
+  a lot of created images were bad!
+  strange formats are mostly supported now.
+- fix: write deleted data now marks sectors with deleted data control mark now!
+- fix: all fdc commands supported including scan commands
+- fix: multi-track function of fdc fully implemented
+- new: support for DIF disk image (used by CPC++ emulator) [Richard Bannister]
+- new: seperated floppy disc controller, floppy disc drive, and floppy disc interface code.
+- fix: fixed decoding of disc controller I/O ports
+- new: removed as many references to Host_LoadFile and Host_SaveFile from the core code.
+(this allows the host to supply binary data which is included in executable, and allows
+the host to use it's own load/save functions). 
+- new: updated the load and save functions to return status code's which indicate an errors
+(this allows the host code to return more meaningful error code's and messages;
+or to even log them to a file)
+- new: removed reference to Host_OpenFile and Host_CloseFile functions from printer code.
+The host must now handle the printer output itself.
+- new: removed cpcdefs.h file. Defines are build related and should be defined in the project/makefile for each port.
+- new: auto-type helper feature; enter the text you want to type in and let the auto-type
+feature do all the hard work for you :) Thankyou to Troels K for the first version which
+he has in CPC Explorer/CPC Loader.
+- new: auto-start helper feature; this feature will attempt to auto-start any image that
+has been inserted. But, on the CPC there can be more than one way to run a program,
+so this feature may not work with all discs. Try it and see :)
+
+General interface functions:
+- merged tape-image and sample handling code
+
+CPC:
+- fix: fixed keyboard problems in CPC mode.
+
+CPC+:
+- fix: fixed mirror of sprite X,Y coordinates in magnification registers
+- fix: fixed sprite coordinates bugs. Simply the Best and Iron demo 3 will display exactly
+  as on a real CPC+.
+
+Windows version
+
+Lots of user interface stuff to make Arnold easier to use :)
+- new: roms moved to source distribution. Rom data is now built into executable.
+- new: roms are integrated into executable. [Troels K, Andreas M, Richard B, Kev T]
+- new: command-line supported; you can run arnold from the command line with various parameters.
+- new: you can double click on a file to automatically launch Arnold (you must register the file
+types first)
+- new: you can drag and drop a file onto the Arnold window/exe and it will
+  automatically be inserted
+- new: you can double click on a file while Arnold is open, and it will be opened in Arnold.
+- new: will detect if another instance of the application is running; you can choose to open
+file with existing instance or new instance
+- new: now using Zlib libary for decompression of ZIP archives. (some old files compressed with PKZIP may
+not open; this is a limitation of the Zlib library) [Troels K, Kev T]
+- new: executable compressed using UPX [Troels K]
+- new: implemented file selection dialog for ZIP archives.
+- new: zip archives now supported by all media (cassette, disc, cartridge, snapshot etc)
+- fix: rom versions were not always displayed. Now fixed.
+- new: lots of changes for UNICODE version of Arnold. [Troels K]
+- new: unicode support for zlib [Troels K]
+- new: build instructions for windows version
+- new: About dialog box giving some copyright, logo and version information
+- new: manifest file used to enable new look under Windows XP.
+- new: you can associate the files of your choice with Arnold. Or if you want to keep your
+current associations, then you can open the files using "Open with Arnold" from the shell.
+- new: merged "Open Sample" and "Open Tape Image" into a single "Open Tape" menu item.
+- new: "recent files" menu
+- inserting a unformatted disc and selecting a existing file will now ask if you want
+  to overwrite.
+
+
+27-January-2002
+---------------
+
+Core:
+- fixed a bug in the AY-3-8912 I/O port handlers. Now emulated exactly like the hardware. Thankyou
+to Russell Marks for his discoveries about the AY-3-8912 I/O port operation. [Russell Marks, Kevin Thacker]
+
+Windows
+- changed resource file so it could compile if MFC was not installed with Visual studio
+- changed makefile.w32 so resources can be compiled with MingW
+
+Linux:
+- incorporates latest changes from Andreas Micklei (see whatsnew.linux for more details)
+
+
+21-October-2001
+===============
+
+Core:
+- fixed a bug in rendering. Buffer could be overrun. Fixes problems in 15-bit display depth. [Kevin Thacker]
+- fixed a bug in the tape-image code, more Speedlock v1 programs should load now. [Kevin Thacker]
+
+
+20-October-2001
+===============
+
+Emulation Core:
+- tape image block "0x010" was not handled correctly. fixed. [Kevin Thacker]
+- first block of tape image data was always being skipped. fixed [Kevin Thacker]
+
+Unix port:
+- drive LED simulated using keyboard LEDs [Andreas Micklei]
+- simple launcher (unix/launcher) [Andreas Micklei]
+- start of GTK+ interface [Andreas Micklei]
+- SDL version [Andreas Micklei]
+- configuration script for making Arnold [Andreas Micklei]
+
+30-September-2001
+=================
+
+- fixed graphics drawing in 24-bit and 32-bit display depths
+- fixed rendering accuracy selections
+- fixed snapshot loading/saving
+- snapshots are more compatible with original CPCEMU file format
+- added support for snapshot V3 format (as used in No$CPC) these can be read
+and written now. The CPC+ chunk is not compatible with No$CPC as this does
+not seem to follow the published document. V3 can be used to snapshot CPC+ programs/demos
+- added snapshot command-line option to unix version
+- fixed some sound bugs
+
+02-September-2001
+=================
+
+- source release under Gnu Public License
+- implemented Z80 interrupt Interrupt Mode 0 (usable in CPC+ mode)
+- reverted monitor emulation back to original; no black bar down right side
+- numerous fixes ("Simply the Best" demo now shows the scroller)
+- provided makefile for MingW (doesn't include resources and no command-line); when I
+  work out how to get the resources to compile I will add them
+- provided makefile for linux/unix (may require adaption for different flavours of unix/linux)
+- provided workspace and project compatible with Microsoft Visual Studio V6

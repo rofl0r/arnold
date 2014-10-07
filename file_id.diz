@@ -1,0 +1,59 @@
+Arnold 27-January-2002
+Amstrad CPC/CPC+ Emulator
+(c) Kevin Thacker, 1995-2002
+
+Win32 version:
+Requires:
+- Win95/98 with DirectX,
+- WinNT4 + Service Pack 3
+- Win2000
+- WinME
+- WinXP
+- 16-bit,24-bit or 32-bit display depth
+
+Linux/Unix version:
+- tested on RedHat Linux v7
+- 15-bit, 16-bit, 24-bit or 32-bit 
+display depth
+- optional GTK+ version
+- optional SDL version
+- compile script
+
+Emulation includes different
+CRTC types and emulation
+of extra CPC hardware.
+
+Source code supplied and
+distributed under GNU Public License.
+See "copying" for more details.
+
+Arnold 27-Enero-2002
+Amstrad CPC/CPC+ Emulator
+(c) Kevin Thacker, 1995-2002
+
+Versión Win32:
+Requiere:
+- Win95/98 con DirectX,
+- WinNT4 + Service Pack 3
+- Win2000
+- WinME
+- WinXP
+- 16-bit,24-bit o 32-bit de profundidad
+
+Versión Linux/Unix:
+- testeado en RedHat Linux v7
+- 15-bit, 16-bit, 24-bit o 32-bit de profundidad
+- versión GTK+ opcional
+- versión SDL opcional
+- script de compilación
+
+La emulación incluye diferentes
+tipos de CRTC y emulación
+de hardware CPC extra.
+
+Código fuente facilitado y
+distribuido bajo Licencia Pública GNU.
+
+Ver "copying" para más detalles.
+
+

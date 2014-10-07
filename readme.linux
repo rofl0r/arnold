@@ -1,0 +1,111 @@
+ARNOLD
+======
+
+Notes about the Linux port
+==========================
+
+Requirements
+------------
+
+To use this system you require:
+- a fast system
+- X-Windows display (16-bit depth, 24-bit or 32-bit)
+- for SDL version you require libsdl installed.
+  You can get it from http://www.libsdl.org/
+- for GTK+ version you require libgtk and libgdk installed.
+  You can get it from http://www.gtk.org/
+
+This version is more basic compared to the Windows version.
+Some of the extra features in the Windows version have not yet been 
+made available in the Unix version. Please be patient.
+
+IMPORTANT: Though SDL and GTK+ are optional, you should really get both.
+Before installing Arnold. The non-SDL version has various graphics
+issues, no sound and is IMHO not very useful. To compile a version with
+GTK+ and SDL you will need to have all GTK+ and SDL header files
+installed in addition to the libraries. So if you use a RPM based
+distribution, install gdk-devel, gtk+-devel and sdl-devel in addition to
+the non-devel RPMs. You might also want to compile your own version of
+SDL, because the RPM versions tend to be quite old. I am currently using
+1.2.2, so I do not know how well older versions work. Don't be afraid of
+compiling SDL. It is actually very easy.
+
+Kevin Thacker has compiled and tested Arnold/Linux with Redhat Linux
+v7.0 on a Pentium II system. I develop on a 1,2GHz Athlon with RedHat
+v7.1. The SDL Sound output is very new and only tested on my system. I
+use ALSA for sound output and also have installed the Low-Latency kernel
+patches from Robert M. Love. Sound may very well break on other systems,
+so please send me feedback. Even if it works. ;-)
+
+Compilation
+-----------
+
+cd arnold/src
+./configure
+make
+
+Please check the output of configure before making arnold. If GTK+ and
+SDL can not be found, you are probably missing the required devel RPMs
+(or even the lib, especially in case of SDL). If you just want to see if
+Arnold generally runs go ahead, but if you want all feature, please
+install GTK+ and SDL with all header files and start again.
+
+Usage
+-----
+
+cd arnold
+./arnold
+
+With the GTK/SDL version you will see a window where you can choose to open
+a disc image (for drive A or B), reset the computer or Quit.
+
+On the SDL version you can also choose a different rendering accuracy and full-screen mode.
+
+F1 = reset
+F2 = toggle between full-screen and windowed.
+
+There are various command-line options available:
+
+-drivea <filename>      = specify disk image to insert into drive A
+-driveb <filename>      = specify disk image to insert into drive B
+-cart <filename>        = specify CPC+ cartridge to insert
+                          (will restart in CPC+ mode if not selected)
+-frameskip <number>     = specify frame skip (0=none, 1=draw a frame,
+                          miss a frame, draw a frame etc
+-crtctype <number>      = specify crtc type to use in the emulation
+                          (0=hd6845s/um6845, 1=um6845r, 2=mc6845, 3=CPC+ ASIC)
+-tape <filename>        = specify .tzx/.cdt tape image to use
+-cpctype <number>       = specify cpc type (0=cpc464, 1=cpc664, 2=cpc6128,
+                          3=cpc464+,4=cpc6128+,5=kc compact)
+-snapshot <filename>    = specify snapshot (.sna) file to auto-start
+
+For this version to start the rom files must be in a sub-directory below
+the directory that the executable is in:
+
+e.g.
+
+arnold
+roms/...
+
+Known bugs
+----------
+
+The keyboard emulation is totally wrong on non-US (or UK?) keyboard
+layouts. I use a german keymap myself, so I will fix this real soon now.
+In the meantime play some nice old-skool CPC games or watch some demos.
+;-)
+
+Please keep in mind that this version is a work-in-progress. There are
+certainly many other bugs. Feedback is always welcome however.
+
+Last words
+----------
+
+Thanks to Kevin Thacker for starting Arnold, doing the C version and the
+Linux port and releasing everything under the GPL. Without an initial
+Linux port I would never have started hacking this thing.
+
+have fun,
+Andreas Micklei <nurgle@cpcszene.de> <nurgle@gmx.de>
+19-Jan-2002
+

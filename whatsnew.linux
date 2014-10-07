@@ -1,0 +1,26 @@
+Andreas Micklei's Arnold/Linux Changelog:
+
+09-Februrary-2002
+=================
+
+Linux port:
+- Add german keyboard scancodes for special keys
+- Resturcture GUI window
+- Add Help display for function keys
+
+29-January-2002
+===============
+
+Linux port:
+- Disable mouse cursor in fullscreen mode
+
+19-January-2002
+===============
+
+Linux port:
+- Sound output via SDL is working (at least on my machine)
+- GUI improvements
+- Option to throttle emulator to original CPC speed
+- <CTRL>M stripped from line endings of source files to make certain versions
+  of GCC happy (untested, as I use RedHats GCC 2.96)
+

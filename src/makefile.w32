@@ -1,0 +1,73 @@
+# Makefile for Arnold WIN32 version compiled using MingW
+
+CC = gcc
+BIND = gcc
+
+#   CFLAGS    flags for C compile
+#   LFLAGS1   flags after output file spec, before obj file list
+#   LFLAGS2   flags after obj file list (libraries, etc)
+
+CFLAGS = -mwindows -O2 -O3 -D_WINDOWS -DWIN32 -Wall -Wno-unused
+LFLAGS1 =
+LFLAGS2 = -s 
+
+CPC_O=	cpc/arnold.o cpc/asic.o cpc/audioevent.o cpc/bmp.o cpc/cpc.o \
+        cpc/crtc.o cpc/dumpym.o cpc/fdc.o \
+	cpc/garray.o cpc/multface.o cpc/printer.o cpc/psgplay.o \
+	cpc/psg.o cpc/render.o cpc/render5.o cpc/scrsnap.o \
+	cpc/snapshot.o cpc/sampload.o cpc/spo256.o \
+        cpc/voc.o cpc/tzxold.o cpc/wav.o cpc/westpha.o cpc/yiq.o \
+	cpc/z8536.o \
+	cpc/debugger/gdebug.o cpc/debugger/breakpt.o \
+	cpc/diskimage/diskimg.o \
+	cpc/diskimage/dsk.o cpc/diskimage/extdsk.o \
+	cpc/diskimage/iextdsk.o \
+	cpc/z80/z80.o cpc/cheatdb.o \
+	cpc/riff.o cpc/snapv3.o
+
+IFACEGEN_O= ifacegen/ifacegen.o ifacegen/fnp.o ifacegen/romfn.o \
+	ifacegen/filetool.o
+
+LIBS = -luser32 -lgdi32 -lddraw -ldsound -ldinput -ldxguid -lwinmm -lcomctl32 -lcomdlg32
+	
+WIN_O= win/cpcemu.o win/debugger.o win/detectos.o win/filedlg.o \
+	win/global.o win/host.o win/joy.o win/myapp.o win/mylistvw.o \
+	win/reg.o win/settings.o win/treev.o win/win.o win/ziphandle.o \
+	win/directx/ddraw.c win/directx/dinput.c win/directx/dsound.o \
+	win/general/lnklist/lnklist.o cpc/debugger/dbgitem.o \
+	cpc/debugger/memdump.o cpc/debugger/dissasm.o \
+        cpc/debugger/parse.o win/iface.o win/cpcemu.res
+
+
+arnold:	$(CPC_O) $(IFACEGEN_O) $(WIN_O)
+		$(BIND)  $(CPC_O) $(IFACEGEN_O) $(WIN_O) -o arnold $(LFLAGS1) $(LFLAGS2) $(LIBS)
+		move arnold.exe ..
+
+win/cpcemu.res: win/cpcemu.rc
+	windres -O coff --include-dir win -o win/cpcemu.res -i win/cpcemu.rc
+
+MAKEZ80 = tools/makez80/makez80.o 
+
+makez80: $(MAKEZ80) 
+		$(BIND) $(MAKEZ80) -o makez80     
+
+clean:
+	rm -rf cpc/*.o
+	rm -rf ifacegen/*.o
+	rm -rf win/*.o
+	rm -rf cpc/debugger/*.o
+	rm -rf cpc/diskimage/*.o
+	rm -rf cpc/z80/*.o
+	rm -rf win/directx/*.o
+	rm -rf tools/makez80/*.o
+	rm -rf win/*.res
+
+archive:
+	$(clean)
+	cp makefile win/makefile.w32
+	zip -r cpccore.zip cpc
+	zip -r ifacegen.zip ifacegen
+	zip -r win.zip win
+	zip -r roms.zip roms
+	zip -r unix.zip unix
+	zip -r tools.zip tools

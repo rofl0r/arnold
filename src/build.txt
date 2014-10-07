@@ -1,0 +1,63 @@
+Building the Linux/Unix version of Arnold
+-----------------------------------------
+
+At the shell prompt:
+
+$ ./configure
+$ make
+
+The Linux/Unix version is maintained by Andreas Micklei.
+
+Linux version homepage: http://arnold.berlios.de/
+
+MacOS version
+-------------
+
+The MacOS version is maintained by Richard Bannister. The MacOS parts of the source code
+are (c) Copyright Richard Bannister and are not distributed with this source archive.
+I have given Richard permission to exclude them from the archive. His source
+is not distributable and is not covered by the GNU Public License.
+
+Mac version homepage: http://www.bannister.org/
+
+GBA version
+-----------
+
+Not yet working. Compiles and that is it.
+
+Windows version
+---------------
+
+Using Microsoft Developer Studio or Microsoft Visual C++:
+
+If you have Microsoft Developer Studio V6.0 or Microsoft Visual C++ 6.0 or newer 
+then open the workspace arnold.dsp, select the appropiate configuration and then build.
+
+Using MingW/GNU running under Windows:
+
+If you are using MingW then you can build Arnold from the command-line using:
+
+make -f makefile.w32
+
+I use the mingw_for_mame.zip to setup the MingW build environment. This can be downloaded
+from www.mame.net.
+
+ZLIB:
+
+Arnold uses the ZLIB DLL by Gilles Vollant, but is not distributed with the
+build environment.
+
+To setup Arnold to build with ZLIB DLL:
+
+1. Download zlibxxxdll.zip (where xxx is the version number. 
+   e.g. "zlib114dll.zip" ) from the ZLib DLL website 
+   (http://www.winimage.com/zLibDll/unzip.html).
+
+2. Unzip as "zlib" into the "src" folder. e.g. src folder
+   is located at c:\projects\arnold\src, then after unzipping as "zlib"
+   you will have c:\projects\arnold\src\zlib.
+
+2. Copy the zlib.dll from the zlib/dll32 directory (dll32 subdirectory inside 
+   the directory you unzipped zlib into).
+
+Arnold is ready to build with ZLIB DLL :)

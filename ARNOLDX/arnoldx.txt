@@ -1,0 +1,9 @@
+Arnold extensions by Troels K. 2003
+- Telnet server application. Turns off all DirectX functionality. (telnetcpc.exe)
+- Edit. Turns off all DirectX functionality. (edit.exe)
+
+Folders:
+
+\edit   - Arnold in a Win32 edit box. Requires arnoldlib.lib
+\telnet - Arnold in a telnet session. Requires arnoldlib.lib
+

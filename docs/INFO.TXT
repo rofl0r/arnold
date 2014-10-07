@@ -1,0 +1,55 @@
+Notes for people porting this code to other systems:
+
+The main CPC emulation core is found in CPC. These are the files I will
+update. (You can include all files, including those in the sub-directories all
+together in the same project if you wish, or you should be able to create seperate
+projects for the seperate sub-dirs if required).
+
+There is also a generic "user" interface in IFACEGEN. You should be able
+to use this to load disk images etc, it will keep track of your settings. I use it in my
+windows code, have a look in there.
+
+If you use GenericInterface_StoreSettings, or GenericInterface_RestoreSettings,
+you must provide your own functions to store and restore settings. Look
+in the settings.h for the prototypes. (You can still load and run programs and get
+the emulator to work without these.)
+
+For the settings, the method is to use a named text key, and either an integer (4 bytes)
+or a null-terminated string which is stored with this key. In the case
+of the windows version it uses the registry, but it could easily use a seperate
+text file. In a future release I plan to support saving of the registry to a seperate file,
+so it can be reloaded after installation on another system)
+
+The other functions which you *MUST* provide are defined in host.h. Without these
+it will not link.
+
+I have tried to identify any areas where Endianness is a problem. Where
+I've found a problem I've inserted some code to fix it. Hopefully this
+will work for you without any fixes. To change endianness go to cpcdefs.h
+and either remove or keep the #define.
+
+If there are any compiler problems, or fixes to be made to the code
+please forward them to me. Any suggestions about improving the portability
+of the code are also welcome.
+
+The following information should help:
+
+Arnold keeps it's own screen buffer, it fills this in as it builds the screen
+and then dumps this to the host screen at the end of the emulated frame. The format
+of this screen buffer is returned in Host_GetGraphicsBufferColourFormat.
+The data is stored in "packed form". e.g. the red, green and blue are all
+stored in a single word, long or more (depending on the format bit depth).
+
+Each colour entry has a Bits Per colour gun (e.g. 8:8:8 for 24-bit colour),
+a mask which is anded with packed image data to get the colour, a shift (to
+say what bit position the data is stored at). Using this information Arnold
+can render to any display 16-bit or above. Of course it assumes that the colour
+bits are together and not interleaved.
+
+Arnold also keeps it's own sound data buffer. This too is filled in during
+emulation and dumped at the end of a emulated frame. The format of this data
+is signed/unsigned 8/16 bit. The format is returned in Host_GetSoundBufferFormat.
+The method I currently use is to store the OUT events to the PSG, and then go through
+this and generate the data, this may change in the future.
+
+
