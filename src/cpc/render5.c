@@ -479,6 +479,7 @@ void    Render_Finish(void)
         if (pScreenBase!=NULL)
         {
                 free(pScreenBase);
+		pScreenBase = 0;
         }
 }
 

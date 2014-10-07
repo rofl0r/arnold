@@ -2757,7 +2757,7 @@ void    Debug_DeleteComparisonList(DEBUG_CMP_LIST_HEADER *pList)
                 pNode = pList->Dummy.pNext;
 
                 /* traverse as long as node isn't the dummy node */
-                while (pNode!=&pList->Dummy)
+                while (pNode && pNode!=&pList->Dummy)
                 {
                         DEBUG_CMP_LIST_NODE *pNext;
 
