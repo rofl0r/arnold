@@ -65,8 +65,10 @@ arnold:  conditionals roms $(CPC_O) $(UNIX_O)
 conditionals:
 ifeq ($(TARGET_CPU),ppc)
 TARGET_FMT=elf32-ppc
-else
+else ifeq ($(TARGET_CPU),i386)
 TARGET_FMT=elf32-i386
+else
+TARGET_FMT=elf32-littlearm
 endif
 
 roms:
