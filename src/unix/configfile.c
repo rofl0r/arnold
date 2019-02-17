@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define USER_CONFIGFILE_NAME "~/.arnold"
 #define SYSTEM_CONFIGFILE_NAME "/etc/arnold"
