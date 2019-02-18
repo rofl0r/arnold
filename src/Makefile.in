@@ -57,12 +57,12 @@ ROMS_BIN=	roms/amsdose/amsdos.rom,roms/cpc464e/os.rom,roms/cpc464e/basic.rom,rom
 
 ELF_FMT := $(shell $(CC) -Wl,--print-output-format 2>/dev/null || true | head -n 1)
 
-arnold:  conditionals roms $(CPC_O) $(UNIX_O)
+arnold: roms $(CPC_O) $(UNIX_O)
 	$(BIND) -Wl,-b,binary,$(ROMS_BIN),-b,$(ELF_FMT) -o arnold $(LFLAGS1) $(CPC_O) \
 	$(UNIX_O) $(LFLAGS2)
-	mv arnold ..
+	cp arnold ../arnold
 
-conditionals:
+unix/display_sdl.o: unix/keyboard_sdl.c
 
 roms:
 	ln -s ../roms .
@@ -70,12 +70,13 @@ roms:
 ctags:
 	ctags -R
 clean:
-	rm -rf cpc/*.o
-	rm -rf ifacegen/*.o
-	rm -rf unix/*.o
-	rm -rf cpc/debugger/*.o
-	rm -rf cpc/diskimage/*.o
-	rm -rf cpc/z80/*.o
+	rm $(UNIX_O) $(CPC_O)
+	rm -f cpc/*.o
+	rm -f ifacegen/*.o
+	rm -f unix/*.o
+	rm -f cpc/debugger/*.o
+	rm -f cpc/diskimage/*.o
+	rm -f cpc/z80/*.o
 	rm -rf tags
 distclean: clean
 	rm -rf *~ */*~
