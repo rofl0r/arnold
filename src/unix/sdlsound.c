@@ -58,7 +58,7 @@ static Uint8 *audio_chunk;
 static Uint32 audio_len;
 static Uint8 *audio_pos;
 static Uint8 *audio_rec;
-static void *(*samplecpy)(void *dest, const void *src, size_t n) = memcpy;
+static void *(*samplecpy)(void *dest, const void *src, size_t n);
 
 BOOL	sdl_open_audio(SDL_AudioSpec *audioSpec) {
 	BOOL status;
@@ -94,11 +94,13 @@ void	sdl_close_audio(void) {
 	audio_open = FALSE;
 }
 
-void	halfcpy(Uint8 *dst, Uint8 *src, int len) {
-	int i;
+void	*halfcpy(void *s1, const void *s2, size_t len) {
+	Uint8 *dst = s1;
+	const Uint8 *src = s2;
 	while(len-- > 0) {
 		*dst++ = *src++/2;
 	}
+	return dst;
 }
 
 void	fill_audio(void *userdata, Uint8 *stream, int len) {
@@ -129,17 +131,17 @@ void	fill_audio(void *userdata, Uint8 *stream, int len) {
 	if ( audio_pos + len < audio_chunk + audio_bufsize ) {
 		//memcpy(stream, audio_pos, len);
 		//halfcpy(stream, audio_pos, len);
-		*samplecpy(stream, audio_pos, len);
+		samplecpy(stream, audio_pos, len);
 		audio_pos += len;
 		//fprintf(stderr,",");
 	} else {
 		remain = (audio_chunk + audio_bufsize) - audio_pos;
 		//memcpy(stream, audio_pos, remain);
 		//halfcpy(stream, audio_pos, remain);
-		*samplecpy(stream, audio_pos, remain);
+		samplecpy(stream, audio_pos, remain);
 		//memcpy(stream + remain, audio_chunk, len - remain);
 		//halfcpy(stream + remain, audio_chunk, len - remain);
-		*samplecpy(stream + remain, audio_chunk, len - remain);
+		samplecpy(stream + remain, audio_chunk, len - remain);
 		audio_pos = audio_chunk + len - remain;
 		//fprintf(stderr,"'");
 	}
@@ -171,6 +173,7 @@ return FALSE;
 	audioSpec.freq = audio_Frequency;
 	if (audio_BitsPerSample == 16) {
 		audioSpec.format = AUDIO_S16;
+		samplecpy = memcpy;
 	} else {
 		audioSpec.format = AUDIO_S8;
 		samplecpy = halfcpy;
