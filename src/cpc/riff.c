@@ -20,6 +20,7 @@
 #include "cpcglob.h"
 #include "riff.h"
 #include "endian.h"
+#include <stdint.h>
 
 /* return length of chunk */
 int Riff_GetChunkLength(RIFF_CHUNK *pChunk)
@@ -50,13 +51,13 @@ unsigned long Riff_GetChunkName(RIFF_CHUNK *pChunk)
 /* return pointer to chunk data */
 unsigned char   *Riff_GetChunkDataPtr(RIFF_CHUNK *pChunk)
 {
-        return (unsigned char *)((int)pChunk + sizeof(RIFF_CHUNK));
+        return (unsigned char *)((uintptr_t)pChunk + sizeof(RIFF_CHUNK));
 }
 
 /* get next chunk after chunk specified */
 RIFF_CHUNK      *Riff_GetNextChunk(RIFF_CHUNK *pChunk)
 {
-        return (RIFF_CHUNK *)((int)pChunk + Riff_GetChunkLength(pChunk) + sizeof(RIFF_CHUNK));
+        return (RIFF_CHUNK *)((uintptr_t)pChunk + Riff_GetChunkLength(pChunk) + sizeof(RIFF_CHUNK));
 }
 
 
@@ -67,7 +68,7 @@ RIFF_CHUNK      *Riff_FindNamedSubChunk(RIFF_CHUNK *pHeader, unsigned long Chunk
 {
         /* pointer to data to start searching from
          is pointer to data, +4 for the AMS! type. */
-        RIFF_CHUNK *pChunk = (RIFF_CHUNK *)((int)Riff_GetChunkDataPtr(pHeader) + 4);
+        RIFF_CHUNK *pChunk = (RIFF_CHUNK *)((uintptr_t)Riff_GetChunkDataPtr(pHeader) + 4);
         
         /* get length of RIFF chunk */
         int ParentChunkLength = Riff_GetChunkLength(pHeader);
@@ -85,7 +86,7 @@ RIFF_CHUNK      *Riff_FindNamedSubChunk(RIFF_CHUNK *pHeader, unsigned long Chunk
                 /* next chunk */
                 pChunk = Riff_GetNextChunk(pChunk);
         }
-        while (((int)pChunk-(int)pHeader)<ParentChunkLength);
+        while (((intptr_t)pChunk-(intptr_t)pHeader)<ParentChunkLength); //FIXME: check whether uintptr_t can be used
 
         /* couldn't find named chunk */
         return NULL;

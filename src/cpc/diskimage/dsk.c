@@ -22,6 +22,7 @@
 /* Standard disk image code */
 
 
+#include <stdint.h>
 #include "diskimg.h"
 #include "dsk.h"
 #include "../host.h"
@@ -61,7 +62,7 @@ int		Dsk_Validate(const unsigned char *pDiskImage, const unsigned long DiskImage
 					{
 						/* correct size image */
 						int	i;
-						DSKTRACKHEADER *pTrack = (DSKTRACKHEADER *)((int)pHeader + sizeof(DSKHEADER));
+						DSKTRACKHEADER *pTrack = (void *)((uintptr_t)pHeader + sizeof(DSKHEADER));
 
 						for (i=0; i<TotalTracks; i++)
 						{
@@ -80,7 +81,7 @@ int		Dsk_Validate(const unsigned char *pDiskImage, const unsigned long DiskImage
 							if (thisTrackSize>TrackSize)
 								break;
 
-							pTrack = (DSKTRACKHEADER *)((int)pTrack + TrackSize);
+							pTrack = (void *)((uintptr_t)pTrack + TrackSize);
 						}
 
 						if (i==TotalTracks)
