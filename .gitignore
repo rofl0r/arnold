@@ -1,0 +1,5 @@
+*.o
+*.sna
+arnold
+config.mak
+
