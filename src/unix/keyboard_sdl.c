@@ -18,6 +18,7 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 #include "../cpc/messages.h"
+#include "ifacegen.h"
 
 
 // table to map KeySym values to CPC Key values
@@ -90,6 +91,11 @@ void	HandleKey(SDL_KeyboardEvent *theEvent)
 		}
 	} else if (keycode == SDLK_F4 && theEvent->type == SDL_KEYDOWN ) {
 		quit();
+	} else if (keycode == SDLK_F11 && theEvent->type == SDL_KEYDOWN ) {
+		/* save a snapshot, don't bother whether 128K or 64KB RAM are used */
+		GenericInterface_SnapshotSave("arnold01.sna", 3, 128);
+	} else if (keycode == SDLK_F12 && theEvent->type == SDL_KEYDOWN ) {
+		GenericInterface_LoadSnapshot("arnold01.sna");
 	/* Handle CPC keys */
 	} else {
 		//printf("Keycode: <%04x> <%04x> <%04x> <%04x>\n",
