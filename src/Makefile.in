@@ -29,10 +29,6 @@ CFLAGS = @CPPFLAGS@ @CFLAGS@ $(GTKINC) $(SDLINC) @DEFS@ $(X11INC) -I. -DUNIX -DC
 #-g3 -pg -dm -dp -a
 LFLAGS1 = @LDFLAGS@ @LIBS@ $(GTKLIB) $(SDLLIB) $(X11LIBS)
 #debug
-LFLAGS2 = -s 
-#LFLAGS2= -g3 -pg -dm -dp -a
-#normal
-#LFLAGS2 = -s
 
 CPC_O=	cpc/arnold.o cpc/asic.o cpc/audioevent.o cpc/bmp.o cpc/cpc.o \
 	cpc/crtc.o cpc/dumpym.o cpc/fdc.o cpc/fdd.o cpc/fdi.o \
@@ -59,7 +55,7 @@ ELF_FMT := $(shell $(CC) -Wl,--print-output-format 2>/dev/null || true | head -n
 
 arnold: roms $(CPC_O) $(UNIX_O)
 	$(BIND) -Wl,-b,binary,$(ROMS_BIN),-b,$(ELF_FMT) -o arnold $(LFLAGS1) $(CPC_O) \
-	$(UNIX_O) $(LFLAGS2)
+	$(UNIX_O)
 	cp arnold ../arnold
 
 unix/display_sdl.o: unix/keyboard_sdl.c
