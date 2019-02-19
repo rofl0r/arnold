@@ -1,5 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT(unix/main.c)
+AC_CONFIG_FILES([config.mak])
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -17,7 +18,7 @@ dnl Replace `main' with a function in -lXext:
 dnl AC_CHECK_LIB(Xext, main)
 dnl Replace `main' with a function in -libs:
 dnl AC_CHECK_LIB(ibs, main)
-AM_PATH_GTK(1.2.0,AC_DEFINE(HAVE_GTK),AC_MSG_RESULT(GTK GUI will not be built!))
+dnl AM_PATH_GTK(1.2.0,AC_DEFINE(HAVE_GTK),AC_MSG_RESULT(GTK GUI will not be built!))
 AM_PATH_SDL(1.2.0,AC_DEFINE(HAVE_SDL),AC_MSG_RESULT(SDL will be disables. Using plain X11 code instead!))
 AC_CHECK_HEADER(sys/soundcard.h,AC_DEFINE(HAVE_SYS_SOUNDCARD_H),AC_MSG_RESULT(OSS sound support will not be built!))
 
@@ -39,4 +40,4 @@ dnl AC_FUNC_MEMCMP
 dnl AC_TYPE_SIGNAL
 dnl AC_CHECK_FUNCS(getcwd gettimeofday select)
 
-AC_OUTPUT(Makefile)
+AC_OUTPUT()

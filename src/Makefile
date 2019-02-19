@@ -1,14 +1,11 @@
 # Makefile for Arnold
 
-CC = @CC@
+-include config.mak
+
 BIND = $(CC)
 #   CFLAGS    flags for C compile
 #   LFLAGS1   flags after output file spec, before obj file list
 #   LFLAGS2   flags after obj file list (libraries, etc)
-
-#use this for RedHat/SuSE Linux
-X11INC = -I@x_includes@
-X11LIB = -L@x_libraries@
 
 # Use this for Solaris 2.5.1 with OpenWin
 #X11INC = -I/usr/X11R6/include -I/usr/openwin/share/include
@@ -16,19 +13,10 @@ X11LIB = -L@x_libraries@
 
 X11LIBS = $(X11LIB) -lX11 -lXext
 
-# Comment to following two lines to disable GTK+
-GTKINC = @GTK_CFLAGS@
-GTKLIB = @GTK_LIBS@
-
-# Comment to following two lines to disable SDL
-SDLINC = @SDL_CFLAGS@
-SDLLIB = @SDL_LIBS@
-
 #-Wall for max warnings!
-CFLAGS = @CPPFLAGS@ @CFLAGS@ $(GTKINC) $(SDLINC) @DEFS@ $(X11INC) -I. -DUNIX -DCPC_LSB_FIRST -Wall -Wno-unused -Wno-pointer-sign
-#-g3 -pg -dm -dp -a
-LFLAGS1 = @LDFLAGS@ @LIBS@ $(GTKLIB) $(SDLLIB) $(X11LIBS)
-#debug
+CFLAGS = $(CFLAGS_CONFIGURE) $(GTKINC) $(SDLINC)$(X11INC) -I. -DUNIX -DCPC_LSB_FIRST -Wall -Wno-unused -Wno-pointer-sign
+
+LFLAGS1 = $(LDFLAGS_CONFIGURE) $(GTKLIB) $(SDLLIB) $(X11LIBS)
 
 CPC_O=	cpc/arnold.o cpc/asic.o cpc/audioevent.o cpc/bmp.o cpc/cpc.o \
 	cpc/crtc.o cpc/dumpym.o cpc/fdc.o cpc/fdd.o cpc/fdi.o \
