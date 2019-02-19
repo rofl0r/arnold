@@ -18,6 +18,7 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 #include "../cpc/messages.h"
+#include "ifacegen.h"
 
 
 // table to map KeySym values to CPC Key values
@@ -48,6 +49,11 @@ void	HandleKey(SDL_KeyboardEvent *theEvent)
 	/* Handle Function keys to control emulator */
 	if (keycode == SDLK_F1 && theEvent->type == SDL_KEYDOWN ) {
 		CPC_Reset();
+	} else if (keycode == SDLK_F11 && theEvent->type == SDL_KEYDOWN ) {
+		/* save a snapshot, don't bother whether 128K or 64KB RAM are used */
+		GenericInterface_SnapshotSave("arnold01.sna", 3, 128);
+	} else if (keycode == SDLK_F12 && theEvent->type == SDL_KEYDOWN ) {
+		GenericInterface_LoadSnapshot("arnold01.sna");
 	} else if (keycode == SDLK_F2 && theEvent->type == SDL_KEYDOWN ) {	
 		//DisplayMode ^=0x0ff;
 		fullscreen = !fullscreen;
