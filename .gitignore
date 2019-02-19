@@ -2,4 +2,9 @@
 *.sna
 arnold
 config.mak
-
+install-sh
+aclocal.m4
+config.guess
+config.sub
+configure
+autom4te.cache
