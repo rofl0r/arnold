@@ -9,7 +9,7 @@ dnl Checks for endianness
 AC_C_BIGENDIAN
 
 dnl Checks for target
-AC_CANONICAL_SYSTEM
+dnl AC_CANONICAL_SYSTEM
 
 dnl Checks for libraries.
 dnl Replace `main' with a function in -lX11:
