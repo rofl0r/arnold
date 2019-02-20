@@ -44,7 +44,7 @@ unsigned int chn;
 snd_pcm_channel_area_t *areas;
 //int commitBufferSize;
 
-char *device = "plughw:0,0";                     /* playback device */
+char *device = "default";                     /* playback device */
 //char *device = "hw:0,0";                       /* playback device */
 snd_pcm_format_t format_16 = SND_PCM_FORMAT_S16; /* sample format 16 */
 snd_pcm_format_t format_8 = SND_PCM_FORMAT_U8;   /* sample format 8 */
