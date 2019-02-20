@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
 
 	init_main(argc, argv);
 	
-	GenericInterface_Finish();
+//	GenericInterface_Finish();
 
 //	DirStuff_Finish();
 
@@ -281,7 +281,7 @@ void init_main(int argc, char *argv[]) {
 	/* fprintf(stderr,"%s\n",LocalDirectory); */
 
 
-	GenericInterface_Initialise();
+	//GenericInterface_Initialise();
 
   /* initialise cpc hardware */
 	CPC_Initialise();
@@ -297,7 +297,7 @@ void init_main(int argc, char *argv[]) {
 		ConfigCPC6128();
 
 		if (tape) {
-			if (!TapeImage_InsertFromFile(tape)) {
+			if (!GenericInterface_InsertTape(tape)) {
 				printf(Messages[73], tape);
 			}
 		}
@@ -381,7 +381,7 @@ void init_main(int argc, char *argv[]) {
 		}
 
 		if (snapshot) {
-			if (!Snapshot_Load(snapshot)) {
+			if (!GenericInterface_LoadSnapshot(snapshot)) {
 				printf(Messages[78],
 					snapshot);
 			}
