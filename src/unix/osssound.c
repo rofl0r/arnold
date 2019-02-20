@@ -58,7 +58,7 @@ BOOL	oss_open_audio() {
 
 	if ((fd_dsp = open ("/dev/dsp", O_WRONLY, 0)) == -1) {
 		perror ("/dev/dsp");
-		exit (-1);
+		return FALSE;
 	}
 
 	if (ioctl (fd_dsp, SNDCTL_DSP_SETFRAGMENT, &frag) == -1)
@@ -67,29 +67,29 @@ BOOL	oss_open_audio() {
 	tmp = FORMAT;		/* Native 16 bits */
 	if (ioctl (fd_dsp, SNDCTL_DSP_SETFMT, &tmp) == -1) {
 		perror ("SNDCTL_DSP_SETFMT");
-		exit (-1);
+		return FALSE;
 	}
 
 	if (tmp != FORMAT) {
 		fprintf (stderr,
 				"The device doesn't support the 16 bit sample format.\n");
-		exit (-1);
+		return FALSE;
 	}
 
 	tmp = channels;
 	if (ioctl (fd_dsp, SNDCTL_DSP_CHANNELS, &tmp) == -1) {
 		perror ("SNDCTL_DSP_CHANNELS");
-		exit (-1);
+		return FALSE;
 	}
 
 	if (tmp != channels) {
 		fprintf (stderr, "The device doesn't support stereo mode.\n");
-		exit (-1);
+		return FALSE;
 	}
 
 	if (ioctl (fd_dsp, SNDCTL_DSP_SPEED, &rate) == -1) {
 		perror ("SNDCTL_DSP_SPEED");
-		exit (-1);
+		return FALSE;
 	}
 
 	oss_audiodev_is_open = TRUE;
