@@ -18,44 +18,23 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef __ROMS_HEADER_INCLUDED__
-#define __ROMS_HEADER_INCLUDED__
+#ifndef __SOUND_HEADER_INCLUDED__
+#define __SOUND_HEADER_INCLUDED__
 
-#define BUILTIN "^"
+#include "../cpc/cpcglob.h"
 
-/*
- * typedefs for roms and cartridges
- */
+#define SOUND_PLUGIN_NONE 0
+#define SOUND_PLUGIN_OSS 1
+#define SOUND_PLUGIN_ALSA 2
+#define SOUND_PLUGIN_ALSA_MMAP 3
+#define SOUND_PLUGIN_SDL 4
 
-typedef struct {
-	char *start;
-	char *end;
-	int size;
-} rom_t;
+extern char *soundpluginNames[];
 
-typedef struct {
-	rom_t os;
-	rom_t basic;
-} roms_t;
+extern int sound_plugin;
 
-typedef rom_t cartridge_t;
-
-/*
- * Rom structures
- */
-rom_t		rom_amsdos;
-roms_t		roms_cpc464;
-roms_t		roms_cpc664;
-roms_t		roms_cpc6128;
-roms_t		roms_cpc6128s;
-roms_t		roms_kcc;
-cartridge_t	cartridge_cpcplus;
-
-/*
- * functions
- */
-
-void roms_init();
-
+static SOUND_PLAYBACK_FORMAT SoundFormat;
+void convert8to16bit(signed short *ptr, int cptr);
+BOOL sound_throttle(void);
 #endif
 

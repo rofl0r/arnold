@@ -678,6 +678,8 @@ GTK_LIBS
 SDL_CONFIG
 SDL_CFLAGS
 SDL_LIBS
+ALSA_CFLAGS
+ALSA_LIBS
 XMKMF
 x_includes
 x_libraries
@@ -1273,12 +1275,15 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --disable-gtktest       do not try to compile and run a test GTK+ program
   --disable-sdltest       Do not try to compile and run a test SDL program
+  --disable-alsatest      Do not try to compile and run a test Alsa program
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-sdl-prefix=PFX   Prefix where SDL is installed (optional)
   --with-sdl-exec-prefix=PFX Exec prefix where SDL is installed (optional)
+  --with-alsa-prefix=PFX  Prefix where Alsa library is installed(optional)
+  --with-alsa-inc-prefix=PFX  Prefix where include libraries are (optional)
   --with-x                use the X Window System
 
 Some influential environment variables:
@@ -4008,13 +4013,13 @@ fi
 
 
   if test x$sdl_exec_prefix != x ; then
-    sdl_args="$sdl_args --exec-prefix=$sdl_exec_prefix"
+    sdl_config_args="$sdl_config_args --exec-prefix=$sdl_exec_prefix"
     if test x${SDL_CONFIG+set} != xset ; then
       SDL_CONFIG=$sdl_exec_prefix/bin/sdl-config
     fi
   fi
   if test x$sdl_prefix != x ; then
-    sdl_args="$sdl_args --prefix=$sdl_prefix"
+    sdl_config_args="$sdl_config_args --prefix=$sdl_prefix"
     if test x${SDL_CONFIG+set} != xset ; then
       SDL_CONFIG=$sdl_prefix/bin/sdl-config
     fi
@@ -4071,12 +4076,12 @@ echo $ECHO_N "checking for SDL - version >= $min_sdl_version... $ECHO_C" >&6; }
   if test "$SDL_CONFIG" = "no" ; then
     no_sdl=yes
   else
-    SDL_CFLAGS=`$SDL_CONFIG $sdlconf_args --cflags`
-    SDL_LIBS=`$SDL_CONFIG $sdlconf_args --libs`
+    SDL_CFLAGS=`$SDL_CONFIG $sdl_config_args --cflags`
+    SDL_LIBS=`$SDL_CONFIG $sdl_config_args --libs`
 
-    sdl_major_version=`$SDL_CONFIG $sdl_args --version | \
+    sdl_major_version=`$SDL_CONFIG $sdl_config_args --version | \
            sed 's/\([0-9]*\).\([0-9]*\).\([0-9]*\)/\1/'`
-    sdl_minor_version=`$SDL_CONFIG $sdl_args --version | \
+    sdl_minor_version=`$SDL_CONFIG $sdl_config_args --version | \
            sed 's/\([0-9]*\).\([0-9]*\).\([0-9]*\)/\2/'`
     sdl_micro_version=`$SDL_CONFIG $sdl_config_args --version | \
            sed 's/\([0-9]*\).\([0-9]*\).\([0-9]*\)/\3/'`
@@ -4292,6 +4297,263 @@ echo "${ECHO_T}SDL will be disables. Using plain X11 code instead!" >&6; }
 
 
   rm -f conf.sdltest
+
+alsa_save_CFLAGS="$CFLAGS"
+alsa_save_LDFLAGS="$LDFLAGS"
+alsa_save_LIBS="$LIBS"
+alsa_found=yes
+
+
+# Check whether --with-alsa-prefix was given.
+if test "${with_alsa_prefix+set}" = set; then
+  withval=$with_alsa_prefix; alsa_prefix="$withval"
+else
+  alsa_prefix=""
+fi
+
+
+
+# Check whether --with-alsa-inc-prefix was given.
+if test "${with_alsa_inc_prefix+set}" = set; then
+  withval=$with_alsa_inc_prefix; alsa_inc_prefix="$withval"
+else
+  alsa_inc_prefix=""
+fi
+
+
+# Check whether --enable-alsatest was given.
+if test "${enable_alsatest+set}" = set; then
+  enableval=$enable_alsatest; enable_alsatest="$enableval"
+else
+  enable_alsatest=yes
+fi
+
+
+{ echo "$as_me:$LINENO: checking for ALSA CFLAGS" >&5
+echo $ECHO_N "checking for ALSA CFLAGS... $ECHO_C" >&6; }
+if test "$alsa_inc_prefix" != "" ; then
+	ALSA_CFLAGS="$ALSA_CFLAGS -I$alsa_inc_prefix"
+	CFLAGS="$CFLAGS -I$alsa_inc_prefix"
+fi
+{ echo "$as_me:$LINENO: result: $ALSA_CFLAGS" >&5
+echo "${ECHO_T}$ALSA_CFLAGS" >&6; }
+
+{ echo "$as_me:$LINENO: checking for ALSA LDFLAGS" >&5
+echo $ECHO_N "checking for ALSA LDFLAGS... $ECHO_C" >&6; }
+if test "$alsa_prefix" != "" ; then
+	ALSA_LIBS="$ALSA_LIBS -L$alsa_prefix"
+	LDFLAGS="$LDFLAGS $ALSA_LIBS"
+fi
+
+ALSA_LIBS="$ALSA_LIBS -lasound -lm -ldl -lpthread"
+LIBS="$ALSA_LIBS $LIBS"
+{ echo "$as_me:$LINENO: result: $ALSA_LIBS" >&5
+echo "${ECHO_T}$ALSA_LIBS" >&6; }
+
+min_alsa_version=1.0.0
+{ echo "$as_me:$LINENO: checking for libasound headers version >= $min_alsa_version" >&5
+echo $ECHO_N "checking for libasound headers version >= $min_alsa_version... $ECHO_C" >&6; }
+no_alsa=""
+    alsa_min_major_version=`echo $min_alsa_version | \
+           sed 's/\([0-9]*\).\([0-9]*\).\([0-9]*\)/\1/'`
+    alsa_min_minor_version=`echo $min_alsa_version | \
+           sed 's/\([0-9]*\).\([0-9]*\).\([0-9]*\)/\2/'`
+    alsa_min_micro_version=`echo $min_alsa_version | \
+           sed 's/\([0-9]*\).\([0-9]*\).\([0-9]*\)/\3/'`
+
+
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+#include <alsa/asoundlib.h>
+
+int
+main ()
+{
+
+/* ensure backward compatibility */
+#if !defined(SND_LIB_MAJOR) && defined(SOUNDLIB_VERSION_MAJOR)
+#define SND_LIB_MAJOR SOUNDLIB_VERSION_MAJOR
+#endif
+#if !defined(SND_LIB_MINOR) && defined(SOUNDLIB_VERSION_MINOR)
+#define SND_LIB_MINOR SOUNDLIB_VERSION_MINOR
+#endif
+#if !defined(SND_LIB_SUBMINOR) && defined(SOUNDLIB_VERSION_SUBMINOR)
+#define SND_LIB_SUBMINOR SOUNDLIB_VERSION_SUBMINOR
+#endif
+
+#  if(SND_LIB_MAJOR > $alsa_min_major_version)
+  exit(0);
+#  else
+#    if(SND_LIB_MAJOR < $alsa_min_major_version)
+#       error not present
+#    endif
+
+#   if(SND_LIB_MINOR > $alsa_min_minor_version)
+  exit(0);
+#   else
+#     if(SND_LIB_MINOR < $alsa_min_minor_version)
+#          error not present
+#      endif
+
+#      if(SND_LIB_SUBMINOR < $alsa_min_micro_version)
+#        error not present
+#      endif
+#    endif
+#  endif
+exit(0);
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  { echo "$as_me:$LINENO: result: found." >&5
+echo "${ECHO_T}found." >&6; }
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	{ echo "$as_me:$LINENO: result: not present." >&5
+echo "${ECHO_T}not present." >&6; }
+
+   alsa_found=no
+
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+if test "x$enable_alsatest" = "xyes"; then
+
+{ echo "$as_me:$LINENO: checking for snd_ctl_open in -lasound" >&5
+echo $ECHO_N "checking for snd_ctl_open in -lasound... $ECHO_C" >&6; }
+if test "${ac_cv_lib_asound_snd_ctl_open+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lasound  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char snd_ctl_open ();
+int
+main ()
+{
+return snd_ctl_open ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext &&
+       $as_test_x conftest$ac_exeext; then
+  ac_cv_lib_asound_snd_ctl_open=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_lib_asound_snd_ctl_open=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_lib_asound_snd_ctl_open" >&5
+echo "${ECHO_T}$ac_cv_lib_asound_snd_ctl_open" >&6; }
+if test $ac_cv_lib_asound_snd_ctl_open = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBASOUND 1
+_ACEOF
+
+  LIBS="-lasound $LIBS"
+
+else
+
+	 alsa_found=no
+
+fi
+
+fi
+
+if test "x$alsa_found" = "xyes" ; then
+   cat >>confdefs.h <<\_ACEOF
+#define HAVE_ALSA 1
+_ACEOF
+
+   LIBS=`echo $LIBS | sed 's/-lasound//g'`
+   LIBS=`echo $LIBS | sed 's/  //'`
+   LIBS="-lasound $LIBS"
+fi
+if test "x$alsa_found" = "xno" ; then
+   { echo "$as_me:$LINENO: result: ALSA will be disables. Using SDL sound instead!" >&5
+echo "${ECHO_T}ALSA will be disables. Using SDL sound instead!" >&6; }
+   CFLAGS="$alsa_save_CFLAGS"
+   LDFLAGS="$alsa_save_LDFLAGS"
+   LIBS="$alsa_save_LIBS"
+   ALSA_CFLAGS=""
+   ALSA_LIBS=""
+fi
+
+
+
 
 if test "${ac_cv_header_sys_soundcard_h+set}" = set; then
   { echo "$as_me:$LINENO: checking for sys/soundcard.h" >&5
@@ -5369,6 +5631,8 @@ GTK_LIBS!$GTK_LIBS$ac_delim
 SDL_CONFIG!$SDL_CONFIG$ac_delim
 SDL_CFLAGS!$SDL_CFLAGS$ac_delim
 SDL_LIBS!$SDL_LIBS$ac_delim
+ALSA_CFLAGS!$ALSA_CFLAGS$ac_delim
+ALSA_LIBS!$ALSA_LIBS$ac_delim
 XMKMF!$XMKMF$ac_delim
 x_includes!$x_includes$ac_delim
 x_libraries!$x_libraries$ac_delim
@@ -5376,7 +5640,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 70; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 72; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

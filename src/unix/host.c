@@ -31,11 +31,27 @@
 #include "../cpc/messages.h"
 
 #include "sdlsound.h"
+#include "osssound.h"
+#include "alsasound.h"
+#include "alsasound-mmap.h"
+#include "alsasound-common.h"
 #include "global.h"
+#include "sound.h"
 
 #ifdef HAVE_SDL
-#define USE_SDL_SOUND
+//#define USE_SDL_SOUND
+//#define USE_ALSA_SOUND
+//#define USE_OSS_SOUND
 #endif
+
+#if 0
+#define SOUND_PLUGIN_OSS 1
+#define SOUND_PLUGIN_ALSA 2
+#define SOUND_PLUGIN_ALSA_MMAP 3
+#define SOUND_PLUGIN_SDL 4
+#endif
+
+int sound_plugin = SOUND_PLUGIN_OSS;
 
 static GRAPHICS_BUFFER_INFO BufferInfo;
 static GRAPHICS_BUFFER_COLOUR_FORMAT BufferColourFormat;
@@ -47,8 +63,6 @@ void Host_HandlePrinterOutput(void)
 
 BOOL	Host_SetDisplay(int Type, int Width, int Height, int Depth)
 {
-	int DispType;
-
 #ifdef HAVE_SDL
 	if (Type == DISPLAY_TYPE_WINDOWED)
 	{
@@ -150,27 +164,68 @@ BOOL	Host_open_audio(SDL_AudioSpec *audioSpec) {
 */
 
 void	Host_close_audio(void) {
-#ifdef USE_SDL_SOUND
-	sdl_close_audio();
-#endif
+	switch(sound_plugin) {
+		case SOUND_PLUGIN_OSS:
+			oss_close_audio();
+			break;
+		case SOUND_PLUGIN_ALSA:
+			alsa_close_audio();
+			break;
+		case SOUND_PLUGIN_ALSA_MMAP:
+			alsa_mmap_close_audio();
+			break;
+		case SOUND_PLUGIN_SDL:
+			sdl_close_audio();
+			break;
+	}
 }
 
 BOOL	Host_AudioPlaybackPossible(void)
 {
-#ifdef USE_SDL_SOUND
-	return sdl_AudioPlaybackPossible();
-#else
-	return FALSE;
-#endif
+	switch(sound_plugin) {
+		case SOUND_PLUGIN_OSS:
+			return oss_AudioPlaybackPossible();
+			break;
+		case SOUND_PLUGIN_ALSA:
+			return alsa_AudioPlaybackPossible();
+			alsa_close_audio();
+			break;
+		case SOUND_PLUGIN_ALSA_MMAP:
+			return alsa_mmap_AudioPlaybackPossible();
+			alsa_mmap_close_audio();
+			break;
+		case SOUND_PLUGIN_SDL:
+			return sdl_AudioPlaybackPossible();
+			sdl_close_audio();
+			break;
+		default:
+			return FALSE;
+			break;
+	}
 }
 
 SOUND_PLAYBACK_FORMAT *Host_GetSoundPlaybackFormat(void)
 {
-#ifdef USE_SDL_SOUND
-	return sdl_GetSoundPlaybackFormat();
-#else
-	return NULL;
-#endif
+	switch(sound_plugin) {
+		case SOUND_PLUGIN_OSS:
+			return oss_GetSoundPlaybackFormat();
+			break;
+		case SOUND_PLUGIN_ALSA:
+			return alsa_GetSoundPlaybackFormat();
+			alsa_close_audio();
+			break;
+		case SOUND_PLUGIN_ALSA_MMAP:
+			return alsa_mmap_GetSoundPlaybackFormat();
+			alsa_mmap_close_audio();
+			break;
+		case SOUND_PLUGIN_SDL:
+			return sdl_GetSoundPlaybackFormat();
+			sdl_close_audio();
+			break;
+		default:
+			return NULL;
+			break;
+	}
 }
 
 BOOL XWindows_ProcessSystemEvents();
@@ -258,19 +313,50 @@ BOOL	Host_LockAudioBuffer(unsigned char **pBlock1, unsigned long
 *pBlock1Size, unsigned char **pBlock2, unsigned long *pBlock2Size, int
 AudioBufferSize)
 {	
-#ifdef USE_SDL_SOUND
-	return sdl_LockAudioBuffer(pBlock1, pBlock1Size, pBlock2, pBlock2Size,
-		AudioBufferSize);
-#else
-	return FALSE;
-#endif
+	switch(sound_plugin) {
+		case SOUND_PLUGIN_OSS:
+			return oss_LockAudioBuffer(pBlock1, pBlock1Size,
+				pBlock2, pBlock2Size, AudioBufferSize);
+			break;
+		case SOUND_PLUGIN_ALSA:
+			return alsa_LockAudioBuffer(pBlock1, pBlock1Size,
+				pBlock2, pBlock2Size, AudioBufferSize);
+			alsa_close_audio();
+			break;
+		case SOUND_PLUGIN_ALSA_MMAP:
+			return alsa_mmap_LockAudioBuffer(pBlock1, pBlock1Size,
+				pBlock2, pBlock2Size, AudioBufferSize);
+			alsa_mmap_close_audio();
+			break;
+		case SOUND_PLUGIN_SDL:
+			return sdl_LockAudioBuffer(pBlock1, pBlock1Size,
+				pBlock2, pBlock2Size, AudioBufferSize);
+			sdl_close_audio();
+			break;
+		default:
+			return FALSE;
+			break;
+	}
 }
 
 void	Host_UnLockAudioBuffer(void)
 {
-#ifdef USE_SDL_SOUND
-	sdl_UnLockAudioBuffer();
-#endif
+	switch(sound_plugin) {
+		case SOUND_PLUGIN_OSS:
+			oss_UnLockAudioBuffer();
+			break;
+		case SOUND_PLUGIN_ALSA:
+			alsa_UnLockAudioBuffer();
+			break;
+		case SOUND_PLUGIN_ALSA_MMAP:
+			alsa_mmap_UnLockAudioBuffer();
+			break;
+		case SOUND_PLUGIN_SDL:
+			sdl_UnLockAudioBuffer();
+			break;
+		default:
+			break;
+	}
 }
 
 void	quit(void)

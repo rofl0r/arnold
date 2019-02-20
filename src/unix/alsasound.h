@@ -17,45 +17,19 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
+#define HAVE_ALSA 1
+#ifdef HAVE_ALSA
 
-#ifndef __ROMS_HEADER_INCLUDED__
-#define __ROMS_HEADER_INCLUDED__
+#include "../cpc/host.h"
+#include <alsa/asoundlib.h>
 
-#define BUILTIN "^"
+BOOL	alsa_AudioPlaybackPossible(void);
 
-/*
- * typedefs for roms and cartridges
- */
+BOOL	alsa_LockAudioBuffer(unsigned char **pBlock1, unsigned long
+*pBlock1Size, unsigned char **pBlock2, unsigned long *pBlock2Size, int
+AudioBufferSize);
 
-typedef struct {
-	char *start;
-	char *end;
-	int size;
-} rom_t;
+void	alsa_UnLockAudioBuffer(void);
 
-typedef struct {
-	rom_t os;
-	rom_t basic;
-} roms_t;
-
-typedef rom_t cartridge_t;
-
-/*
- * Rom structures
- */
-rom_t		rom_amsdos;
-roms_t		roms_cpc464;
-roms_t		roms_cpc664;
-roms_t		roms_cpc6128;
-roms_t		roms_cpc6128s;
-roms_t		roms_kcc;
-cartridge_t	cartridge_cpcplus;
-
-/*
- * functions
- */
-
-void roms_init();
-
-#endif
+#endif	/* HAVE_ALSA */
 

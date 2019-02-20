@@ -17,45 +17,31 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
+#define HAVE_OSS 1
+#ifdef HAVE_OSS
 
-#ifndef __ROMS_HEADER_INCLUDED__
-#define __ROMS_HEADER_INCLUDED__
+#include "../cpc/host.h"
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <sys/soundcard.h>
 
-#define BUILTIN "^"
+BOOL	oss_open_audio();
 
-/*
- * typedefs for roms and cartridges
- */
+void	oss_close_audio(void);
 
-typedef struct {
-	char *start;
-	char *end;
-	int size;
-} rom_t;
+BOOL	oss_AudioPlaybackPossible(void);
 
-typedef struct {
-	rom_t os;
-	rom_t basic;
-} roms_t;
+SOUND_PLAYBACK_FORMAT *oss_GetSoundPlaybackFormat(void);
 
-typedef rom_t cartridge_t;
+BOOL	oss_LockAudioBuffer(unsigned char **pBlock1, unsigned long
+*pBlock1Size, unsigned char **pBlock2, unsigned long *pBlock2Size, int
+AudioBufferSize);
 
-/*
- * Rom structures
- */
-rom_t		rom_amsdos;
-roms_t		roms_cpc464;
-roms_t		roms_cpc664;
-roms_t		roms_cpc6128;
-roms_t		roms_cpc6128s;
-roms_t		roms_kcc;
-cartridge_t	cartridge_cpcplus;
+void	oss_UnLockAudioBuffer(void);
 
-/*
- * functions
- */
+BOOL	oss_Throttle(void);
 
-void roms_init();
-
-#endif
+#endif	/* HAVE_OSS */
 

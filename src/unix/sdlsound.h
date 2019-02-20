@@ -33,7 +33,7 @@ BOOL	sdl_open_audio(SDL_AudioSpec *audioSpec);
 
 void	sdl_close_audio(void);
 
-void	fill_audio(void *userdata, Uint8 *stream, int len);
+void	sdl_fill_audio(void *userdata, Uint8 *stream, int len);
 
 BOOL	sdl_AudioPlaybackPossible(void);
 

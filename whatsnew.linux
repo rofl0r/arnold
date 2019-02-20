@@ -1,5 +1,16 @@
 Andreas Micklei's Arnold/Linux Changelog:
 
+09-December-2008
+================
+
+Linux port:
+- Sound output on Linux is now provided via four different "plugins":
+  OSS, ALSA, ALSAMMAP or SDL. OSS is the default, others can be choosen via
+  command line (see arnold -h for help).
+- Sound now actually works as expected when using ALSA or OSS. The SDL plugin
+  is left in for completeness but still broken as before.
+- Spanish CPC6128 with different ROMs
+
 18-September-2007
 =================
 

@@ -20,8 +20,9 @@
 #include "../cpc/messages.h"
 
 void ConfigCPC464();
-void ConfigCPC6128();
 void ConfigCPC664();
+void ConfigCPC6128();
+void ConfigCPC6128s();
 void Config464Plus();
 void Config6128Plus();
 void ConfigKCCompact();
@@ -40,7 +41,7 @@ GtkWidget *option_menu_cpctype, *option_menu_crtctype,
 
 char DSKfilename[ PATH_MAX ];
 
-static char *CPCTYPESTRINGS[7] = { "CPC 464", "CPC 664", "CPC 6128", "CPC 464+",
+static char *CPCTYPESTRINGS[8] = { "CPC 464", "CPC 664", "CPC 6128", "CPC 6128 spanish", "CPC 464+",
 	"CPC 6128+", "KC Compact", NULL };
 static char *CRTCTYPESTRINGS[6] = { "CRTC 0", "CRTC 1", "CRTC 2", "CRTC 3",
 	"CRTC 4", NULL };
@@ -493,17 +494,23 @@ void choose_cpctype( GtkWidget *widget, gpointer data ) {
 
 		case 3:
 		{
-			Config464Plus();
+			ConfigCPC6128s();
 		}
 		break;
 
 		case 4:
 		{
-			Config6128Plus();
+			Config464Plus();
 		}
 		break;
 
 		case 5:
+		{
+			Config6128Plus();
+		}
+		break;
+
+		case 6:
 		{
 			ConfigKCCompact();
 		}

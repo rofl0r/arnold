@@ -105,7 +105,7 @@ void	*halfcpy(void *dest, const void *src, size_t n) {
 	return dest;
 }
 
-void	fill_audio(void *userdata, Uint8 *stream, int len) {
+void	sdl_fill_audio(void *userdata, Uint8 *stream, int len) {
 	static int debugcounter = 0;
 	//static SDL_AudioSpec wav_spec;
 	//static Uint32 wav_length;
@@ -113,7 +113,7 @@ void	fill_audio(void *userdata, Uint8 *stream, int len) {
 	//static Uint8 *p = NULL;
 	int i, j;
 	int remain;
-	//fprintf(stderr,"fill_audio()\n");
+	//fprintf(stderr,"sdl_fill_audio()\n");
 	//fprintf(stderr,".%x",len);
 	//fprintf(stderr,".%x:%x:%x",(debugcounter+=len),len,
 		//audio_pos-audio_chunk);
@@ -184,7 +184,7 @@ BOOL	sdl_AudioPlaybackPossible(void)
 	//audioSpec.samples = audio_bufsize/4;	//FIXME, only 16 bit Stereo
 	//audioSpec.samples = audio_callbacksize/4;//FIXME, only 16 bit Stereo
 	audioSpec.samples = audio_callbacksize;
-	audioSpec.callback = fill_audio;
+	audioSpec.callback = sdl_fill_audio;
 	audioSpec.userdata = NULL;
 	return sdl_open_audio(&audioSpec);
 }

@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "global.h"
+#include "sound.h"
 
 #ifdef HAVE_SDL
 #include <SDL.h>
@@ -83,6 +84,18 @@ void ConfigCPC6128()
   CPC_Reset();
 }
 
+/* 6128 spanish base system -> disc, 128k only */
+void ConfigCPC6128s()
+{
+	CPC_SetOSRom(roms_cpc6128s.os.start);
+	CPC_SetBASICRom(roms_cpc6128s.basic.start);
+	CPC_SetDOSRom(rom_amsdos.start);
+	Amstrad_DiscInterface_Install();
+	Amstrad_RamExpansion_Install();
+	CPC_SetHardware(CPC_HW_CPC);
+  CPC_Reset();
+}
+
 /* 464+ base system -> tape, 64k only */
 void Config464Plus()
 {
@@ -93,13 +106,13 @@ void Config464Plus()
   CPC_Reset();
 }
 
-/* 6128+ base system-> disc, 64k only */
+/* 6128+ base system-> disc, 128k only */
 void Config6128Plus()
 {	
 	CPC_SetHardware(CPC_HW_CPCPLUS);
 	Cartridge_Insert(cartridge_cpcplus.start, cartridge_cpcplus.size);
 	Amstrad_DiscInterface_Install();
-	Amstrad_RamExpansion_DeInstall();
+	Amstrad_RamExpansion_Install();
   CPC_Reset();
 }
 
@@ -175,7 +188,8 @@ int main(int argc, char *argv[])
 		printf("-tape <string> = specify tape image\n");
 		printf("-cpctype <integer> = specify CPC type (0=CPC464, 1=CPC664, 2=CPC6128, 3=CPC464+, 4=CPC6128+\n");
 		printf("-snapshort <string> = specify snapshot to load\n");
-		printf("-kbdtype <integer> = specify keyboard type (0=QWERTY, 1=QWERTZ, 2=AZERTY)");
+		printf("-kbdtype <integer> = specify keyboard type (0=QWERTY, 1=QWERTZ, 2=AZERTY)\n");
+		printf("-soundplugin <integer> = specify sound output plugin\n                         (0=NONE, 1=OSS, 2=ALSA, 3=ALSA_MMAP, 4=SDL)\n");
 		exit(0);
 	}
 
@@ -195,6 +209,7 @@ void init_main(int argc, char *argv[]) {
 		{"cpctype", 1, 0, 'p'},
 		{"snapshot", 1, 0, 's'},
 		{"kbdtype", 1, 0, 'k'},
+		{"soundplugin", 1, 0, 'o'},
 		{"help", 0, 0, 'h'},
 		{0, 0, 0, 0}
 	};
@@ -209,6 +224,7 @@ void init_main(int argc, char *argv[]) {
 	char *cpctype = NULL;
 	char *snapshot = NULL;
 	char *kbdtype = NULL;
+	char *soundplugin = NULL;
 	do {
 		int this_option_optind = optind ? optind : 1;
 		int option_index = 0;
@@ -246,6 +262,9 @@ void init_main(int argc, char *argv[]) {
 				break;
 			case 'k':
 				kbdtype = optarg;
+				break;
+			case 'o':
+				soundplugin = optarg;
 				break;
 
 		}
@@ -316,16 +335,20 @@ void init_main(int argc, char *argv[]) {
 				break;
 				case 3:
 				{
-				Config464Plus();
+				ConfigCPC6128s();
 				}
 				break;
 				case 4:
 				{
+				Config464Plus();
+				}
+				break;
+				case 5:
+				{
 				Config6128Plus();
 				}
 				break;
-
-				case 5:
+				case 6:
 				{
 				ConfigKCCompact();
 				}
@@ -349,6 +372,9 @@ void init_main(int argc, char *argv[]) {
 
 		if ( kbdtype ) kbd = atoi(kbdtype);
 		printf("kbdtype: %i\n",kbd);
+
+		if ( soundplugin ) sound_plugin = atoi(soundplugin);
+		printf("soundplugin: %i (%s)\n",sound_plugin,soundpluginNames[sound_plugin]);
 
 
 #ifdef HAVE_GTK

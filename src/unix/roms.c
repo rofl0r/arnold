@@ -58,6 +58,15 @@ extern char _binary_roms_cpc6128e_basic_rom_start[];
 extern char _binary_roms_cpc6128e_basic_rom_end[];
 extern int *_binary_roms_cpc6128e_basic_rom_size;
 
+/* CPC6128 spanish */
+extern char _binary_roms_cpc6128s_os_rom_start[];
+extern char _binary_roms_cpc6128s_os_rom_end[];
+extern int *_binary_roms_cpc6128s_os_rom_size;
+
+extern char _binary_roms_cpc6128s_basic_rom_start[];
+extern char _binary_roms_cpc6128s_basic_rom_end[];
+extern int *_binary_roms_cpc6128s_basic_rom_size;
+
 /* CPCplus */
 extern char _binary_roms_cpcplus_system_cpr_start[];
 extern char _binary_roms_cpcplus_system_cpr_end[];
@@ -112,6 +121,15 @@ void roms_init() {
 	roms_cpc6128.basic.start = _binary_roms_cpc6128e_basic_rom_start;
 	roms_cpc6128.basic.end = _binary_roms_cpc6128e_basic_rom_end;
 	roms_cpc6128.basic.size = (int) &_binary_roms_cpc6128e_basic_rom_size;
+
+	/* CPC 6128 spanish */
+	roms_cpc6128s.os.start = _binary_roms_cpc6128s_os_rom_start;
+	roms_cpc6128s.os.end = _binary_roms_cpc6128s_os_rom_end;
+	roms_cpc6128s.os.size = (int) &_binary_roms_cpc6128s_os_rom_size;
+
+	roms_cpc6128s.basic.start = _binary_roms_cpc6128s_basic_rom_start;
+	roms_cpc6128s.basic.end = _binary_roms_cpc6128s_basic_rom_end;
+	roms_cpc6128s.basic.size = (int) &_binary_roms_cpc6128s_basic_rom_size;
 	
 	/* CPC plus */
 	cartridge_cpcplus.start = _binary_roms_cpcplus_system_cpr_start;
@@ -131,11 +149,12 @@ void roms_init() {
 	printf("----------------------------------------------------------\n");
 	printf("Compiled in ROMS:\n");
 	printrom("  Amsdos", "   ", &rom_amsdos);
-	printroms("  464 ", &roms_cpc464);
-	printroms("  664 ", &roms_cpc664);
-	printroms("  6128", &roms_cpc6128);
-	printrom("  plus", "Cart ", &cartridge_cpcplus);
-	printroms("  kcc ", &roms_kcc);
+	printroms("  464  ", &roms_cpc464);
+	printroms("  664  ", &roms_cpc664);
+	printroms("  6128 ", &roms_cpc6128);
+	printroms("  6128s", &roms_cpc6128s);
+	printrom("  plus ", "Cart ", &cartridge_cpcplus);
+	printroms("  kcc  ", &roms_kcc);
 	printf("----------------------------------------------------------\n");
 
 }
