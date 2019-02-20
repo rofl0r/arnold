@@ -28,6 +28,7 @@
 #include "roms.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "global.h"
 
 #ifdef HAVE_SDL
 #include <SDL.h>
@@ -44,7 +45,7 @@ extern void	Host_FreeDriveLEDIndicator();
 
 /* Forward declarations */
 void init_main();
-char *getLocalIfNull(char *s);
+//char *getLocalIfNull(char *s);
 
 
 /* 464 base system -> cassette only, 64k only */ 
@@ -113,10 +114,11 @@ void ConfigKCCompact()
   CPC_Reset();
 }
 
-
 /* main start for Arnold CPC emulator for linux */
 int main(int argc, char *argv[])
 {
+	configInit();	//FIXME: disabled for debug
+
 	/* print welcome message */
 	printf("Arnold Emulator (c) Kevin Thacker\n");
 	printf("Linux Port maintained by Andreas Micklei\n");
@@ -135,19 +137,27 @@ int main(int argc, char *argv[])
 //		printf("Failed to open display. Or display depth is  8-bit\n");
 //		exit(-1);
 //	}
+
+	 /* initialise cpc hardware */
+	CPC_Initialise();
+
+	Multiface_Install();
 	
-	/* display ok, continue with emulation */
-
-//	DirStuff_Initialise();
-
-
-	loadConfigfile();
+	/* done before parsing command line args. Command line args
+	will take priority */
+	loadConfigFile(); //FIXME: disabled for debug
 
 	init_main(argc, argv);
-	
-//	GenericInterface_Finish();
 
-//	DirStuff_Finish();
+	CPC_Finish();
+	
+	Multiface_DeInstall();	
+
+	//printf("heello");
+
+	saveConfigFile(); //FIXME: disabled for debug
+
+	configFree(); //FIXME: disabled for debug
 
 	exit(0);
 
@@ -173,11 +183,6 @@ int main(int argc, char *argv[])
 void sdl_InitialiseJoysticks(void);
 
 void init_main(int argc, char *argv[]) {
-//	char LocalDirectory[1024];
-	//char ProgramDirectory[1024]="";
-	//char *dataDirectory;
-//	char *romDirectory;
-
 	int kbd = -1;
 	/* name, has_arg, flag, val */
 	static struct option long_options[] = {
@@ -246,55 +251,10 @@ void init_main(int argc, char *argv[]) {
 		}
 	} while (c != -1);
 	printf("tape: %s\n", tape);
-
-//	romDirectory = getRomDirectory();
-//	if (romDirectory == NULL) {
-//		/*char *local;
-//		local = getLocalIfNull(romDirectory);
-//		romDirectory = malloc(strlen(local)+5+1);
-//		sprintf(romDirectory,"%s/roms",local);*/
-//		romDirectory = BUILTIN;
-//	}
-
-//	sprintf(LocalDirectory,"%s/amsdose/",romDirectory);
-//	SetDirectoryForLocation(EMULATOR_ROM_CPCAMSDOS_DIR, LocalDirectory);
-	/* fprintf(stderr,"%s\n",LocalDirectory); */
-
-//	sprintf(LocalDirectory,"%s/cpc464e/",romDirectory);
-//	SetDirectoryForLocation(EMULATOR_ROM_CPC464_DIR, LocalDirectory);
-	/* fprintf(stderr,"%s\n",LocalDirectory); */
-
-//	sprintf(LocalDirectory,"%s/cpc664e/",romDirectory);
-//	SetDirectoryForLocation(EMULATOR_ROM_CPC664_DIR, LocalDirectory);
-	/* fprintf(stderr,"%s\n",LocalDirectory); */
-
-//	sprintf(LocalDirectory,"%s/cpc6128e/",romDirectory);
-//	SetDirectoryForLocation(EMULATOR_ROM_CPC6128_DIR, LocalDirectory);
-	/* fprintf(stderr,"%s\n",LocalDirectory); */
-
-//	sprintf(LocalDirectory,"%s/cpcplus/",romDirectory);
-//	SetDirectoryForLocation(EMULATOR_ROM_CPCPLUS_DIR, LocalDirectory);
-	/* fprintf(stderr,"%s\n",LocalDirectory); */
-
-//	sprintf(LocalDirectory,"%s/kcc/",romDirectory);
-//	SetDirectoryForLocation(EMULATOR_ROM_KCCOMPACT_DIR, LocalDirectory);	
-	/* fprintf(stderr,"%s\n",LocalDirectory); */
-
-
-	//GenericInterface_Initialise();
-
-  /* initialise cpc hardware */
-	CPC_Initialise();
   
 	CPCEmulation_InitialiseDefaultSetup();
 
-	/*if (CPCEmulation_Initialise()) */{
-//		//chdir(dataDirectory);		/* FIXME: What is this? */
-//		chdir(getDiskDirectory());	/* FIXME: What is this? */
-
-//		CPC_SetCPCType(CPC_TYPE_CPC6128);
-
-		ConfigCPC6128();
+	ConfigCPC6128();
 
 		if (tape) {
 			if (!GenericInterface_InsertTape(tape)) {
@@ -430,21 +390,9 @@ void init_main(int argc, char *argv[]) {
 	    CPCEmulation_Run();
 #endif
 
-	    CPCEmulation_Finish();
-
+	//printf("aaaa");
+	    //CPCEmulation_Finish();
+	//printf("bbbb");
 		Host_FreeDriveLEDIndicator();
-	}
 }
 
-char *getLocalIfNull(char *s) {
-	static char *localDirectory = NULL;
-	if (s == NULL) {
-		if (localDirectory == NULL) {
-			localDirectory = malloc(1024);	// FIXME: Check -1
-			getcwd(localDirectory, 1024);
-		}
-		return localDirectory;
-	} else {
-		return s;
-	}
-}

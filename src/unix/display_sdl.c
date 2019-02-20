@@ -22,6 +22,7 @@
 #include "display.h"
 #include "sdlsound.h"
 #include <string.h>
+#include <stdlib.h>
 #include "../cpc/messages.h"
 
 SDL_Surface *screen;
@@ -282,18 +283,31 @@ void sdl_SwapGraphicsBuffers(void) {
  * I left in the SDL in case someone wants to try.
  * FIXME: Maybe we can get rid of floating point here?
  */
+#ifndef BUSYWAIT
 double delta_time()
 {
 	static struct timeval t1, t2;
 	double dt;
 	gettimeofday(&t1,NULL);
 	dt=(t1.tv_sec - t2.tv_sec)+(t1.tv_usec - t2.tv_usec)/1000000.0; /* 1000000 microseconds in a second... */
+	//printf("\ntime: %i %i %i %i delta: %f\n",t1.tv_sec, t2.tv_sec, t1.tv_usec, t2.tv_usec, dt);
 	memcpy( &t2, &t1, sizeof(t2) );
 	return dt;
 }
+#else
+unsigned long timeGetTime() {
+	static struct timeval t1;
+	gettimeofday(&t1,NULL);
+	return (t1.tv_sec<<6|t1.tv_usec);
+}
+#endif
 
 #define FRAMES_PER_SEC 50
 int sdl_LockSpeed = TRUE;
+#ifdef BUSYWAIT
+static unsigned long PreviousTime=0;
+unsigned long TimeError = 0;
+#endif
 
 void sdl_Throttle(void) {
 	if (sdl_LockSpeed)
@@ -309,13 +323,35 @@ void sdl_Throttle(void) {
 		}
 		next_tick = this_tick + (1000/FRAMES_PER_SEC);
 #endif
+#ifndef BUSYWAIT
 		long delay;
 		delay = 10000/FRAMES_PER_SEC - delta_time();
 		if (delay>0 && audio_waterlevel > AUDIO_WATERMARK )
-			usleep(delay);	// FIXME
+			usleep(delay);	// FIXME*/
+#else
+		/* use this to throttle speed */
+		unsigned long	TimeDifference;
+		unsigned long	Time;
+
+		do
+		{
+			/* get current time */
+			Time = timeGetTime();
+
+			/* calc time difference */
+			TimeDifference = Time - (PreviousTime-TimeError);
+		}
+		while (TimeDifference<(1000/50));
+
+		TimeError = (TimeDifference - (1000/50)) % (1000/50);
+
+		PreviousTime = Time;
+#endif
+
 	}
 
 	CPC_UpdateAudio();
+	sdl_HandleMouse(NULL);
 }
 
 #include "keyboard_sdl.c"

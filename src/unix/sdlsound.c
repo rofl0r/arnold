@@ -31,6 +31,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <string.h>
+#include <stdlib.h>
 #include "../cpc/messages.h"
 
 static SOUND_PLAYBACK_FORMAT SoundFormat;
@@ -94,11 +95,14 @@ void	sdl_close_audio(void) {
 	audio_open = FALSE;
 }
 
-void	halfcpy(Uint8 *dst, Uint8 *src, int len) {
+void	*halfcpy(void *dest, const void *src, size_t n) {
 	int i;
-	while(len-- > 0) {
-		*dst++ = *src++/2;
+	Uint8 *d = (Uint8 *) dest;
+	Uint8 *s = (Uint8 *) src;
+	while(n-- > 0) {
+		*d++ = *s++/2;
 	}
+	return dest;
 }
 
 void	fill_audio(void *userdata, Uint8 *stream, int len) {
@@ -129,17 +133,17 @@ void	fill_audio(void *userdata, Uint8 *stream, int len) {
 	if ( audio_pos + len < audio_chunk + audio_bufsize ) {
 		//memcpy(stream, audio_pos, len);
 		//halfcpy(stream, audio_pos, len);
-		*samplecpy(stream, audio_pos, len);
+		(*samplecpy)(stream, audio_pos, len);
 		audio_pos += len;
 		//fprintf(stderr,",");
 	} else {
 		remain = (audio_chunk + audio_bufsize) - audio_pos;
 		//memcpy(stream, audio_pos, remain);
 		//halfcpy(stream, audio_pos, remain);
-		*samplecpy(stream, audio_pos, remain);
+		(*samplecpy)(stream, audio_pos, remain);
 		//memcpy(stream + remain, audio_chunk, len - remain);
 		//halfcpy(stream + remain, audio_chunk, len - remain);
-		*samplecpy(stream + remain, audio_chunk, len - remain);
+		(*samplecpy)(stream + remain, audio_chunk, len - remain);
 		audio_pos = audio_chunk + len - remain;
 		//fprintf(stderr,"'");
 	}

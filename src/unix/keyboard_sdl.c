@@ -30,6 +30,31 @@ SDL_Joystick *joystick1, *joystick2;
 // is assumed to be jitter
 #define JOYDEAD 3200
 
+// Flasg for unicode keycode handling. Only used for spanish keyboard
+// currently. Maybe used for all keyboards in the future.
+int	keyUnicodeFlag = 0;
+
+#define MOUSE_NONE 0
+#define MOUSE_JOY 1
+#define MOUSE_SYMBI 2
+int mouseType = 0;
+
+#define SYMBIMOUSE_NONE (0<<6)
+#define SYMBIMOUSE_X (1<<6)
+#define SYMBIMOUSE_Y (2<<6)
+#define SYMBIMOUSE_BUTTONS (3<<6)
+#define SYMBIMOUSE_BL 1
+#define SYMBIMOUSE_BR 2
+
+char intto6bitsigned(int x) {
+	char ax5 = ((char)abs(x)) & 0x1f;
+	if (x<0) {
+		return ((ax5^0x3f)+1);
+	} else {
+		return (ax5);
+	}
+}
+
 extern void quit(void);		// FIXME
 
 // State is True for Key Pressed, False for Key Release.
@@ -58,6 +83,18 @@ void	HandleKey(SDL_KeyboardEvent *theEvent)
 			sdl_SetDisplayWindowed(screen->w,screen->h,
 				screen->format->BitsPerPixel);
 		}
+	} else if (keycode == SDLK_F3 && theEvent->type == SDL_KEYDOWN ) {
+		SDL_GrabMode grabmode = SDL_WM_GrabInput(SDL_GRAB_QUERY);
+		fprintf(stderr,"%i\n",grabmode);
+		if (grabmode == SDL_GRAB_OFF) {
+			fprintf(stderr,"Grab\n");
+			SDL_WM_GrabInput(SDL_GRAB_ON);
+			SDL_ShowCursor(SDL_DISABLE);
+		} else {
+			fprintf(stderr,"Ungrab\n");
+			SDL_WM_GrabInput(SDL_GRAB_OFF);
+			SDL_ShowCursor(SDL_ENABLE);
+		}
 	} else if (keycode == SDLK_F4 && theEvent->type == SDL_KEYDOWN ) {
 		quit();
 	/* Handle CPC keys */
@@ -67,6 +104,10 @@ void	HandleKey(SDL_KeyboardEvent *theEvent)
 
 		if ( keycode <= SDLK_LAST ) {
 			theKeyPressed = KeySymToCPCKey[keycode];
+			if (keyUnicodeFlag) {
+				/* Test the UNICODE key value */
+				theKeyPressed = KeySymToCPCKey[keysym->unicode];
+			}
 			if (theKeyPressed == CPC_KEY_NULL)
 				printf(Messages[86], keysym->sym);
 		} else {
@@ -114,6 +155,67 @@ void	HandleJoy(SDL_JoyAxisEvent *event) {
 	}
 }
 
+int mousex= 0;
+int mousey = 0;
+int mouseb = 0;
+int mousebchanged = 0;
+
+void	sdl_HandleMouse(SDL_MouseMotionEvent *event) {
+		if (mouseType == MOUSE_NONE) return;
+		if (event == NULL) {
+			if (mousex < 0) {
+				if (mouseType == MOUSE_JOY) {
+					CPC_ClearKey(CPC_KEY_JOY_LEFT);
+					mousex = 0;
+				}
+			} else if (mousex > 0) {
+				if (mouseType == MOUSE_JOY) {
+					CPC_ClearKey(CPC_KEY_JOY_RIGHT);
+					mousex = 0;
+				}
+			}
+			if (mousey < 0) {
+				if (mouseType == MOUSE_JOY) {
+					CPC_ClearKey(CPC_KEY_JOY_UP);
+					mousey = 0;
+				}
+			} else if (mousey > 0) {
+				if (mouseType == MOUSE_JOY) {
+					CPC_ClearKey(CPC_KEY_JOY_DOWN);
+					mousey = 0;
+				}
+			}
+			return;
+		}
+		//printf("xrel: %i, yrel: %i!\n",
+		//	event->xrel,
+		//	event->yrel);
+		mousex = event->xrel;
+		mousey = event->yrel;
+		if (event->xrel < 0) {
+			if (mouseType == MOUSE_JOY) {
+				CPC_SetKey(CPC_KEY_JOY_LEFT);
+				CPC_ClearKey(CPC_KEY_JOY_RIGHT);
+			}
+		} else if (event->xrel > 0) {
+			if (mouseType == MOUSE_JOY) {
+				CPC_SetKey(CPC_KEY_JOY_RIGHT);
+				CPC_ClearKey(CPC_KEY_JOY_LEFT);
+			}
+		}
+		if (event->yrel < 0) {
+			if (mouseType == MOUSE_JOY) {
+				CPC_SetKey(CPC_KEY_JOY_UP);
+				CPC_ClearKey(CPC_KEY_JOY_DOWN);
+			}
+		} else if (event->yrel > 0) {
+			if (mouseType == MOUSE_JOY) {
+				CPC_SetKey(CPC_KEY_JOY_DOWN);
+				CPC_ClearKey(CPC_KEY_JOY_UP);
+			}
+		}
+}
+
 BOOL sdl_ProcessSystemEvents()
 {
 	SDL_Event	event;
@@ -151,6 +253,48 @@ BOOL sdl_ProcessSystemEvents()
 				}
 				break;
 
+			case SDL_MOUSEMOTION:  /* Handle Mouse Motion */
+				sdl_HandleMouse((SDL_MouseMotionEvent *) &event );
+				break;
+
+			case SDL_MOUSEBUTTONDOWN:  /* Handle Mouse Buttons */
+				if (mouseType == MOUSE_NONE) break;
+				if (event.button.button == SDL_BUTTON_LEFT) {
+					if (mouseType == MOUSE_JOY) {
+						CPC_SetKey(CPC_KEY_JOY_FIRE1);
+					} else if (mouseType == MOUSE_SYMBI) {
+						mouseb |= SYMBIMOUSE_BL;
+						mousebchanged |= SYMBIMOUSE_BL;
+					}
+				} else if (event.button.button == SDL_BUTTON_RIGHT) {
+					if (mouseType == MOUSE_JOY) {
+						CPC_SetKey(CPC_KEY_JOY_FIRE2);
+					} else if (mouseType == MOUSE_SYMBI) {
+						mouseb |= SYMBIMOUSE_BR;
+						mousebchanged |= SYMBIMOUSE_BR;
+					}
+				}
+				break;
+				
+			case SDL_MOUSEBUTTONUP:  /* Handle Mouse Buttons */
+				if (mouseType == MOUSE_NONE) break;
+				if (event.button.button == SDL_BUTTON_LEFT) {
+					if (mouseType == MOUSE_JOY) {
+						CPC_ClearKey(CPC_KEY_JOY_FIRE1);
+					} else if (mouseType == MOUSE_SYMBI) {
+						mouseb &= ~SYMBIMOUSE_BL;
+						mousebchanged |= SYMBIMOUSE_BL;
+					}
+				} else if (event.button.button == SDL_BUTTON_RIGHT) {
+					if (mouseType == MOUSE_JOY) {
+						CPC_ClearKey(CPC_KEY_JOY_FIRE2);
+					} else if (mouseType == MOUSE_SYMBI) {
+						mouseb &= ~SYMBIMOUSE_BR;
+						mousebchanged |= SYMBIMOUSE_BR;
+					}
+				}
+				break;
+
 
 			default:
 				break;
@@ -160,9 +304,31 @@ BOOL sdl_ProcessSystemEvents()
 	return FALSE;
 }
 
+unsigned char symbimouseReadPort(Z80_WORD Port) {
+	int ret = 0;
+	if (mouseType == MOUSE_SYMBI) {
+		if (mousex != 0) {
+			//fprintf(stderr,"x: %i, %i\n", mousex, intto6bitsigned(mousex));
+			ret = (SYMBIMOUSE_X | intto6bitsigned(mousex));
+			mousex = 0;
+		} else if (mousey != 0) {
+			//fprintf(stderr,"y: %i, %i\n", mousey, intto6bitsigned(mousey));
+			ret = (SYMBIMOUSE_Y | intto6bitsigned(-mousey));
+			mousey = 0;
+		} else if (mousebchanged != 0) {
+			ret = (SYMBIMOUSE_BUTTONS | mouseb);
+			mousebchanged = 0;
+		}
+	}
+	return ret;
+}
+
+CPCPortRead symbimousePortRead = {0xfd10,0xfd10,&symbimouseReadPort};
+
 void	sdl_InitialiseJoysticks()
 {
 	int numJoys = 0;
+	CPC_InstallReadPort(&symbimousePortRead);	// FIXME
 
 	numJoys = SDL_NumJoysticks();
 	fprintf(stderr, Messages[88], numJoys);
@@ -180,10 +346,20 @@ void	sdl_EnableJoysticks(BOOL state)
 	SDL_JoystickEventState((state == TRUE) ? SDL_ENABLE : SDL_DISABLE);
 }
 
+/*void	sdl_EnableMouse(BOOL state)
+{
+	mouseEnable = state;
+}*/
+
+void	sdl_SetMouseType(int t)
+{
+	mouseType = t;
+}
 
 // forward declarations
 void	sdl_InitialiseKeyboardMapping_qwertz();
 void	sdl_InitialiseKeyboardMapping_azerty();
+void	sdl_InitialiseKeyboardMapping_spanish();
 
 void	sdl_InitialiseKeyboardMapping(int layout)
 {
@@ -191,6 +367,8 @@ void	sdl_InitialiseKeyboardMapping(int layout)
 
 	printf("sdl_InitialiseKeyboardMapping(%i)\n",layout);
 	//printf("SDLK_LAST: %i 0x%04x\n", SDLK_LAST, SDLK_LAST);
+	keyUnicodeFlag = 0;
+	SDL_EnableUNICODE(0); /* Disable UNICODE keyboard translation */
 	for (i=0; i<SDLK_LAST; i++)
 	{
 		KeySymToCPCKey[i] = CPC_KEY_NULL;
@@ -292,6 +470,9 @@ void	sdl_InitialiseKeyboardMapping(int layout)
 		case AZERTY:
 			sdl_InitialiseKeyboardMapping_azerty();
 			break;
+		case SPANISH:
+			sdl_InitialiseKeyboardMapping_spanish();
+			break;
 	}
 }
 
@@ -340,4 +521,21 @@ void	sdl_InitialiseKeyboardMapping_azerty()
 	KeySymToCPCKey[SDLK_EXCLAIM]    = CPC_KEY_BACKSLASH;
 	KeySymToCPCKey[SDLK_LESS]       = CPC_KEY_FORWARD_SLASH;
 }				
+
+void	sdl_InitialiseKeyboardMapping_spanish(){
+	keyUnicodeFlag = -1;
+	SDL_EnableUNICODE(1); /* Enable UNICODE keyboard translation */
+	/* Needed for special keys of spanish keyboard */
+	KeySymToCPCKey[SDLK_QUOTE] = CPC_KEY_HAT;		/* Pta+0x0027 */
+	KeySymToCPCKey[SDLK_WORLD_1] = CPC_KEY_CLR;		/* CLR 0x00a1 */
+	KeySymToCPCKey[SDLK_PLUS] = CPC_KEY_OPEN_SQUARE_BRACKET; /* [ 0x002b */
+	KeySymToCPCKey[SDLK_WORLD_71] = CPC_KEY_CLOSE_SQUARE_BRACKET; /* ] 0x00e7 */
+	KeySymToCPCKey[SDLK_WORLD_26] = CPC_KEY_BACKSLASH;	/* / 0x00ba */
+	KeySymToCPCKey[SDLK_LESS] = CPC_KEY_FORWARD_SLASH;	/* \ 0x003c */
+	KeySymToCPCKey[SDLK_WORLD_81] = CPC_KEY_COLON;		/* : 0x00f1 */
+	KeySymToCPCKey[SDLK_WORLD_20] = CPC_KEY_SEMICOLON;	/* ; 0x00b4 */
+	KeySymToCPCKey[SDLK_WORLD_8] = CPC_KEY_SEMICOLON;	/* + 0x00a8 */
+	KeySymToCPCKey[SDLK_BACKQUOTE] = CPC_KEY_AT;		/* @ 0x0060 */
+	KeySymToCPCKey[SDLK_CARET] = CPC_KEY_AT;		/* | +0x005e */
+}
 

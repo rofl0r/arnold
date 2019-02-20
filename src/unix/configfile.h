@@ -18,9 +18,31 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-void loadConfigfile();
+void loadConfigFile();		/* loads a config file (system/user) */
+void saveConfigFile();		/* saves the config file to user space */
 
-char *getRomDirectory();
-char *getDiskDirectory();
-char *getTapeDirectory();
+void configInit();		/* init internal structures and variables */
+void configFree();		/* frees internal structures and variables */
 
+void setRomDirectory(const char *);
+const char *getRomDirectory();
+
+void setDiskDirectory(const char *);
+const char *getDiskDirectory();
+
+void setTapeDirectory(const char *);
+const char *getTapeDirectory();
+
+void setCartDirectory(const char *);
+const char *getCartDirectory();
+
+void setSnapDirectory(const char *);
+const char *getSnapDirectory();
+
+/* these are remembered so they can be restored next time 
+the emulator is started */
+void setDiskPathDriveA(const char *);
+void setDiskPathDriveB(const char *);
+void setInsertedCartPath(const char *);
+void setInsertedTapePath(const char *);
+void setInsertedRomPath(int nSlot, const char *);

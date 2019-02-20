@@ -229,7 +229,9 @@ unsigned char Keyboard_Read(void)
 				break;
 			default:
 			case JOYSTICK_HARDWARE_JOYSTICK:
+#endif
 				Data = Joystick_ReadJoystickPort();
+#if 0
 				break;
 		}		
 #endif

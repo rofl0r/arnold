@@ -4,6 +4,16 @@ ARNOLD
 Notes about the Linux port
 ==========================
 
+News (19 September 2007)
+------------------------
+
+Arnold now creates a config file in the user homedir. The file is called
+.arnold. You can use expansion ROMs by declaring them in the config file as
+follows:
+rom1=/path/to/myfirst.rom
+rom2=/path/to/mysecond.rom
+And so on. Rom Numbers can go from 0 to 15.
+
 Requirements
 ------------
 
