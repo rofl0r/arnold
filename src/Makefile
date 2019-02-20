@@ -3,6 +3,7 @@
 -include config.mak
 
 include objects.mak
+include roms.mak
 
 BIND = $(CC)
 #   CFLAGS    flags for C compile
@@ -19,8 +20,6 @@ X11LIBS = $(X11LIB) -lX11 -lXext
 CFLAGS = $(CFLAGS_CONFIGURE) $(GTKINC) $(SDLINC)$(X11INC) -I. -DUNIX -DCPC_LSB_FIRST -Wall -Wno-unused -Wno-pointer-sign
 
 LFLAGS1 = $(LDFLAGS_CONFIGURE) $(GTKLIB) $(SDLLIB) $(X11LIBS)
-
-ROMS_BIN=	roms/amsdose/amsdos.rom,roms/cpc464e/os.rom,roms/cpc464e/basic.rom,roms/cpc664e/os.rom,roms/cpc664e/basic.rom,roms/cpc6128e/os.rom,roms/cpc6128e/basic.rom,roms/cpcplus/system.cpr,roms/kcc/kccos.rom,roms/kcc/kccbas.rom
 
 ELF_FMT := $(shell $(CC) -Wl,--print-output-format 2>/dev/null || true | head -n 1)
 
