@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -29,14 +29,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef struct 
+typedef struct
 {
 	GUID		Guid;
 	LPTSTR		pDriverDescription;
 	LPTSTR		pDriverName;
 } DIRECT_DRAW_DEVICES_NODE;
 
-typedef struct 
+typedef struct
 {
 	DDSURFACEDESC	SurfaceDescription;
 } MODE_LIST_NODE;
@@ -118,7 +118,7 @@ void	DD_ClearBothSurfaces()
 
 	memset(&SurfaceDesc, 0, sizeof(DDSURFACEDESC));
 	SurfaceDesc.dwSize = sizeof(DDSURFACEDESC);
-	
+
 	if (IDirectDrawSurface_GetSurfaceDesc(pPrimarySurface, &SurfaceDesc)==DD_OK)
 	{
 		// got surface desc
@@ -151,7 +151,7 @@ void	DD_ClearBothSurfaces()
 		}
 		else
 		{
-					
+
 			// works on matrox
 			if (pBackSurface!=NULL)
 			{
@@ -221,7 +221,7 @@ void	DD_RestoreSurfaces()
 	}
 
 //	DD_ClearBothSurfaces();
-	
+
 //	DD_RestoreInterfaces();
 
 }
@@ -267,7 +267,7 @@ void	DD_RemoveClipper(LPDIRECTDRAWSURFACE pSurface)
 	if (pSurface!=NULL)
 	{
 		LPDIRECTDRAWCLIPPER pClipper;
-		
+
 		/* attempt to get clipper */
 		if (IDirectDrawSurface_GetClipper(pSurface, &pClipper)==DD_OK)
 		{
@@ -297,7 +297,7 @@ void	DD_ReleaseSurfaces()
 	}
 
 	DD_ReleaseBackInterfaces();
-		
+
 	DD_ReleasePrimaryInterfaces();
 
 	/* release surfaces */
@@ -363,7 +363,7 @@ void	DD_ShutdownWindowed()
 // get IDirectDrawSurface2 and IDirectDrawSurface3 on primary and back surfaces
 void	DD_GetInterfaces()
 {
-	// PRIMARY SURFACE 
+	// PRIMARY SURFACE
 
 	// query interface
 	if (IDirectDrawSurface_QueryInterface(pPrimarySurface,&IID_IDirectDrawSurface2,(LPVOID *)&pPrimarySurface2)==DD_OK)
@@ -388,7 +388,7 @@ void	DD_ReleaseInterfaces()
 	DD_ReleaseSurfaces();
 
 //	if (pPalette!=NULL)
-//	{	
+//	{
 //		IDirectDrawPalette_Release(pPalette);
 //		pPalette=NULL;
 //	}
@@ -486,7 +486,7 @@ static HRESULT WINAPI	pModeListCallback(LPDDSURFACEDESC lpDDModeDesc,LPVOID pDat
 	pModeListNode = (MODE_LIST_NODE *)malloc(sizeof(MODE_LIST_NODE));
 
 	memcpy(&pModeListNode->SurfaceDescription,lpDDModeDesc,sizeof(DDSURFACEDESC));
-	
+
 	LinkList_AddItemToListEnd(pList,pModeListNode);
 
 	return DDENUMRET_OK;
@@ -499,7 +499,7 @@ BOOL	DD_SetupDD(HWND hwnd,void *pDriver)
 	LPGUID	pDirectDrawDriver = (LPGUID)pDriver;
 
 
-/* TROELS BEGIN */   
+/* TROELS BEGIN */
    typedef HRESULT (WINAPI * PFNDIRECTDRAWCREATE)( GUID FAR *, LPDIRECTDRAW FAR *, IUnknown FAR *);
 
    PFNDIRECTDRAWCREATE pfn;
@@ -510,7 +510,7 @@ BOOL	DD_SetupDD(HWND hwnd,void *pDriver)
 		return FALSE;
 	if ((*pfn)(pDirectDrawDriver,&pDirectDraw,NULL)!=DD_OK)
 		return FALSE;
-/* TROELS END */  
+/* TROELS END */
 
 //	// create the default one
 //	if (DirectDrawCreate(pDirectDrawDriver,&pDirectDraw,NULL)!=DD_OK)
@@ -582,7 +582,7 @@ BOOL	DD_Init()
 
 	// initialise list of direct draw drivers
 	LinkList_InitialiseList(&pDirectDrawDevices);
-	
+
 	if (pDirectDrawDevices==NULL)
 		return FALSE;
 
@@ -593,7 +593,7 @@ BOOL	DD_Init()
    if (pfn == NULL)
 		return FALSE;
    (*pfn)(pDirectDrawEnumerateCallback,pDirectDrawDevices);
-/* TROELS END */   
+/* TROELS END */
    // enumerate direct draw drivers
 //	DirectDrawEnumerate(pDirectDrawEnumerateCallback,pDirectDrawDevices);
 
@@ -602,11 +602,11 @@ BOOL	DD_Init()
 
 void	DD_Close()
 {
-	
+
 	// delete list of direct draw devices
 	if (pDirectDrawDevices!=NULL)
 		LinkList_DeleteList(&pDirectDrawDevices,DeleteDevicesListNode);
-	
+
 }
 
 /*---------------------------------------------------------------------------------------------*/
@@ -649,7 +649,7 @@ void	DD_SetPalette(LPDIRECTDRAWSURFACE pPrimarySurface)
 			if (IDirectDraw_CreatePalette(pDirectDraw, DDPCAPS_8BIT, &Palette[0], &pPalette, NULL)==DD_OK)
 			{
 				int i;
-				
+
 				for (i=0; i<255; i++)
 				{
 					Palette[i].peRed = 0;
@@ -657,7 +657,7 @@ void	DD_SetPalette(LPDIRECTDRAWSURFACE pPrimarySurface)
 					Palette[i].peBlue = 0;
 					Palette[i].peFlags = 0;
 				}
-				
+
 				/* palette created */
 
 				/* set palette */
@@ -665,7 +665,7 @@ void	DD_SetPalette(LPDIRECTDRAWSURFACE pPrimarySurface)
 				{
 					IDirectDrawSurface_SetPalette(pPrimarySurface, pPalette);
 				}
-				
+
 				if (pBackSurface!=NULL)
 				{
 					IDirectDrawSurface_SetPalette(pBackSurface, pPalette);
@@ -721,7 +721,7 @@ BOOL	DD_WindowedDisplay(HWND hwnd)
 	SurfaceDescription.dwSize = sizeof(DDSURFACEDESC);
 	SurfaceDescription.dwFlags = DDSD_CAPS;
 	SurfaceDescription.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
-	
+
 	// create primary surface
 	if (IDirectDraw_CreateSurface(pDirectDraw,&SurfaceDescription,&pPrimarySurface,NULL)!=DD_OK)
 		return FALSE;
@@ -729,7 +729,7 @@ BOOL	DD_WindowedDisplay(HWND hwnd)
 	memset(&SurfaceDescription, 0, sizeof(DDSURFACEDESC));
 	SurfaceDescription.dwSize = sizeof(DDSURFACEDESC);
 	SurfaceDescription.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
-	SurfaceDescription.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN; 
+	SurfaceDescription.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
 	SurfaceDescription.dwHeight = Height;
 	SurfaceDescription.dwWidth = Width;
 
@@ -750,7 +750,7 @@ BOOL	DD_WindowedDisplay(HWND hwnd)
 			Palette[i].peGreen = 0;
 			Palette[i].peBlue = 0;
 			Palette[i].peFlags = PC_EXPLICIT;
-		
+
 			Palette[i+246].peRed = (unsigned char)(i + 246);
 			Palette[i+246].peGreen = 0;
 			Palette[i+246].peBlue = 0;
@@ -791,7 +791,7 @@ void	DD_ResizeWindow(HWND hwnd)
 	{
 		IDirectDrawSurface_Release(pBackSurface);
 	}
-	
+
 	GetWindowRect(hwnd,&WindowRect);
 
 	/* width of rectangle */
@@ -807,7 +807,7 @@ void	DD_ResizeWindow(HWND hwnd)
 		SurfaceDescription.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN; // | DDSCAPS_SYSTEMMEMORY;
 		SurfaceDescription.dwHeight = Width;
 		SurfaceDescription.dwWidth = Height;
-	
+
 		// create back surface
 		IDirectDraw2_CreateSurface(pDirectDraw2,&SurfaceDescription,&pBackSurface,NULL);
 	}
@@ -820,7 +820,7 @@ BOOL DD_FullScreenCreateSurfaces(int Height, int Width)
 	DDSURFACEDESC SurfaceDescription;
 
 	DD_ReleaseSurfaces();
-	
+
 	// attempt to create a front/back flipping surface
 	memset(&SurfaceDescription,0,sizeof(DDSURFACEDESC));
 	SurfaceDescription.dwSize = sizeof(DDSURFACEDESC);
@@ -854,7 +854,7 @@ BOOL DD_FullScreenCreateSurfaces(int Height, int Width)
 		memset(&SurfaceDescription, 0, sizeof(DDSURFACEDESC));
 		SurfaceDescription.dwSize = sizeof(DDSURFACEDESC);
 		SurfaceDescription.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
-		SurfaceDescription.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN; 
+		SurfaceDescription.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
 		SurfaceDescription.dwHeight = Height;
 		SurfaceDescription.dwWidth = Width;
 
@@ -875,7 +875,7 @@ BOOL	DD_FullScreenDisplay(HWND hwnd,int Width,int Height,int BPP)
 
 	SetForegroundWindow(DDrawHwnd);
 
-	
+
 	ShowCursor(FALSE);
 	Windowed = FALSE;
 
@@ -934,7 +934,7 @@ BOOL	DD_SetVideoMode(int Width,int Height,int Depth, BOOL fFullScreen)
 
 		// update window and size
 		SetWindowPos(DDrawHwnd,NULL, 0, 0, ClientRect.right-ClientRect.left, ClientRect.bottom-ClientRect.top,SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE/* | SWP_SHOWWINDOW*/);
-		
+
 		return	DD_FullScreenDisplay(DDrawHwnd,Width,Height,Depth);
 	}
 	else
@@ -991,7 +991,7 @@ void	DD_ClearScreen()
 
 	//IDirectDrawSurface3_PageLock(pBackSurface3,0);
 
-	
+
 	IDirectDrawSurface3_Blt(pBackSurface3,NULL,NULL,NULL,DDBLT_COLORFILL,&BltFx);
 /*
 	return;
@@ -1008,9 +1008,9 @@ void	DD_ClearScreen()
 		if (Result==DDERR_SURFACELOST)
 		{
 			DD_RestoreSurfaces();
-		
+
 		}
-		
+
 	}
 
 	//IDirectDrawSurface3_PageUnlock(pBackSurface3,0);
@@ -1065,8 +1065,8 @@ void	DD_BlitScreens(RECT *pDestRect)
 
 	memset(&DDBltFx,0,sizeof(DDBltFx));
 	DDBltFx.dwSize = sizeof(DDBltFx);
-	
-	
+
+
 /*	pDestRect->top+=28;
 	pDestRect->bottom+=28; */
 
@@ -1083,7 +1083,7 @@ void	DD_BlitScreens(RECT *pDestRect)
 	return;
 /*
 //	IDirectDrawSurface3_PageLock(pBackSurface3,0);
-	
+
 	while (1==1)
 	{
 		Result = IDirectDrawSurface_Blt(pPrimarySurface,pDestRect,pBackSurface,&SourceRect,DDBLT_WAIT,&DDBltFx);
@@ -1105,7 +1105,7 @@ void	DD_FlipWindowed()
 	RECT	ClientRect;
 
 	GetClientRect(DDrawHwnd,&ClientRect);
-	
+
 	ClientToScreen(DDrawHwnd,(POINT *)&ClientRect.left);
 	ClientToScreen(DDrawHwnd,(POINT *)&ClientRect.right);
 
@@ -1137,10 +1137,10 @@ void	SetWindowProc(WNDPROC *pNewWndProc)
 {
 	WNDPROC	pWndProc;
 
-	// get current window proc 
+	// get current window proc
 	pWndProc = GetWindowLong(hwnd,GWL_WNDPROC);
-	
-// store it 
+
+// store it
 
 
 	// set a new window proc which will handle ddraw messages
@@ -1198,24 +1198,24 @@ void	DD_ExamineMode(MODE_DETAILS *pModeDetails)
 
 	memset(&SurfaceDesc,0,sizeof(DDSURFACEDESC));
 	SurfaceDesc.dwSize = sizeof(DDSURFACEDESC);
-	
+
 	// Get Surface Description
 	if (IDirectDrawSurface_GetSurfaceDesc(pBackSurface,&SurfaceDesc)!=DD_OK)
 		return;
 
-#ifdef _MSC_VER
+//#ifdef _MSC_VER
 	BPP = SurfaceDesc.ddpfPixelFormat.dwRGBBitCount;
-#else
-	BPP = SurfaceDesc.ddpfPixelFormat.u1.dwRGBBitCount;
-#endif
+//#else
+//	BPP = SurfaceDesc.ddpfPixelFormat.u1.dwRGBBitCount;
+//#endif
 	// RED
 
 	RedShift = 0;
-#ifdef _MSC_VER
+//#ifdef _MSC_VER
 	RedMask = SurfaceDesc.ddpfPixelFormat.dwRBitMask;
-#else
-	RedMask = SurfaceDesc.ddpfPixelFormat.u2.dwRBitMask;
-#endif
+//#else
+	//RedMask = SurfaceDesc.ddpfPixelFormat.u2.dwRBitMask;
+//#endif
 
 	for (i=0; i<BPP; i++)
 	{
@@ -1241,11 +1241,11 @@ void	DD_ExamineMode(MODE_DETAILS *pModeDetails)
 
 	// GREEN
 	GreenShift = 0;
-#ifdef _MSC_VER
+//#ifdef _MSC_VER
 	GreenMask = SurfaceDesc.ddpfPixelFormat.dwGBitMask;
-#else
-	GreenMask = SurfaceDesc.ddpfPixelFormat.u3.dwGBitMask;
-#endif
+//#else/
+//	GreenMask = SurfaceDesc.ddpfPixelFormat.u3.dwGBitMask;
+//#endif
 	for (i=0; i<BPP; i++)
 	{
 		if ((GreenMask & 0x01)!=0)
@@ -1271,11 +1271,11 @@ void	DD_ExamineMode(MODE_DETAILS *pModeDetails)
 	// BLUE
 
 	BlueShift = 0;
-#ifdef _MSC_VER
+//#ifdef _MSC_VER
 	BlueMask = SurfaceDesc.ddpfPixelFormat.dwBBitMask;
-#else
-	BlueMask = SurfaceDesc.ddpfPixelFormat.u4.dwBBitMask;
-#endif
+//#else
+//	BlueMask = SurfaceDesc.ddpfPixelFormat.u4.dwBBitMask;
+//#endif
 
 	for (i=0; i<BPP; i++)
 	{
@@ -1287,7 +1287,7 @@ void	DD_ExamineMode(MODE_DETAILS *pModeDetails)
 		BlueShift++;
 	}
 
-	
+
 	BlueBPP = 0;
 
 	for (i=0; i<BPP; i++)
@@ -1301,15 +1301,15 @@ void	DD_ExamineMode(MODE_DETAILS *pModeDetails)
 	}
 
 	pModeDetails->BPP = BPP;
-#ifdef _MSC_VER
+//#ifdef _MSC_VER
 	pModeDetails->RedMask = SurfaceDesc.ddpfPixelFormat.dwRBitMask;
 	pModeDetails->GreenMask = SurfaceDesc.ddpfPixelFormat.dwGBitMask;
 	pModeDetails->BlueMask = SurfaceDesc.ddpfPixelFormat.dwBBitMask;
-#else
-	pModeDetails->RedMask = SurfaceDesc.ddpfPixelFormat.u2.dwRBitMask;
-	pModeDetails->GreenMask = SurfaceDesc.ddpfPixelFormat.u3.dwGBitMask;
-	pModeDetails->BlueMask = SurfaceDesc.ddpfPixelFormat.u4.dwBBitMask;
-#endif
+//#else
+//	pModeDetails->RedMask = SurfaceDesc.ddpfPixelFormat.u2.dwRBitMask;
+//	pModeDetails->GreenMask = SurfaceDesc.ddpfPixelFormat.u3.dwGBitMask;
+//	pModeDetails->BlueMask = SurfaceDesc.ddpfPixelFormat.u4.dwBBitMask;
+//#endif
 	pModeDetails->RedShift = RedShift;
 	pModeDetails->GreenShift = GreenShift;
 	pModeDetails->BlueShift = BlueShift;
@@ -1332,7 +1332,7 @@ void	DD_ExamineMode(MODE_DETAILS *pModeDetails)
 	ClientRect.top = 0;
 	ClientRect.right = Width;
 	ClientRect.bottom = Height;
-	
+
 	Windowed=TRUE;
 	WindowStyle = GetWindowLong(hwnd, GWL_STYLE);
 	AdjustWindowRect(&ClientRect,WindowStyle,TRUE);
@@ -1354,7 +1354,7 @@ void	DD_ErrorMessage(HRESULT hResult)
 	FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER |
 					FORMAT_MESSAGE_FROM_SYSTEM,
 					NULL,
-					hResult, 
+					hResult,
 					MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 					(LPTSTR) &lpMsgBuf,
 					0,
@@ -1396,7 +1396,7 @@ long FAR PASCAL WindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam )
 
 		case WM_KILLFOCUS:
 			{
-				// 
+				//
 
 
 
@@ -1457,16 +1457,16 @@ BOOL		DirectX_CheckComponentsArePresent()
 
 
 int		DetectDirectXVersionUnderWin95()
-{	
+{
 	HINSTANCE				DDrawLibrary = NULL;
 	LPDIRECTDRAW			pDirectDraw = NULL;
 	LPDIRECTDRAW2			pDirectDraw2 = NULL;
 	LPDIRECTINPUT			pDirectInput = NULL;
 	LPDIRECTDRAWSURFACE3	pSurface3 = NULL;
 
-	// attempt to load DirectDraw library 
+	// attempt to load DirectDraw library
     DDrawLibrary = LoadLibrary("DDRAW.DLL");
-    
+
 	if (DDrawLibrary == 0)
 	{
 		return DDRAW_NOT_INSTALLED;
@@ -1475,23 +1475,23 @@ int		DetectDirectXVersionUnderWin95()
 	{
 		DIRECTDRAWCREATE	DirectDrawCreate = NULL;
 
-		// succeeded in loading direct draw 
-    
-		// See if we can create get the DirectDrawCreate function from 
-		// the library 
+		// succeeded in loading direct draw
+
+		// See if we can create get the DirectDrawCreate function from
+		// the library
 
 		DirectDrawCreate = (DIRECTDRAWCREATE)GetProcAddress(DDrawLibrary, "DirectDrawCreate");
-    
+
 		if (DirectDrawCreate != NULL)
 		{
 			// got DirectDrawCreate function address //
-			
-			// create DirectDraw interface 
+
+			// create DirectDraw interface
 			if (DirectDrawCreate(NULL, &pDirectDraw,NULL)==DD_OK)
 			{
-				// succeeded in getting Direct Draw Interface 
+				// succeeded in getting Direct Draw Interface
 
-				// attempt to get DirectDraw2 interface 
+				// attempt to get DirectDraw2 interface
 				if (IDirectDraw_QueryInterface(pDirectDraw, &IID_IDirectDraw2, (LPVOID *)&pDirectDraw2)==DD_OK)
 				{
 
@@ -1513,15 +1513,15 @@ BOOL	ValidateModeIsAtLeast16Bits()
 
 	IDirectDraw_GetDisplayMode(pDirectDraw, &SurfaceDesc);
 
-#ifdef _MSC_VER
+//#ifdef _MSC_VER
 	if (SurfaceDesc.ddpfPixelFormat.dwRGBBitCount>=16)
-#else
-	if (SurfaceDesc.ddpfPixelFormat.u1.dwRGBBitCount>=16)
-#endif
+//#else
+//	if (SurfaceDesc.ddpfPixelFormat.u1.dwRGBBitCount>=16)
+//#endif
 	{
 		return TRUE;
 	}
-	
+
 	return FALSE;
 }
 
@@ -1538,7 +1538,7 @@ void	DD_BuildModeMenu(void (*pCallback)(int, int,int))
 	if (pModeList!=NULL)
 	{
 		LIST_NODE *pCurrentNode = pModeList->pFirstNode;
-		
+
 		while (pCurrentNode!=NULL)
 		{
 			MODE_LIST_NODE *pModeListNode = pCurrentNode->pNodeData;
@@ -1570,16 +1570,16 @@ void	DD_BuildModeMenu(void (*pCallback)(int, int,int))
 			}
 			else
 			{
-#ifdef _MSC_VER
+//#ifdef _MSC_VER
 				BitDepth = pModeListNode->SurfaceDescription.ddpfPixelFormat.dwRGBBitCount;
-#else
-				BitDepth = pModeListNode->SurfaceDescription.ddpfPixelFormat.u1.dwRGBBitCount;
-#endif
+//#else
+	//			BitDepth = pModeListNode->SurfaceDescription.ddpfPixelFormat.u1.dwRGBBitCount;
+//#endif
 			}
-		
+
 			if (BitDepth>=8)
 			{
-				pCallback(pModeListNode->SurfaceDescription.dwWidth, 
+				pCallback(pModeListNode->SurfaceDescription.dwWidth,
 						pModeListNode->SurfaceDescription.dwHeight,
 						BitDepth);
 			}

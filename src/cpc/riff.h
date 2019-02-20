@@ -23,13 +23,13 @@
 
 #ifdef CPC_LSB_FIRST
 #define RIFF_FOURCC_CODE(a,b,c,d) \
-        (unsigned long)(((unsigned char)a)		| \
+        (unsigned int)(((unsigned char)a)		| \
                        (((unsigned char)b)<<8)		| \
                        (((unsigned char)c)<<16)		| \
                        (((unsigned char)d)<<24))
 #else
 #define RIFF_FOURCC_CODE(a,b,c,d) \
-        (unsigned long)((((unsigned char)a)<<24)	| \
+        (unsigned int)((((unsigned char)a)<<24)	| \
                        (((unsigned char)b)<<16)		| \
                        (((unsigned char)c)<<8)		| \
                        (((unsigned char)d)))
@@ -39,17 +39,17 @@
 /* structure defining RIFF_CHUNK header. Chunk data follows header. */
 typedef struct 
 {
-        unsigned long ChunkName;
-        unsigned long ChunkLength;
+        unsigned int ChunkName;
+        unsigned int ChunkLength;
 } RIFF_CHUNK;
 
-unsigned long Riff_GetChunkName(RIFF_CHUNK *pChunk);
+unsigned int Riff_GetChunkName(RIFF_CHUNK *pChunk);
 int Riff_GetChunkLength(RIFF_CHUNK *pChunk);
-void	Riff_SetChunkLength(RIFF_CHUNK *pChunk,unsigned long);
+void	Riff_SetChunkLength(RIFF_CHUNK *pChunk, unsigned int);
 unsigned char   *Riff_GetChunkDataPtr(RIFF_CHUNK *pChunk);
 RIFF_CHUNK      *Riff_GetNextChunk(RIFF_CHUNK *pChunk);
-RIFF_CHUNK      *Riff_FindNamedSubChunk(RIFF_CHUNK *pHeader, unsigned long ChunkName);
+RIFF_CHUNK      *Riff_FindNamedSubChunk(RIFF_CHUNK *pHeader, unsigned int ChunkName);
 RIFF_CHUNK		*Riff_GetFirstChunk(unsigned char *pFileStart);
-BOOL	Riff_CheckChunkSizesAreValid(unsigned char *pRiffFile, unsigned long RiffFileSize);
+BOOL	Riff_CheckChunkSizesAreValid(unsigned char *pRiffFile, unsigned int RiffFileSize);
 
 #endif

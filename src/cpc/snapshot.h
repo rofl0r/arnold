@@ -23,6 +23,7 @@
 #include "cpcglob.h"
 
 #define SNAPSHOT_HEADER_TEXT "MV - SNA"
+#define SNAPSHOT_EMU_TEXT "Arnold"
 
 typedef struct
 {
@@ -84,7 +85,8 @@ typedef struct
 
 	char	MultiMode[6];
 
-	char	pad1[0x0100-0x075];
+	char	pad1[0x0f0-0x075];
+	char	EmuIdent[0x010];
 } SNAPSHOT_HEADER;
 
 

@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -28,9 +28,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern char *Z80MemoryBase;
+extern char *Amstrad_ExtraRam;
 /* start of chunk */
 static	unsigned long SnapshotV3_ChunkLength;
 static	RIFF_CHUNK	*pRiffChunk;
+
+extern BOOL LoadFile(const unsigned char *, unsigned char **, unsigned long *);
+
 
 /* begin a chunk */
 unsigned char *SnapshotV3_BeginChunk(unsigned char *buffer, unsigned long ChunkName)
@@ -100,11 +105,191 @@ void	SnapshotV3_HandleChunk(RIFF_CHUNK *pCurrentChunk,unsigned long Size)
 
 	switch (ChunkName)
 	{
+		case RIFF_FOURCC_CODE('M','E','M','0'):
+		case RIFF_FOURCC_CODE('M','E','M','1'):
+		case RIFF_FOURCC_CODE('M','E','M','2'):
+		case RIFF_FOURCC_CODE('M','E','M','3'):
+		case RIFF_FOURCC_CODE('M','E','M','4'):
+		case RIFF_FOURCC_CODE('M','E','M','5'):
+		case RIFF_FOURCC_CODE('M','E','M','6'):
+		case RIFF_FOURCC_CODE('M','E','M','7'):
+		case RIFF_FOURCC_CODE('M','E','M','8'):
+		{
+			unsigned char *pChunkData = Riff_GetChunkDataPtr(pCurrentChunk);
+
+			/* this is the length of the compressed data and also serves to indicate number of bytes remaining to transfer */
+			unsigned long nChunkLength = Riff_GetChunkLength(pCurrentChunk);
+
+			unsigned char ch;
+			unsigned long nOutputLength = 64*1024;
+			unsigned char *pOutputData;
+
+			/* length of block to decompress */
+			unsigned long MemBank = (ChunkName>>24) & 0x0ff;
+			switch (MemBank)
+			{
+			    case '0':
+			    {
+			        pOutputData = Z80MemoryBase;
+			    }
+			    break;
+
+			    case '1':
+			    {
+			        pOutputData = Amstrad_ExtraRam;
+			    }
+			    break;
+
+			    case '2':
+			    {
+			        pOutputData = Amstrad_ExtraRam+(64*1024);
+			    }
+			    break;
+
+			    case '3':
+			    {
+			        pOutputData = Amstrad_ExtraRam+(128*1024);
+			    }
+			    break;
+
+			    case '4':
+			    {
+			        pOutputData = Amstrad_ExtraRam+(192*1024);
+			    }
+			    break;
+
+			    case '5':
+			    {
+			        pOutputData = Amstrad_ExtraRam+(256*1024);
+			    }
+			    break;
+
+			    case '6':
+			    {
+			        pOutputData = Amstrad_ExtraRam+(320*1024);
+			    }
+			    break;
+
+			    case '7':
+			    {
+			        pOutputData = Amstrad_ExtraRam+(384*1024);
+			    }
+			    break;
+
+			    case '8':
+			    {
+			        pOutputData = Amstrad_ExtraRam+(448*1024);
+			    }
+			    break;
+
+			    default:
+                    break;
+
+				/* ok determine location to dump data to */
+
+			}
+
+
+			while ((nChunkLength!=0) && (nOutputLength!=0))
+			{
+				/* get byte */
+				ch = *pChunkData;
+				++pChunkData;
+				nChunkLength--;
+
+				if (nChunkLength!=0)
+				{
+					/* possible repetition of a byte */
+					if (ch==0x0e5)
+					{
+						/* get count */
+						ch = *pChunkData;
+						++pChunkData;
+						nChunkLength--;
+
+						if (ch==0)
+						{
+							/* single 0x0e5 */
+							*pOutputData = 0x0e5;
+							++pOutputData;
+							--nOutputLength;
+						}
+						else
+						{
+							/* if chunk length remaining is zero then we do not have enough info */
+							if (nChunkLength!=0)
+							{
+								unsigned long nCount = ch&0x0ff;
+
+								/* now get byte */
+								ch = *pChunkData;
+								++pChunkData;
+								nChunkLength--;
+
+								/* write out repetition of byte */
+								while ((nCount!=0) && (nOutputLength!=0))
+								{
+									*pOutputData = ch;
+									++pOutputData;
+									--nCount;
+									--nOutputLength;
+								}
+							}
+						}
+					}
+					else
+					{
+						/* byte as-is */
+						*pOutputData = ch;
+						++pOutputData;
+						--nOutputLength;
+					}
+				}
+			}
+
+		}
+		break;
+
+		case RIFF_FOURCC_CODE('D','S','C','A'):
+		case RIFF_FOURCC_CODE('D','S','C','B'):
+		{
+			/* disc image names, not null terminated */
+			unsigned char *pChunkData = Riff_GetChunkDataPtr(pCurrentChunk);
+			unsigned long ChunkLength = Riff_GetChunkLength(pCurrentChunk);
+
+			/* allocate a buffer for the filename including null terminator */
+			char *pDiscImageFilename = malloc(ChunkLength+1);
+			if (pDiscImageFilename!=NULL)
+			{
+				int nDriveID = ((ChunkName>>24)&0x0ff)-'A';
+				unsigned char *pDiskImage;
+				unsigned long DiskImageLength;
+
+				memcpy(pDiscImageFilename, pChunkData, ChunkLength);
+				pDiscImageFilename[ChunkLength] = '\0';
+
+				/* load disk image file to memory */
+				LoadFile(pDiscImageFilename, &pDiskImage, &DiskImageLength);
+
+				if (pDiskImage!=NULL)
+				{
+					/* try to insert it */
+					DiskImage_InsertDisk(nDriveID, pDiskImage, DiskImageLength);
+
+					free(pDiskImage);
+				}
+			}
+		}
+		break;
+
+
 		case RIFF_FOURCC_CODE('C','P','C','+'):
 		{
 			unsigned char *pChunkData = Riff_GetChunkDataPtr(pCurrentChunk);
 			unsigned long ASICRamOffset;
 			int i;
+
+			CPC_SetHardware(CPC_HW_CPCPLUS);
 
 			/* sprite data */
 			ASICRamOffset = 0x04000;
@@ -200,7 +385,7 @@ void	SnapshotV3_HandleChunk(RIFF_CHUNK *pCurrentChunk,unsigned long Size)
 				ASIC_SetAnalogueInput(i,pChunkData[0]);
 				pChunkData++;
 			}
-			
+
 			/* dma */
 			ASICRamOffset = 0x06c00;
 
@@ -232,11 +417,12 @@ void	SnapshotV3_HandleChunk(RIFF_CHUNK *pCurrentChunk,unsigned long Size)
 			pChunkData++;
 
 			/* TO BE COMPLETED! */
+			/* FIX NOW */
 			pChunkData+=(3*7);
 
 
 			/* set secondary rom mapping */
-			ASIC_SetSecondaryRomMapping(pChunkData[0]);
+			ASIC_SetSecondaryRomMapping(0x0a0|pChunkData[0]);
 			pChunkData++;
 
 			/* set lock state */
@@ -250,7 +436,7 @@ void	SnapshotV3_HandleChunk(RIFF_CHUNK *pCurrentChunk,unsigned long Size)
 				/* lock */
 				ASIC_SetUnLockState(FALSE);
 			}
-			
+
 			/* position in lock? */
 		}
 		break;
@@ -325,7 +511,7 @@ unsigned char *SnapshotV3_CPCPlus_WriteChunk(unsigned char *buffer)
 		PackedPixels = PackedPixels<<4;
 		PackedPixels |= (pPtr[1] & 0x0f);
 		pPtr+=2;
-		
+
 		/* write to snapshot */
 		buffer = SnapshotV3_WriteByte(buffer, PackedPixels);
 	}
@@ -383,7 +569,7 @@ unsigned char *SnapshotV3_CPCPlus_WriteChunk(unsigned char *buffer)
 
 	/* secondary rom mapping */
 	buffer = SnapshotV3_WriteByte(buffer, (ASIC_GetSecondaryRomMapping() & 0x01f)|0x0a0);
-	
+
 	/* lock state */
 	if (ASIC_GetUnLockState())
 	{

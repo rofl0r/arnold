@@ -62,13 +62,13 @@ static void	RomDialog_Update(HWND hRomDialog)
 			if (sUnicodeName)
 			{
 				SetDlgItemText(hRomDialog,pArray[0],sUnicodeName);
-			
+
 				free(sUnicodeName);
 			}
 #else
 			SetDlgItemText(hRomDialog,pArray[0],pName);
 #endif
-			
+
 			free(pName);
 		}
 		else
@@ -199,7 +199,7 @@ BOOL CALLBACK  RomDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam
 
     switch (iMsg)
     {
-        
+
         case WM_CREATE:
             return TRUE;
 
@@ -207,7 +207,7 @@ BOOL CALLBACK  RomDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam
         {
 			if (HIWORD(wParam)==BN_CLICKED)
 			{
-		
+
 				switch (LOWORD(wParam))
 				{
 					/* check box clicked */
@@ -352,7 +352,7 @@ BOOL CALLBACK  RomDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam
 							break;
 						}
 
-						Interface_InsertRom(RomIndex);
+						Interface_InsertRom(hwnd,RomIndex);
 						RomDialog_Update(hwnd);
 					}
 					break;
@@ -381,7 +381,7 @@ void	Interface_RomDialog(HWND hwnd)
 	if (hRomDialog!=0)
 	{
 		ShowWindow(hRomDialog,SW_SHOW);
-	
+
 		RomDialog_Update(hRomDialog);
 	}
 }

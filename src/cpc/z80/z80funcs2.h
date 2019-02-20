@@ -194,18 +194,17 @@ void    Z80_Init()
 
 void    Z80_Reset(void)
 {
-        R.PC.L=0;
-        R.I=0;
-        R.IM=0;
+      R.SP.W=0x0ffff;
+      R.AF.W=0x0ffff;
+      R.PC.L = 0;
+      R.IM=0;
         R.IFF1=0;
         R.IFF2=0;
-        R.RBit7=0;
-        R.R = 0;
         R.Flags &=~
-			(Z80_EXECUTING_HALT_FLAG | 
-			Z80_CHECK_INTERRUPT_FLAG | 
-			Z80_EXECUTE_INTERRUPT_HANDLER_FLAG |
-			Z80_INTERRUPT_FLAG);
+                  (Z80_EXECUTING_HALT_FLAG | 
+                  Z80_CHECK_INTERRUPT_FLAG | 
+                  Z80_EXECUTE_INTERRUPT_HANDLER_FLAG |
+                  Z80_INTERRUPT_FLAG);
 }
 
 void    Z80_NMI(void)

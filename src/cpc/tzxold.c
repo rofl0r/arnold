@@ -407,7 +407,7 @@ static int TZX_BlockStack_Pop(void)
 		return TZX_BlockStack[TZX_BlockStack_NumEntries];
 	}
 
-	return NULL;
+	return -1;
 }
 
 

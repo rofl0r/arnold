@@ -1,5 +1,5 @@
 #include "zipsupport.h"
-#include <zlib\unzip.h>
+//#include <zlib\unzip.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -36,9 +36,9 @@ int ZipSupport_IsZipArchive(const TCHAR *pZipFilename)
 
 	/* filename is passed onto API which will recast it back to a wide character
 	filename and use it appropiatly */
-	unz = unzOpen2((const char*)pZipFilename, &file_api); 
+	unz = unzOpen2((const char*)pZipFilename, &file_api);
 #else
-	unz = unzOpen(pZipFilename); 
+	unz = unzOpen(pZipFilename);
 #endif
 
 	if (unz!=NULL)
@@ -49,7 +49,7 @@ int ZipSupport_IsZipArchive(const TCHAR *pZipFilename)
 
 		/* get first file */
 		result = unzGoToFirstFile(unz);
-		
+
 		/* if not end of file list and not ok, then assume error */
 		if ((result!=UNZ_END_OF_LIST_OF_FILE) && (result!=UNZ_OK))
 			Code = ZIP_SUPPORT_ERROR_IN_ARCHIVE;
@@ -93,9 +93,9 @@ void	ZipSupport_GenerateFileList(const TCHAR *pZipFilename, file_list *pList)
 
 	/* filename is passed onto API which will recast it back to a wide character
 	filename and use it appropiatly */
-	unz = unzOpen2((const char*)pZipFilename, &file_api); 
+	unz = unzOpen2((const char*)pZipFilename, &file_api);
 #else
-	unz = unzOpen(pZipFilename); 
+	unz = unzOpen(pZipFilename);
 #endif
 
 
@@ -149,9 +149,9 @@ BOOL	ZipSupport_ExtractFile(const TCHAR *pZipFilename, const char *pFilename, co
 
 	/* filename is passed onto API which will recast it back to a wide character
 	filename and use it appropiatly */
-	unz = unzOpen2((char*)pZipFilename, &file_api); 
+	unz = unzOpen2((char*)pZipFilename, &file_api);
 #else
-	unz = unzOpen(pZipFilename); 
+	unz = unzOpen(pZipFilename);
 #endif
 
 	if (unz!=NULL)
@@ -178,15 +178,15 @@ BOOL	ZipSupport_ExtractFile(const TCHAR *pZipFilename, const char *pFilename, co
 
 						/* open temporary file */
 						fh = _tfopen(pOutputFilename, _T("w+b"));
-						
+
 						if (fh!=NULL)
 						{
-							
+
 							do
 							{
 								/* read as much data as possible */
 								result = unzReadCurrentFile(unz, buffer, 4096);
-							
+
 								if (result>0)
 								{
 									/* write to output temporary file */
@@ -200,17 +200,17 @@ BOOL	ZipSupport_ExtractFile(const TCHAR *pZipFilename, const char *pFilename, co
 							{
 								bOK = TRUE;
 							}
-						
+
 							/* close temporary file */
 							fclose(fh);
 						}
 
 						free(buffer);
 					}
-										
+
 					/* close the current file */
 					unzCloseCurrentFile(unz);
-				}					
+				}
 			}
 		}
 		/* close archive */

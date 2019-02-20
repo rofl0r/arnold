@@ -28,11 +28,11 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_ICON_ARNOLD         ICON    DISCARDABLE     "arnold.ico"
-IDI_ICON_SNAPSHOT       ICON    DISCARDABLE     "snapshot.ico"
-IDI_ICON_CASSETTE       ICON    DISCARDABLE     "cass.ico"
-IDI_ICON_CARTRIDGE      ICON    DISCARDABLE     "cart.ico"
-IDI_ICON_DISK           ICON    DISCARDABLE     "disk.ico"
+IDI_ICON_ARNOLD         ICON    DISCARDABLE     "win/arnold.ico"
+IDI_ICON_SNAPSHOT       ICON    DISCARDABLE     "win/snapshot.ico"
+IDI_ICON_CASSETTE       ICON    DISCARDABLE     "win/cass.ico"
+IDI_ICON_CARTRIDGE      ICON    DISCARDABLE     "win/cart.ico"
+IDI_ICON_DISK           ICON    DISCARDABLE     "win/disk.ico"
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
 
@@ -51,35 +51,35 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
 // Data
 //
 
-CPCPLUS_SYSTEM          RCDATA  DISCARDABLE     "..\\roms\\cpcplus\\system.cpr"
-AMSDOSE_AMSDOS          RCDATA  DISCARDABLE     "..\\roms\\amsdose\\amsdos.rom"
-CPC464E_BASIC           RCDATA  DISCARDABLE     "..\\roms\\cpc464e\\basic.rom"
-CPC464E_OS              RCDATA  DISCARDABLE     "..\\roms\\cpc464e\\os.rom"
-CPC664E_BASIC           RCDATA  DISCARDABLE     "..\\roms\\cpc664e\\basic.rom"
-CPC664E_OS              RCDATA  DISCARDABLE     "..\\roms\\cpc664e\\os.rom"
-CPC6128E_BASIC          RCDATA  DISCARDABLE     "..\\roms\\cpc6128e\\basic.rom"
-CPC6128E_OS             RCDATA  DISCARDABLE     "..\\roms\\cpc6128e\\os.rom"
-KCC_KCCBAS              RCDATA  DISCARDABLE     "..\\roms\\kcc\\kccbas.rom"
-KCC_KCCOS               RCDATA  DISCARDABLE     "..\\roms\\kcc\\kccos.rom"
-UTOPIA                  RCDATA  DISCARDABLE     "..\\roms\\arnor\\utopia.rom"
-PROTEXT                 RCDATA  DISCARDABLE     "..\\roms\\arnor\\protext.rom"
+CPCPLUS_SYSTEM          RCDATA  DISCARDABLE     "roms\\cpcplus\\system.cpr"
+AMSDOSE_AMSDOS          RCDATA  DISCARDABLE     "roms\\amsdose\\amsdos.rom"
+CPC464E_BASIC           RCDATA  DISCARDABLE     "roms\\cpc464e\\basic.rom"
+CPC464E_OS              RCDATA  DISCARDABLE     "roms\\cpc464e\\os.rom"
+CPC664E_BASIC           RCDATA  DISCARDABLE     "roms\\cpc664e\\basic.rom"
+CPC664E_OS              RCDATA  DISCARDABLE     "roms\\cpc664e\\os.rom"
+CPC6128E_BASIC          RCDATA  DISCARDABLE     "roms\\cpc6128e\\basic.rom"
+CPC6128E_OS             RCDATA  DISCARDABLE     "roms\\cpc6128e\\os.rom"
+KCC_KCCBAS              RCDATA  DISCARDABLE     "roms\\kcc\\kccbas.rom"
+KCC_KCCOS               RCDATA  DISCARDABLE     "roms\\kcc\\kccos.rom"
+UTOPIA                  RCDATA  DISCARDABLE     "roms\\arnor\\utopia.rom"
+PROTEXT                 RCDATA  DISCARDABLE     "roms\\arnor\\protext.rom"
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Bitmap
 //
 
-IDR_TOOLBAR3            BITMAP  DISCARDABLE     "toolbar3.bmp"
-IDR_TOOLBAR_CASSETTE    BITMAP  DISCARDABLE     "toolbar4.bmp"
-IDR_TOOLBAR4            BITMAP  DISCARDABLE     "bmp00001.bmp"
-IDB_LOGO                BITMAP  DISCARDABLE     "arnold.bmp"
+IDR_TOOLBAR3            BITMAP  DISCARDABLE     "win/toolbar3.bmp"
+IDR_TOOLBAR_CASSETTE    BITMAP  DISCARDABLE     "win/toolbar4.bmp"
+IDR_TOOLBAR4            BITMAP  DISCARDABLE     "win/bmp00001.bmp"
+IDB_LOGO                BITMAP  DISCARDABLE     "win/arnold.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Menu
 //
 
-IDR_MENU1 MENU DISCARDABLE 
+IDR_MENU1 MENU DISCARDABLE
 BEGIN
     POPUP "File"
     BEGIN
@@ -132,6 +132,11 @@ BEGIN
 
             MENUITEM "Eject Tape",                  ID_FILE_TAPEIMAGE_REMOVE
         END
+        POPUP "File"
+        BEGIN
+            MENUITEM "Load File into RAM...",        ID_FILE_LOADFILE
+            MENUITEM "Save RAM to file...",          ID_FILE_SAVEFILE
+        END
         MENUITEM SEPARATOR
         POPUP "Recent files"
         BEGIN
@@ -146,12 +151,12 @@ BEGIN
         MENUITEM SEPARATOR
         POPUP "Monitor simulation"
         BEGIN
-            MENUITEM "Colour monitor (CTM640,CTM644, CM14)", 
+            MENUITEM "Colour monitor (CTM640,CTM644, CM14)",
                                                     ID_MISC_MONITORTYPE_COLOUR
 
             MENUITEM "Green monitor (GT64, GT65)",  ID_MISC_MONITORTYPE_GREENSCREEN
 
-            MENUITEM "Back and white monitor (MM14)", 
+            MENUITEM "Back and white monitor (MM14)",
                                                     ID_MISC_MONITORTYPE_GREYSCALE
 
         END
@@ -200,7 +205,7 @@ BEGIN
     BEGIN
         POPUP "Amstrad settings"
         BEGIN
-            MENUITEM "Inicron RAM-ROM Settings ...", 
+            MENUITEM "Inicron RAM-ROM Settings ...",
                                                     ID_MISC_INICRONRAMROMSETTINGS
 
             POPUP "Ram Config"
@@ -303,7 +308,7 @@ BEGIN
     END
 END
 
-IDR_MENU2 MENU DISCARDABLE 
+IDR_MENU2 MENU DISCARDABLE
 BEGIN
     POPUP "View"
     BEGIN
@@ -323,7 +328,7 @@ BEGIN
     END
 END
 
-IDR_MENU_MEMDUMP MENU DISCARDABLE 
+IDR_MENU_MEMDUMP MENU DISCARDABLE
 BEGIN
     POPUP "MemDump"
     BEGIN
@@ -332,7 +337,7 @@ BEGIN
     END
 END
 
-IDR_MENU_DISSASSEMBLE MENU DISCARDABLE 
+IDR_MENU_DISSASSEMBLE MENU DISCARDABLE
 BEGIN
     POPUP "Dissassemble"
     BEGIN
@@ -340,7 +345,7 @@ BEGIN
     END
 END
 
-IDR_MENU_SHOWASGFX MENU DISCARDABLE 
+IDR_MENU_SHOWASGFX MENU DISCARDABLE
 BEGIN
     POPUP "ShowAsGfx"
     BEGIN
@@ -374,7 +379,7 @@ EXSTYLE WS_EX_TOOLWINDOW | WS_EX_CONTROLPARENT
 CAPTION "Debugger"
 FONT 8, "MS Shell Dlg", 0, 0, 0x1
 BEGIN
-    EDITTEXT        IDC_EDIT_REG_BC,150,22,20,12,ES_MULTILINE | ES_UPPERCASE | 
+    EDITTEXT        IDC_EDIT_REG_BC,150,22,20,12,ES_MULTILINE | ES_UPPERCASE |
                     ES_AUTOHSCROLL
     LTEXT           "HL",IDC_STATIC,55,21,12,8
     CONTROL         "DE",IDC_STATIC,"Static",SS_LEFTNOWORDWRAP | WS_GROUP,95,
@@ -388,39 +393,39 @@ BEGIN
     LTEXT           "BC'",IDC_STATIC,135,35,13,8
     LTEXT           "PC",IDC_STATIC,55,50,10,8
     LTEXT           "SP",IDC_STATIC,15,50,10,8
-    EDITTEXT        IDC_EDIT_REG_DE,110,21,20,12,ES_MULTILINE | ES_UPPERCASE | 
+    EDITTEXT        IDC_EDIT_REG_DE,110,21,20,12,ES_MULTILINE | ES_UPPERCASE |
                     ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT_REG_HL,70,21,20,12,ES_MULTILINE | ES_UPPERCASE | 
+    EDITTEXT        IDC_EDIT_REG_HL,70,21,20,12,ES_MULTILINE | ES_UPPERCASE |
                     ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT_REG_ALTHL,70,35,20,12,ES_MULTILINE | 
+    EDITTEXT        IDC_EDIT_REG_ALTHL,70,35,20,12,ES_MULTILINE |
                     ES_UPPERCASE | ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT_REG_ALTDE,110,35,20,12,ES_MULTILINE | 
+    EDITTEXT        IDC_EDIT_REG_ALTDE,110,35,20,12,ES_MULTILINE |
                     ES_UPPERCASE | ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT_REG_PC,70,50,20,12,ES_MULTILINE | ES_UPPERCASE | 
+    EDITTEXT        IDC_EDIT_REG_PC,70,50,20,12,ES_MULTILINE | ES_UPPERCASE |
                     ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT_REG_ALTBC,150,35,20,12,ES_MULTILINE | 
+    EDITTEXT        IDC_EDIT_REG_ALTBC,150,35,20,12,ES_MULTILINE |
                     ES_UPPERCASE | ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT_REG_SP,30,50,20,12,ES_MULTILINE | ES_UPPERCASE | 
+    EDITTEXT        IDC_EDIT_REG_SP,30,50,20,12,ES_MULTILINE | ES_UPPERCASE |
                     ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT_REG_AF,30,21,20,12,ES_MULTILINE | ES_UPPERCASE | 
+    EDITTEXT        IDC_EDIT_REG_AF,30,21,20,12,ES_MULTILINE | ES_UPPERCASE |
                     ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT_REG_ALTAF,30,35,20,12,ES_MULTILINE | 
+    EDITTEXT        IDC_EDIT_REG_ALTAF,30,35,20,12,ES_MULTILINE |
                     ES_UPPERCASE | ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT_REG_IX,110,50,20,12,ES_MULTILINE | ES_UPPERCASE | 
+    EDITTEXT        IDC_EDIT_REG_IX,110,50,20,12,ES_MULTILINE | ES_UPPERCASE |
                     ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT_REG_IY,150,50,20,12,ES_MULTILINE | ES_UPPERCASE | 
+    EDITTEXT        IDC_EDIT_REG_IY,150,50,20,12,ES_MULTILINE | ES_UPPERCASE |
                     ES_AUTOHSCROLL
     LTEXT           "AF'",IDC_STATIC,15,35,13,9
     CTEXT           "I",IDC_STATIC,15,66,8,8
     CTEXT           "R",IDC_STATIC,55,66,8,8
-    EDITTEXT        IDC_EDIT_REG_I,30,66,20,13,ES_MULTILINE | ES_UPPERCASE | 
+    EDITTEXT        IDC_EDIT_REG_I,30,66,20,13,ES_MULTILINE | ES_UPPERCASE |
                     ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT_REG_IM,110,66,20,12,ES_MULTILINE | ES_UPPERCASE | 
+    EDITTEXT        IDC_EDIT_REG_IM,110,66,20,12,ES_MULTILINE | ES_UPPERCASE |
                     ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT_REG_R,70,66,20,13,ES_MULTILINE | ES_UPPERCASE | 
+    EDITTEXT        IDC_EDIT_REG_R,70,66,20,13,ES_MULTILINE | ES_UPPERCASE |
                     ES_AUTOHSCROLL
     LTEXT           "IM",IDC_STATIC,95,66,10,8
-    EDITTEXT        IDC_EDIT_REG_IFF1,30,81,20,12,ES_MULTILINE | 
+    EDITTEXT        IDC_EDIT_REG_IFF1,30,81,20,12,ES_MULTILINE |
                     ES_UPPERCASE | ES_AUTOHSCROLL
     EDITTEXT        IDC_EDIT_REG_IFF2,110,81,20,12,ES_MULTILINE
     LTEXT           "IFF1",IDC_STATIC,10,81,18,8
@@ -428,11 +433,9 @@ BEGIN
     LTEXT           "Flags",IDC_STATIC_FLAGS,200,45,45,8
     PUSHBUTTON      "Step Into",IDC_BUTTON_STEP_INTO,195,85,45,15
     PUSHBUTTON      "Run To..",IDC_BUTTON_RUN_TO,239,85,40,15
-    LTEXT           "Static",IDC_STATIC_DISSASSEMBLY,200,15,75,10
     PUSHBUTTON      "Go",IDC_BUTTON_DEBUG_GO,195,70,45,15
     PUSHBUTTON      "Break",IDC_BUTTON_DEBUG_BREAK,239,70,40,15
     GROUPBOX        "Flags",IDC_STATIC,195,35,90,20
-    GROUPBOX        "Current instruction",IDC_STATIC,195,5,90,25
     GROUPBOX        "Registers",IDC_STATIC,5,5,175,95
 END
 
@@ -452,100 +455,100 @@ CAPTION "Expansion Roms"
 FONT 8, "MS Sans Serif"
 BEGIN
     LTEXT           "1",IDC_STATIC,5,15,8,8
-    CONTROL         "Static",IDC_STATIC_ROM1,"Static",SS_LEFTNOWORDWRAP | 
+    CONTROL         "Static",IDC_STATIC_ROM1,"Static",SS_LEFTNOWORDWRAP |
                     WS_GROUP,20,15,52,8
     PUSHBUTTON      "Load",IDC_BUTTON_ROM1,75,15,22,10
     LTEXT           "2",IDC_STATIC,5,25,8,8
-    CONTROL         "Static",IDC_STATIC_ROM2,"Static",SS_LEFTNOWORDWRAP | 
+    CONTROL         "Static",IDC_STATIC_ROM2,"Static",SS_LEFTNOWORDWRAP |
                     WS_GROUP,20,25,52,9
     PUSHBUTTON      "Load",IDC_BUTTON_ROM2,75,25,22,10
     LTEXT           "3",IDC_STATIC,5,35,8,11
-    CONTROL         "Static",IDC_STATIC_ROM3,"Static",SS_LEFTNOWORDWRAP | 
+    CONTROL         "Static",IDC_STATIC_ROM3,"Static",SS_LEFTNOWORDWRAP |
                     WS_GROUP,20,35,52,9
     PUSHBUTTON      "Load",IDC_BUTTON_ROM3,75,35,22,10
     LTEXT           "4",IDC_STATIC,5,45,8,11
-    CONTROL         "Static",IDC_STATIC_ROM4,"Static",SS_LEFTNOWORDWRAP | 
+    CONTROL         "Static",IDC_STATIC_ROM4,"Static",SS_LEFTNOWORDWRAP |
                     WS_GROUP,20,45,52,9
     PUSHBUTTON      "Load",IDC_BUTTON_ROM4,75,45,22,10
     LTEXT           "5",IDC_STATIC,5,55,8,11
-    CONTROL         "Static",IDC_STATIC_ROM5,"Static",SS_LEFTNOWORDWRAP | 
+    CONTROL         "Static",IDC_STATIC_ROM5,"Static",SS_LEFTNOWORDWRAP |
                     WS_GROUP,20,55,52,9
     PUSHBUTTON      "Load",IDC_BUTTON_ROM5,75,55,22,10
     LTEXT           "6",IDC_STATIC,5,65,8,8
-    CONTROL         "Static",IDC_STATIC_ROM6,"Static",SS_LEFTNOWORDWRAP | 
+    CONTROL         "Static",IDC_STATIC_ROM6,"Static",SS_LEFTNOWORDWRAP |
                     WS_GROUP,20,65,52,9
     PUSHBUTTON      "Load",IDC_BUTTON_ROM6,75,65,22,10
     LTEXT           "7",IDC_STATIC,5,75,8,8
-    CONTROL         "Static",IDC_STATIC_ROM7,"Static",SS_LEFTNOWORDWRAP | 
+    CONTROL         "Static",IDC_STATIC_ROM7,"Static",SS_LEFTNOWORDWRAP |
                     WS_GROUP,20,75,52,9
     PUSHBUTTON      "Load",IDC_BUTTON_ROM7,75,75,22,10
     LTEXT           "8",IDC_STATIC,5,85,8,11
-    CONTROL         "Static",IDC_STATIC_ROM8,"Static",SS_LEFTNOWORDWRAP | 
+    CONTROL         "Static",IDC_STATIC_ROM8,"Static",SS_LEFTNOWORDWRAP |
                     WS_GROUP,20,85,52,9
     PUSHBUTTON      "Load",IDC_BUTTON_ROM8,75,85,22,10
     LTEXT           "9",IDC_STATIC,120,15,8,8
-    CONTROL         "Static",IDC_STATIC_ROM9,"Static",SS_LEFTNOWORDWRAP | 
+    CONTROL         "Static",IDC_STATIC_ROM9,"Static",SS_LEFTNOWORDWRAP |
                     WS_GROUP,130,15,52,9
     PUSHBUTTON      "Load",IDC_BUTTON_ROM9,190,15,22,10
     LTEXT           "10",IDC_STATIC,115,25,8,11
-    CONTROL         "Static",IDC_STATIC_ROM10,"Static",SS_LEFTNOWORDWRAP | 
+    CONTROL         "Static",IDC_STATIC_ROM10,"Static",SS_LEFTNOWORDWRAP |
                     WS_GROUP,130,25,52,9
     PUSHBUTTON      "Load",IDC_BUTTON_ROM10,190,25,22,10
     LTEXT           "11",IDC_STATIC,115,35,8,11
-    CONTROL         "Static",IDC_STATIC_ROM11,"Static",SS_LEFTNOWORDWRAP | 
+    CONTROL         "Static",IDC_STATIC_ROM11,"Static",SS_LEFTNOWORDWRAP |
                     WS_GROUP,130,35,52,9
     PUSHBUTTON      "Load",IDC_BUTTON_ROM11,190,35,22,10
     LTEXT           "12",IDC_STATIC,115,45,8,11
-    CONTROL         "Static",IDC_STATIC_ROM12,"Static",SS_LEFTNOWORDWRAP | 
+    CONTROL         "Static",IDC_STATIC_ROM12,"Static",SS_LEFTNOWORDWRAP |
                     WS_GROUP,130,45,52,9
     PUSHBUTTON      "Load",IDC_BUTTON_ROM12,190,45,22,10
     LTEXT           "13",IDC_STATIC,115,55,8,8
-    CONTROL         "Static",IDC_STATIC_ROM13,"Static",SS_LEFTNOWORDWRAP | 
+    CONTROL         "Static",IDC_STATIC_ROM13,"Static",SS_LEFTNOWORDWRAP |
                     WS_GROUP,130,55,52,9
     PUSHBUTTON      "Load",IDC_BUTTON_ROM13,190,55,22,10
     LTEXT           "14",IDC_STATIC,115,65,8,8
-    CONTROL         "Static",IDC_STATIC_ROM14,"Static",SS_LEFTNOWORDWRAP | 
+    CONTROL         "Static",IDC_STATIC_ROM14,"Static",SS_LEFTNOWORDWRAP |
                     WS_GROUP,130,65,52,9
     PUSHBUTTON      "Load",IDC_BUTTON_ROM14,190,65,22,10
     LTEXT           "15",IDC_STATIC,115,75,8,8
-    CONTROL         "Static",IDC_STATIC_ROM15,"Static",SS_LEFTNOWORDWRAP | 
+    CONTROL         "Static",IDC_STATIC_ROM15,"Static",SS_LEFTNOWORDWRAP |
                     WS_GROUP,130,75,52,9
     PUSHBUTTON      "Load",IDC_BUTTON_ROM15,190,75,22,10
-    CONTROL         "Check1",IDC_CHECK_ROM2,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_ROM2,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,100,25,8,8
-    CONTROL         "Check1",IDC_CHECK_ROM3,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_ROM3,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,100,35,8,8
-    CONTROL         "Check1",IDC_CHECK_ROM4,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_ROM4,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,100,45,8,8
-    CONTROL         "Check1",IDC_CHECK_ROM5,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_ROM5,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,100,55,8,8
-    CONTROL         "Check1",IDC_CHECK_ROM6,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_ROM6,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,100,65,9,9
-    CONTROL         "Check1",IDC_CHECK_ROM1,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_ROM1,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,100,15,8,8
-    CONTROL         "Check1",IDC_CHECK_ROM7,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_ROM7,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,100,75,8,8
-    CONTROL         "Check1",IDC_CHECK_ROM8,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_ROM8,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,100,85,8,8
-    CONTROL         "Check1",IDC_CHECK_ROM9,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_ROM9,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,215,15,8,8
-    CONTROL         "Check1",IDC_CHECK_ROM10,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_ROM10,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,215,25,8,8
-    CONTROL         "Check1",IDC_CHECK_ROM11,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_ROM11,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,215,35,8,8
-    CONTROL         "Check1",IDC_CHECK_ROM12,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_ROM12,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,215,45,8,8
-    CONTROL         "Check1",IDC_CHECK_ROM13,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_ROM13,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,215,55,8,8
-    CONTROL         "Check1",IDC_CHECK_ROM14,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_ROM14,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,215,65,8,8
-    CONTROL         "Check1",IDC_CHECK_ROM15,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_ROM15,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,215,75,8,8
     LTEXT           "16",IDC_STATIC,115,85,8,8
-    CONTROL         "Static",IDC_STATIC_ROM16,"Static",SS_LEFTNOWORDWRAP | 
+    CONTROL         "Static",IDC_STATIC_ROM16,"Static",SS_LEFTNOWORDWRAP |
                     WS_GROUP,130,85,52,9
     PUSHBUTTON      "Load",IDC_BUTTON_ROM16,190,85,22,10
-    CONTROL         "Check1",IDC_CHECK_ROM16,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_ROM16,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,215,85,8,8
 END
 
@@ -555,7 +558,7 @@ CAPTION "Cheat Database"
 FONT 8, "MS Shell Dlg"
 BEGIN
     DEFPUSHBUTTON   "Poke",ID_POKE,104,125,50,17
-    CONTROL         "List1",IDC_LIST_CHEATS,"SysListView32",LVS_REPORT | 
+    CONTROL         "List1",IDC_LIST_CHEATS,"SysListView32",LVS_REPORT |
                     LVS_NOSORTHEADER | WS_BORDER | WS_TABSTOP,7,7,269,111
     DEFPUSHBUTTON   "Open Database...",ID_OPEN_DATABASE,7,125,77,17
 END
@@ -567,8 +570,8 @@ FONT 8, "MS Shell Dlg"
 BEGIN
     DEFPUSHBUTTON   "&Open",IDOK,3,163,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,277,163,50,14
-    CONTROL         "List1",IDC_LIST_FILES,"SysListView32",LVS_REPORT | 
-                    LVS_SINGLESEL | LVS_SHAREIMAGELISTS | WS_BORDER | 
+    CONTROL         "List1",IDC_LIST_FILES,"SysListView32",LVS_REPORT |
+                    LVS_SINGLESEL | LVS_SHAREIMAGELISTS | WS_BORDER |
                     WS_TABSTOP,3,5,324,151
 END
 
@@ -585,7 +588,7 @@ BEGIN
     EDITTEXT        IDC_EDIT_AUTHOR,45,25,135,12,ES_AUTOHSCROLL
     EDITTEXT        IDC_EDIT_COMMENT,45,45,135,12,ES_AUTOHSCROLL
     CONTROL         "Start Recording when silence ends",
-                    IDC_CHECK_RECORDING_FLAG1,"Button",BS_AUTOCHECKBOX | 
+                    IDC_CHECK_RECORDING_FLAG1,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,5,65,130,10
     DEFPUSHBUTTON   "Cancel",IDCANCEL,140,80,41,14
 END
@@ -600,7 +603,7 @@ BEGIN
     LTEXT           "CPC Rom",IDC_STATIC,10,15,40,10
     LTEXT           "CPC+ Rom",IDC_STATIC,10,30,40,8
     CONTROL         "Multiface can be detected after a reset",
-                    IDC_CHECK_MULTIFACE_DETECTABLE,"Button",BS_AUTOCHECKBOX | 
+                    IDC_CHECK_MULTIFACE_DETECTABLE,"Button",BS_AUTOCHECKBOX |
                     WS_DISABLED | WS_TABSTOP,7,53,143,11
     CONTROL         "Multiface hardware is active",
                     IDC_CHECK_MULTIFACE_HARDWARE_IS_ACTIVE,"Button",
@@ -614,37 +617,37 @@ STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Inicron RAM-ROM Settings"
 FONT 8, "MS Shell Dlg"
 BEGIN
-    CONTROL         "Check1",IDC_CHECK_BANK1,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_BANK1,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,32,67,11,8
-    CONTROL         "BANK2",IDC_CHECK_BANK2,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "BANK2",IDC_CHECK_BANK2,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,47,67,11,8
-    CONTROL         "Check1",IDC_CHECK_BANK3,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_BANK3,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,63,67,11,8
-    CONTROL         "Check1",IDC_CHECK_BANK4,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_BANK4,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,77,67,11,8
-    CONTROL         "Check1",IDC_CHECK_BANK0,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_BANK0,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,17,67,11,8
-    CONTROL         "Check1",IDC_CHECK_BANK5,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_BANK5,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,92,67,11,8
-    CONTROL         "Check1",IDC_CHECK_BANK6,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_BANK6,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,107,67,11,8
-    CONTROL         "Check1",IDC_CHECK_BANK8,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_BANK8,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,137,67,11,8
-    CONTROL         "Check1",IDC_CHECK_BANK9,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_BANK9,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,152,67,11,8
-    CONTROL         "Check1",IDC_CHECK_BANK10,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_BANK10,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,167,67,11,8
-    CONTROL         "Check1",IDC_CHECK_BANK11,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_BANK11,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,182,67,11,8
-    CONTROL         "Check1",IDC_CHECK_BANK7,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_BANK7,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,122,67,11,8
-    CONTROL         "Check1",IDC_CHECK_BANK12,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_BANK12,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,197,67,11,8
-    CONTROL         "Check1",IDC_CHECK_BANK13,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_BANK13,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,212,67,11,8
-    CONTROL         "Check1",IDC_CHECK_BANK14,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_BANK14,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,227,67,11,8
-    CONTROL         "Check1",IDC_CHECK_BANK15,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Check1",IDC_CHECK_BANK15,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,243,67,11,8
     CTEXT           "0",IDC_STATIC,17,57,8,10
     CTEXT           "1",IDC_STATIC,33,57,8,10
@@ -663,13 +666,13 @@ BEGIN
     CTEXT           "14",IDC_STATIC,227,57,8,10
     CTEXT           "15",IDC_STATIC,243,57,8,10
     GROUPBOX        "Slot On",IDC_STATIC,7,46,250,35
-    CONTROL         "On",IDC_CHECK_RAM_ON,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "On",IDC_CHECK_RAM_ON,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,14,17,43,8
     CONTROL         "Write Enable",IDC_CHECK_RAM_WRITE_ENABLE,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,14,30,71,8
-    CONTROL         "On",IDC_CHECK_EPROM_ON,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "On",IDC_CHECK_EPROM_ON,"Button",BS_AUTOCHECKBOX |
                     WS_DISABLED | WS_TABSTOP,149,32,29,8
-    EDITTEXT        IDC_EDIT_EPROM_SLOT,202,15,44,12,ES_AUTOHSCROLL | 
+    EDITTEXT        IDC_EDIT_EPROM_SLOT,202,15,44,12,ES_AUTOHSCROLL |
                     WS_DISABLED
     GROUPBOX        "RAM",IDC_STATIC,8,7,115,38
     GROUPBOX        "EPROM",IDC_STATIC,127,7,129,38
@@ -681,8 +684,8 @@ STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Cassette"
 FONT 8, "MS Sans Serif"
 BEGIN
-    CONTROL         "List1",IDC_LIST_BLOCKS,"SysListView32",LVS_REPORT | 
-                    LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | 
+    CONTROL         "List1",IDC_LIST_BLOCKS,"SysListView32",LVS_REPORT |
+                    LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER |
                     WS_TABSTOP,12,7,215,127
 END
 
@@ -691,8 +694,8 @@ STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "CPC Joystick 0"
 FONT 8, "MS Sans Serif"
 BEGIN
-    CONTROL         "List1",IDC_LIST_JOY,"SysListView32",LVS_REPORT | 
-                    LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | 
+    CONTROL         "List1",IDC_LIST_JOY,"SysListView32",LVS_REPORT |
+                    LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER |
                     WS_TABSTOP,7,7,189,100
     PUSHBUTTON      "Ok",IDOK,7,112,37,16
 END
@@ -704,7 +707,7 @@ FONT 8, "MS Sans Serif"
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,7,71,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,129,71,50,14
-    EDITTEXT        IDC_EDIT_AUTOTYPE_TEXT,7,7,172,56,ES_MULTILINE | 
+    EDITTEXT        IDC_EDIT_AUTOTYPE_TEXT,7,7,172,56,ES_MULTILINE |
                     ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN
 END
 
@@ -755,7 +758,7 @@ STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Speed"
 FONT 8, "MS Sans Serif"
 BEGIN
-    CONTROL         "Realtime",IDC_CHECK_REALTIME,"Button",BS_AUTOCHECKBOX | 
+    CONTROL         "Realtime",IDC_CHECK_REALTIME,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,5,10,105,10
     SCROLLBAR       IDC_SCROLLBAR1,55,20,10,15,SBS_VERT
     LTEXT           "Skip",IDC_STATIC,5,20,20,15,SS_CENTERIMAGE
@@ -769,7 +772,7 @@ CAPTION "Display"
 FONT 8, "MS Sans Serif"
 BEGIN
     LTEXT           "Fullscreen display mode",IDC_STATIC,5,5,80,10
-    COMBOBOX        IDC_COMBO_DISPLAYMODE,90,5,85,12,CBS_DROPDOWN | CBS_SORT | 
+    COMBOBOX        IDC_COMBO_DISPLAYMODE,90,5,85,12,CBS_DROPDOWN | CBS_SORT |
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "A display resolution of 800x600 is recommended.",
                     IDC_STATIC,5,25,170,10
@@ -784,14 +787,14 @@ BEGIN
     PUSHBUTTON      "Cancel",IDCANCEL,130,85,50,14
     LTEXT           "For best operation, Arnold should be ""associated"" with the types of files you can use with it. This allows Arnold to be started automatically when you select these files from My Computer, Windows Explorer etc",
                     IDC_STATIC,5,5,175,35
-    CONTROL         "List1",IDC_LIST_ASSOCIATIONS,"SysListView32",LVS_REPORT | 
+    CONTROL         "List1",IDC_LIST_ASSOCIATIONS,"SysListView32",LVS_REPORT |
                     WS_BORDER | WS_TABSTOP,5,70,115,80
     LTEXT           "For the files that you want Arnold to open, ensure there is a tick mark next to them in the list.",
                     IDC_STATIC,5,45,175,20
     DEFPUSHBUTTON   "Select All",ID_SELECT_ALL,130,135,50,14
     DEFPUSHBUTTON   "Clear All",ID_CLEAR_ALL,130,120,50,14
     CONTROL         "Add ""Open With Arnold"" to shell menus",
-                    IDC_CHECK_OPENWITHARNOLD,"Button",BS_AUTOCHECKBOX | 
+                    IDC_CHECK_OPENWITHARNOLD,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,5,155,175,10
 END
 
@@ -802,11 +805,11 @@ FONT 8, "MS Sans Serif"
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,7,71,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,85,70,50,14
-    COMBOBOX        IDC_COMBO_VERSION,40,10,30,40,CBS_DROPDOWNLIST | 
+    COMBOBOX        IDC_COMBO_VERSION,40,10,30,40,CBS_DROPDOWNLIST |
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Version",IDC_STATIC,10,10,30,15,SS_CENTERIMAGE
     CONTROL         "Write second bank of 64K if present",
-                    IDC_CHECK_WRITE_2ND_64K,"Button",BS_AUTOCHECKBOX | 
+                    IDC_CHECK_WRITE_2ND_64K,"Button",BS_AUTOCHECKBOX |
                     WS_TABSTOP,10,30,125,10
 END
 
@@ -817,7 +820,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO DISCARDABLE 
+GUIDELINES DESIGNINFO DISCARDABLE
 BEGIN
     IDD_DIALOG_ARCHIVE, DIALOG
     BEGIN
@@ -907,18 +910,18 @@ END
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE DISCARDABLE 
+1 TEXTINCLUDE DISCARDABLE
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE DISCARDABLE 
+2 TEXTINCLUDE DISCARDABLE
 BEGIN
     "#include ""afxres.h""\r\n"
     "\0"
 END
 
-3 TEXTINCLUDE DISCARDABLE 
+3 TEXTINCLUDE DISCARDABLE
 BEGIN
     "\r\n"
     "\0"
@@ -931,14 +934,14 @@ END
 //
 // Toolbar
 //
-
+#if 0
 IDR_TOOLBAR4 TOOLBAR DISCARDABLE  28, 28
 BEGIN
     BUTTON      ID_BUTTON40005
     BUTTON      ID_BUTTON40006
     BUTTON      ID_BUTTON40007
 END
-
+#endif
 
 #ifndef _MAC
 /////////////////////////////////////////////////////////////////////////////

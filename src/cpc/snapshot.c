@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -39,6 +39,14 @@
 #include "cpc.h"
 #include "snapv3.h"
 #include "fdi.h"
+
+#ifndef max
+#define max(a,b) (a>b) ? a : b
+#endif
+
+#ifndef min
+#define min(a,b) (a<b) ? a : b
+#endif
 
 extern char *Z80MemoryBase;
 extern char *Amstrad_ExtraRam;
@@ -89,67 +97,56 @@ int Snapshot_Insert(const unsigned char *pSnapshot, const unsigned long Snapshot
                                         char    *pSnapshotData;
                                         int i;
 
-										/* mem size to read from snapshot; 64k or 128k */
-                                        int MemSizeBytes;
+										/* size of actual data in snapshot */
+                                        int ActualMemSizeInSnapshot = SnapshotLength-sizeof(SNAPSHOT_HEADER);
 
 										/* mem size claimed to be in snapshot */
-										int MemSizeInSnapshot;
+										int MemSizeInSnapshot = ((pSnapshotHeader->MemSizeLow & 0x0ff) | ((pSnapshotHeader->MemSizeHigh & 0x0ff)<<8))<<10;
 
+										/* we will use the larger value to determine the memory expansion we will enable */
+										int MemSizeMax = max(ActualMemSizeInSnapshot, MemSizeInSnapshot);
+
+										/* this is the size of memory chosen when enabling expansions */
+										int MemSizeChosen = 64*1024;
+
+										/* ram config required */
+										unsigned long RamConfig = 0;
+
+										if (MemSizeMax<=(64*1024))
 										{
-											/* if version 1, 2 or 3, memory size is defined in header */
-
-											int MemSizeK;
-
-		                                    /* get memory dump size */
-											MemSizeK = (pSnapshotHeader->MemSizeLow & 0x0ff) | ((pSnapshotHeader->MemSizeHigh & 0x0ff)<<8);
-
-											MemSizeInSnapshot = MemSizeK<<10;
-
-											/* round size up to 64 or 128K */
-											/* will ignore data for sizes larger than 128k */
-											if (MemSizeK<=64)
-											{
-												MemSizeK=64;
-											}
-											else
-											if (MemSizeK<=128)
-											{
-												MemSizeK=128;
-											}
-											else
-											{
-												MemSizeK=128;
-											}
-										
-											MemSizeBytes = MemSizeK<<10;
+											/* no extra ram */
+										}
+										else
+										if (MemSizeMax<=(128*1024))
+										{
+											/* assume standard 64k ram expansion */
+											RamConfig |= CPC_RAM_CONFIG_64K_RAM;
+											MemSizeChosen = 128*1024;
+										}
+										else
+										if (MemSizeMax<=(256*1024))
+										{
+											/* assume standard 256k ram */
+											RamConfig |= CPC_RAM_CONFIG_256K_RAM;
+											MemSizeChosen = 256*1024;
+										}
+										else
+										if (MemSizeMax<=(512*1024))
+										{
+											/* assume 256k RAM and 256K silicon disc connected */
+											RamConfig |= CPC_RAM_CONFIG_256K_RAM|CPC_RAM_CONFIG_256K_SILICON_DISK;
+											MemSizeChosen = 512*1024;
 										}
 
+										/* force RAM config; ensuring existing ram config is maintained */
+										CPC_SetRamConfig(CPC_GetRamConfig() | RamConfig);
 
-										/* can either force 64k expansion ram or choose to ignore extra data? */
-										/* for now, will force 64k expansion ram */
-
-										/* 64k? */
-										if (MemSizeBytes!=(64<<10))
-										{
-											unsigned long RamConfig;
-
-											/* get ram config */
-											RamConfig = CPC_GetRamConfig();
-											
-											/* has 64k expansion ram? */
-											if ((RamConfig & CPC_RAM_CONFIG_64K_RAM)==0)
-											{
-												/* no, force 64k expansion ram */
-												CPC_SetRamConfig(RamConfig | CPC_RAM_CONFIG_64K_RAM);
-											}
-										}
-
-                                        /* file must be at least the size of the header + the number of bytes
-                                        it claims to contain */
-                                        if (SnapshotLength>=(sizeof(SNAPSHOT_HEADER)+MemSizeBytes))
+                                        /* file must be at least the size of the header */
+                                        if (SnapshotLength>=sizeof(SNAPSHOT_HEADER))
                                         {
                                                 /* Appears snapshot is valid. Setup Z80 and copy memory */
 
+											unsigned long CopySize;
 											int CPCType;
 											int Register;
 
@@ -159,10 +156,9 @@ int Snapshot_Insert(const unsigned char *pSnapshot, const unsigned long Snapshot
 
                                                 /* reset CPC */
                                                 CPC_Reset();
-
 												/* get CPC type */
 												CPCType = ((char *)pSnapshotHeader)[0x06d];
-                                               
+
 
 												if (
 													(pSnapshotHeader->Version==1) ||
@@ -170,7 +166,7 @@ int Snapshot_Insert(const unsigned char *pSnapshot, const unsigned long Snapshot
 												{
 													/* version 1 and 2 did not know about CPC+ so do not allow them
 													to be set */
-													
+
 													/* set CPC type accordingly */
 													switch (CPCType)
 													{
@@ -259,7 +255,7 @@ int Snapshot_Insert(const unsigned char *pSnapshot, const unsigned long Snapshot
 
 												Register = SNAPSHOT_GET_REGISTER_PAIR(pRegs,4);
 												Z80_SetReg(Z80_DE, Register);
-												
+
 												Register = SNAPSHOT_GET_REGISTER_PAIR(pRegs,6);
 												Z80_SetReg(Z80_HL, Register);
 
@@ -271,15 +267,15 @@ int Snapshot_Insert(const unsigned char *pSnapshot, const unsigned long Snapshot
 
                                                 Z80_SetReg(Z80_IFF2, pRegs[11] & 1);
 
-												Register = SNAPSHOT_GET_REGISTER_PAIR(pRegs,12);	
+												Register = SNAPSHOT_GET_REGISTER_PAIR(pRegs,12);
 												Z80_SetReg(Z80_IX, Register);
 
 												Register = SNAPSHOT_GET_REGISTER_PAIR(pRegs,14);
 												Z80_SetReg(Z80_IY, Register);
-								
+
 												Register = SNAPSHOT_GET_REGISTER_PAIR(pRegs,16);
 												Z80_SetReg(Z80_SP, Register);
-												
+
 												Register = SNAPSHOT_GET_REGISTER_PAIR(pRegs,18);
 												Z80_SetReg(Z80_PC, Register);
 
@@ -309,11 +305,11 @@ int Snapshot_Insert(const unsigned char *pSnapshot, const unsigned long Snapshot
                                                 /* initialise colour palette */
                                                 for (i=0; i<17; i++)
                                                 {
-                                                        unsigned char HwColourIndex = ((char *)pSnapshotHeader)[0x02f + i];
+                                                        unsigned char HwColourIndex = ((unsigned char *)pSnapshotHeader)[0x02f + i];
 
                                                         /* pen select */
                                                         GateArray_Write(i);
-                                                
+
                                                         /* write colour for pen */
                                                         GateArray_Write((HwColourIndex & 0x01f) | 0x040);
                                                 }
@@ -329,7 +325,7 @@ int Snapshot_Insert(const unsigned char *pSnapshot, const unsigned long Snapshot
                                                 /* initialise CRTC */
                                                 for (i=0; i<18; i++)
                                                 {
-                                                        unsigned char CRTCRegData = ((char *)pSnapshotHeader)[0x043 + i];
+                                                        unsigned char CRTCRegData = ((unsigned char *)pSnapshotHeader)[0x043 + i];
 
                                                         CRTC_RegisterSelect(i);
 
@@ -348,7 +344,7 @@ int Snapshot_Insert(const unsigned char *pSnapshot, const unsigned long Snapshot
                                                 /* setup PSG registers */
                                                 for (i=0; i<16; i++)
                                                 {
-                                                        unsigned char PSGRegData = ((char *)pSnapshotHeader)[0x05b + i];
+                                                        unsigned char PSGRegData = ((unsigned char *)pSnapshotHeader)[0x05b + i];
 
                                                         PSG_RegisterSelect(i);
 
@@ -395,7 +391,7 @@ int Snapshot_Insert(const unsigned char *pSnapshot, const unsigned long Snapshot
 													pCRTC_State->HCount = ((char *)pSnapshotHeader)[0x0a9] & 0x0ff;
 													pCRTC_State->LineCounter = ((char *)pSnapshotHeader)[0x0ab] & 0x07f;
 													pCRTC_State->RasterCounter = ((char *)pSnapshotHeader)[0x0ac] & 0x01f;
-																	
+
 													CRTC_Flags = (((char *)pSnapshotHeader)[0x0b0] & 0x0ff) | ((((char *)pSnapshotHeader)[0x0b1] & 0x0ff)<<8);
 
 													pCRTC_State->CRTC_Flags &=~CRTC_VS_FLAG;
@@ -418,9 +414,9 @@ int Snapshot_Insert(const unsigned char *pSnapshot, const unsigned long Snapshot
 														pCRTC_State->VertAdjustCount = ((char *)pSnapshotHeader)[0x0ad];
 														pCRTC_State->CRTC_Flags |= CRTC_VADJ_FLAG;
 													}
-													
+
 													GateArray_SetInterruptLineCount(((char *)pSnapshotHeader)[0x0b3]);
-												
+
 													if (((char *)pSnapshotHeader)[0x0b4]&0x01)
 													{
 														Z80_SetInterruptRequest();
@@ -435,25 +431,29 @@ int Snapshot_Insert(const unsigned char *pSnapshot, const unsigned long Snapshot
 
 
                                                 /**** INIT RAM ****/
-												/* THIS NEEDS TO TAKE INTO ACCOUNT ADDITIONAL RAM settings */
-                                                /* setup RAM */
                                                 pSnapshotData = ((char *)pSnapshotHeader + sizeof(SNAPSHOT_HEADER));
 
-												/* file size must have at least 64k in it, otherwise it will
-												not get to here */
-												memcpy(Z80MemoryBase, pSnapshotData, 64<<10);
+												/* size of main ram to copy. */
+												CopySize = min((SnapshotLength-sizeof(SNAPSHOT_HEADER)),64*1024);
 
-												/* 128k snapshot? */
-												if (MemSizeBytes==(128<<10))
+												memcpy(Z80MemoryBase, pSnapshotData, CopySize);
+
+												CopySize = SnapshotLength - sizeof(SNAPSHOT_HEADER) - CopySize;
+
+												/* now if there is extra data copy it in */
+												if (CopySize!=0)
 												{
 													/* extra ram setup */
 													if (Amstrad_ExtraRam!=NULL)
 													{
+														unsigned long Length = min(CopySize, MemSizeChosen);
+
 														/* copy data into it */
-														memcpy(Amstrad_ExtraRam, pSnapshotData + (64<<10), (64<<10));
+														memcpy(Amstrad_ExtraRam, pSnapshotData + (64<<10), CopySize);
 													}
 												}
-												
+
+
 												Status = ARNOLD_STATUS_OK;
 
 												if (pSnapshotHeader->Version ==3)
@@ -490,7 +490,7 @@ int Snapshot_Insert(const unsigned char *pSnapshot, const unsigned long Snapshot
 
 															/* update chunk pointer */
 															pChunk = (RIFF_CHUNK *)((unsigned long)pChunk + ChunkSize + sizeof(RIFF_CHUNK));
-														
+
 															/* update size of data remaining */
 															SizeRemaining -= (ChunkSize + sizeof(RIFF_CHUNK));
 														}
@@ -504,7 +504,7 @@ int Snapshot_Insert(const unsigned char *pSnapshot, const unsigned long Snapshot
                         }
                 }
         }
-        
+
         return Status;
 }
 
@@ -517,7 +517,7 @@ unsigned long Snapshot_CalculateOutputSize(int SnapshotSizeInK, int Version)
 	SnapshotSize = sizeof(SNAPSHOT_HEADER);
 
 	SnapshotSize += SnapshotSizeInK*1024;
-	
+
 	if (Version==3)
 	{
 		/* V3 stuff */
@@ -577,6 +577,8 @@ void Snapshot_GenerateOutputData(unsigned char *pBuffer, int SnapshotSizeInK, in
         /* setup header */
         memcpy(&SnapshotHeader, SNAPSHOT_HEADER_TEXT, 8);
 
+		memcpy(&SnapshotHeader[0x0e0],SNAPSHOT_EMU_TEXT, 6);
+
         /* set version */
         SnapshotHeader[0x010] = (unsigned char)Version;
 
@@ -588,7 +590,7 @@ void Snapshot_GenerateOutputData(unsigned char *pBuffer, int SnapshotSizeInK, in
 				CPCType = 2;
 #if 0
 				/* version 2 doesn't recognise KC Compact or CPC+! */
-				/* convert my CPC type to Snapshot CPC type index. */						
+				/* convert my CPC type to Snapshot CPC type index. */
 				switch (1)	//CPC_GetCPCType())
 				{
 					case CPC_TYPE_CPC464:
@@ -635,7 +637,7 @@ void Snapshot_GenerateOutputData(unsigned char *pBuffer, int SnapshotSizeInK, in
 				}
 
 #if 0
-				
+
 				/* NOTE: GX4000 not supported by Arnold at this time, so is not defined in this file */
 				switch (1)	//CPC_GetCPCType())
 				{
@@ -688,7 +690,7 @@ void Snapshot_GenerateOutputData(unsigned char *pBuffer, int SnapshotSizeInK, in
 				int Register;
 
                 char *pRegs = (char *)&SnapshotHeader[0x011];
-        
+
 				Register = Z80_GetReg(Z80_AF);
 
 				SNAPSHOT_PUT_REGISTER_PAIR(pRegs,0, Register);
@@ -715,12 +717,12 @@ void Snapshot_GenerateOutputData(unsigned char *pBuffer, int SnapshotSizeInK, in
 				{
 					pRegs[10] = 1;
 				}
-				
+
                 if (Z80_GetReg(Z80_IFF2)!=0)
 				{
                         pRegs[11] = 1;
                 }
- 		
+
 				Register = Z80_GetReg(Z80_IX);
 
 				SNAPSHOT_PUT_REGISTER_PAIR(pRegs,12, Register);
@@ -739,7 +741,7 @@ void Snapshot_GenerateOutputData(unsigned char *pBuffer, int SnapshotSizeInK, in
 
 				Register = Z80_GetReg(Z80_IM);
 				pRegs[20] = (char)(Register & 0x03);
-				
+
 				Register = Z80_GetReg(Z80_AF2);
 
 				SNAPSHOT_PUT_REGISTER_PAIR(pRegs,21, Register);
@@ -798,7 +800,7 @@ void Snapshot_GenerateOutputData(unsigned char *pBuffer, int SnapshotSizeInK, in
 
         /* select PSG register */
         SnapshotHeader[0x05a] = (unsigned char)(PSG_GetSelectedRegister() & 0x0f);
-        
+
         /**** PPI ****/
         /* get PPI control */
         SnapshotHeader[0x059] = (unsigned char)PPI_GetControlForSnapshot();
@@ -812,7 +814,7 @@ void Snapshot_GenerateOutputData(unsigned char *pBuffer, int SnapshotSizeInK, in
 
 
         /* set memory size */
-        SnapshotHeader[0x06b] = (unsigned char)(SnapshotMemorySize>>10); 
+        SnapshotHeader[0x06b] = (unsigned char)(SnapshotMemorySize>>10);
         SnapshotHeader[0x06c] = (unsigned char)((SnapshotMemorySize>>10)>>8);
 
 		if (Version==3)
@@ -867,7 +869,7 @@ void Snapshot_GenerateOutputData(unsigned char *pBuffer, int SnapshotSizeInK, in
 
 
 			SnapshotHeader[0x0b0] = CRTC_Flags & 0x0ff;
-			SnapshotHeader[0x0b1] = (CRTC_Flags>>8) & 0x0ff;				
+			SnapshotHeader[0x0b1] = (CRTC_Flags>>8) & 0x0ff;
 
 			SnapshotHeader[0x0b3] = GateArray_GetInterruptLineCount();
 

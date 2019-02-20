@@ -19,12 +19,6 @@
  */
 #ifndef __GENERIC_INTERFACE_HEADER_INCLUDED__
 #define __GENERIC_INTERFACE_HEADER_INCLUDED__
-#ifdef _WIN32
-#include <tchar.h>
-#else
-#define TCHAR char
-#endif
-
 
 #include "../cpc/cpcglob.h"
 
@@ -34,32 +28,32 @@ BOOL Multiface_LoadRomFromFile(const MULTIFACE_ROM_TYPE RomType, const char *pFi
 
 
 /* insert a snapshot */
-BOOL	GenericInterface_LoadSnapshot(const TCHAR *FilenameBuffer);
+BOOL	GenericInterface_LoadSnapshot(const char *FilenameBuffer);
 /* insert a tape-image or sample file */
-BOOL	GenericInterface_InsertTape(const TCHAR *FilenameBuffer);
+BOOL	GenericInterface_InsertTape(const char *FilenameBuffer);
 
-/* insert a cartridge */BOOL	GenericInterface_InsertCartridge(const TCHAR *FilenameBuffer);
+/* insert a cartridge */BOOL	GenericInterface_InsertCartridge(const char *FilenameBuffer);
 
 /* restore settings */
 void	GenericInterface_RestoreSettings(void);
 /* store settings */
 void	GenericInterface_StoreSettings(void);
 
-BOOL	GenericInterface_SaveScreenSnapshot(const TCHAR *FilenameBuffer);
-BOOL	GenericInterface_WavOutputStartRecording(const TCHAR *FilenameBuffer);
+BOOL	GenericInterface_SaveScreenSnapshot(const char *FilenameBuffer);
+BOOL	GenericInterface_WavOutputStartRecording(const char *FilenameBuffer);
 
-BOOL	GenericInterface_LoadRom(int RomIndex, const TCHAR *FilenameBuffer);
+BOOL	GenericInterface_LoadRom(int RomIndex, const char *FilenameBuffer);
 
-BOOL	GenericInterface_SnapshotSave(const TCHAR *FilenameBuffer, int nSnapshotVersion, int nSnapshotSize);
+BOOL	GenericInterface_SnapshotSave(const char *FilenameBuffer, int nSnapshotVersion, int nSnapshotSize);
 
-BOOL	GenericInterface_InsertDiskImage(int DriveIndex, const TCHAR *pFilename);
+BOOL	GenericInterface_InsertDiskImage(int DriveIndex, const char *pFilename);
 
 /* start recording a sound file for StSound */
-void	GenericInterface_AYStartRecording(const TCHAR *FilenameBuffer);
+void	GenericInterface_AYStartRecording(const char *FilenameBuffer);
 
 #include "../cpc/multface.h"
 
-int Multiface_LoadRomFromFile(const MULTIFACE_ROM_TYPE RomType, const TCHAR *pFilename);
+int Multiface_LoadRomFromFile(const MULTIFACE_ROM_TYPE RomType, const char *pFilename);
 
 
 

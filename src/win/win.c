@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -18,17 +18,17 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-/* Compile options needed: */ 
+/* Compile options needed: */
 #include "precomp.h"
 
-//#include <windows.h> 
+//#include <windows.h>
 #include "win.h"
-
+#if 0
 static BOOL	ScrollLock_InitialState = FALSE;
 static BOOL ScrollLock_CurrentState;
 
-void ScrollLock_Set( BOOL bState ) 
-{ 
+void ScrollLock_Set( BOOL bState )
+{
    BYTE keyState[256];
 
 	ScrollLock_CurrentState = bState;
@@ -49,7 +49,8 @@ void ScrollLock_Set( BOOL bState )
                    KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP,
                    0);
    }
-} 
+}
+#endif
 /*
 void	ScrollLock_RestoreCurrentState()
 {
@@ -59,9 +60,9 @@ void	ScrollLock_RestoreCurrentState()
 	GetKeyboardState((LPBYTE)&KeyState);
 
 	if (
-		// currently pressed, but initial state is off 
+		// currently pressed, but initial state is off
 		(((KeyState[VK_SCROLL] & 1)!=0) && (ScrollLockState==FALSE)) ||
-		// not currently pressed, but initiale state is on 
+		// not currently pressed, but initiale state is on
 		(((KeyState[VK_SCROLL] & 1)==0) && (ScrollLockState==TRUE))
 		)
 	{
@@ -80,7 +81,7 @@ void	ScrollLock_RestoreCurrentState()
 }
 */
 
-
+#if 0
 void	ScrollLock_RestoreState()
 {
 	// get scroll lock state
@@ -116,7 +117,7 @@ void	ScrollLock_StoreState()
 		char KeyState[256];
 
 		GetKeyboardState((LPBYTE)&KeyState);
-   
+
 		if ((KeyState[VK_SCROLL] & 1)!=0)
 		{
 			ScrollLock_InitialState = TRUE;
@@ -127,3 +128,4 @@ void	ScrollLock_StoreState()
 		}
 	}
 
+#endif

@@ -2,6 +2,7 @@
 
 #include "gtkui.h"
 #include "display.h"
+#include "configfile.h"
 
 #ifdef HAVE_GTK
 
@@ -241,22 +242,6 @@ void choosen_disk( GtkWidget *w, GtkFileSelection *fs, int drive ) {
 
 }
 
-char *getDirectory(GtkFileSelection *fs)
-{
-	int nPos;
-	char *path;
-	gchar *dir = gtk_file_selection_get_filename(fs);
-	
-	nPos = strrchr(dir,'/');
-	
-	path = malloc(nPos);
-
-	path = strncpy(path, dir, nPos);
-	path[nPos]='\0';
-	
-	return path;
-}
-
 void choosen_diska( GtkWidget *w, GtkFileSelection *fs ) {
 
 		choosen_disk( w, fs, 0 );
@@ -329,7 +314,7 @@ void choose_media( GtkWidget *widget, gpointer data ) {
 	GtkWidget *filew;
 	char *title;
 	GtkSignalFunc function;
-	char *dir = NULL;
+	const char *dir;
 
 	if ( data == btn_diska ) {
 			title = Messages[91];
@@ -357,7 +342,7 @@ void choose_media( GtkWidget *widget, gpointer data ) {
 			function = (GtkSignalFunc) choosen_savesnap;
 			dir = getSnapDirectory();
 	} else {
-		fprintf( stderr, Messages[95]);
+		fprintf( stderr, "%s", Messages[95]);
 		exit( -1 );
 	}
 
@@ -366,7 +351,7 @@ void choose_media( GtkWidget *widget, gpointer data ) {
 
 	/* set the directory to start from */	
 	if (dir)
-		gtk_file_selection_set_filename ( filew, dir);
+		gtk_file_selection_set_filename ( (GtkFileSelection *) filew, dir);
 
 
 	gtk_signal_connect( GTK_OBJECT(GTK_FILE_SELECTION(filew)->ok_button),
@@ -873,7 +858,7 @@ void gtkui_run( void ) {
 		//gtk_timeout_add( 100, idlerun, NULL );
 		gtk_main();			/* GTK+ main loop */
 		//printf("exit!!!");
-		printf(Messages[103]);
+		printf("%s", Messages[103]);
 }
 
 #endif	/* HAVE_GTK */

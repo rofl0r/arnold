@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -28,10 +28,13 @@ typedef struct _BREAKPOINT
 {
 	/* breakpoint address */
 	int Address;
-	
+
 	/* next breakpoint */
 	struct _BREAKPOINT *pNext;
 } BREAKPOINT;
+
+BOOL bBreakpointAddressValid = FALSE;
+int nBreakpointAddress = 0;
 
 static BREAKPOINT *pFirstBreakpoint = NULL;
 
@@ -133,7 +136,35 @@ BOOL Breakpoints_IsABreakpoint(int Address)
 	while (pBreakpoint!=NULL)
 	{
 		if (pBreakpoint->Address == (Address & 0x0ffff))
+		{
+		    // already hit a breakpoint?
+		    if (bBreakpointAddressValid)
+		    {
+		        // is it this address?
+                if (nBreakpointAddress == (Address & 0x0ffff))
+                {
+                    // yes, so mark invalid and continue
+                    bBreakpointAddressValid = FALSE;
+
+                    return FALSE;
+                }
+                else
+                {
+                    // one is valid but it's not this one
+                    // record this one instead
+                    bBreakpointAddressValid = TRUE;
+                    nBreakpointAddress = Address&0x0ffff;
+                }
+
+		    }
+		    else
+		    {
+		        // no valid breakpoint, store this one.
+                bBreakpointAddressValid = TRUE;
+                nBreakpointAddress = Address&0x0ffff;
+		    }
 			return TRUE;
+		}
 
 		pBreakpoint = pBreakpoint->pNext;
 	}

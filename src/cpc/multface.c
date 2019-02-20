@@ -277,7 +277,7 @@ static void Multiface_FreeCPCPLUSMultifaceROM(void)
 /* loads a rom for multiface emulation */
 int Multiface_SetRomData(const MULTIFACE_ROM_TYPE RomType, const unsigned char *pRomData, const unsigned long RomDataSize)
 {
-	int State;
+	int State=-1;
 	unsigned long CopyLength;
 
 	/* support AMSDOS header */

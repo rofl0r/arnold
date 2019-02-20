@@ -243,19 +243,18 @@ typedef struct  _Z80_REGISTERS
         Z80_REGISTER_PAIR       SP;                     
 		Z80_REGISTER_PAIR       DE;                     
         Z80_REGISTER_PAIR       BC;                     
-		
+		Z80_REGISTER_PAIR		MemPtr;
         
 		Z80_REGISTER_PAIR       IX;                     
         Z80_REGISTER_PAIR       IY;                     
-		Z80_WORD				IndexPlusOffset;
 
         Z80_REGISTER_PAIR       altHL;          
         Z80_REGISTER_PAIR       altDE;
         Z80_REGISTER_PAIR       altBC;
         Z80_REGISTER_PAIR       altAF;
 
-        Z80_WORD                TempWordResult;
-        Z80_LONG                TempLongResult;
+   //     Z80_WORD                TempWordResult;
+     //   Z80_LONG                TempLongResult;
         /* interrupt vector register. High byte of address */
         Z80_BYTE                I;
 
@@ -272,8 +271,8 @@ typedef struct  _Z80_REGISTERS
         /* interrupt mode 0,1,2 */
         Z80_BYTE                IM;
         Z80_BYTE                TempByte;
-        Z80_BYTE                TempWord;
-        Z80_REGISTER_PAIR       TempRegister;
+   //     Z80_BYTE                TempWord;
+     //   Z80_REGISTER_PAIR       TempRegister;
 		Z80_BYTE				InterruptVectorBase;
 		unsigned long			Flags;
 } Z80_REGISTERS;
@@ -292,8 +291,11 @@ Z80_WORD        Z80_RD_MEM_WORD(Z80_WORD Addr);
 
 void            Z80_WR_MEM_WORD(Z80_WORD Addr, Z80_WORD Data);
 
-INLINE Z80_BYTE  RD_BYTE_INDEX(Z80_WORD Index);
-INLINE void		WR_BYTE_INDEX(Z80_WORD Index,Z80_BYTE Data);
+Z80_BYTE		Z80_RD_BYTE_IM0();
+Z80_WORD		Z80_RD_WORD_IM0();
+
+//INLINE Z80_BYTE  RD_BYTE_INDEX();
+//INLINE void		WR_BYTE_INDEX(Z80_BYTE Data);
 
 
 /* write a byte to a I/O port */

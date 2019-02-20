@@ -61,7 +61,7 @@ int		Dsk_Validate(const unsigned char *pDiskImage, const unsigned long DiskImage
 					{
 						/* correct size image */
 						int	i;
-						DSKTRACKHEADER *pTrack = (DSKTRACKHEADER *)((int)pHeader + sizeof(DSKHEADER));
+						DSKTRACKHEADER *pTrack = (DSKTRACKHEADER *)((long)pHeader + sizeof(DSKHEADER));
 
 						for (i=0; i<TotalTracks; i++)
 						{
@@ -80,7 +80,7 @@ int		Dsk_Validate(const unsigned char *pDiskImage, const unsigned long DiskImage
 							if (thisTrackSize>TrackSize)
 								break;
 
-							pTrack = (DSKTRACKHEADER *)((int)pTrack + TrackSize);
+							pTrack = (DSKTRACKHEADER *)((long)pTrack + TrackSize);
 						}
 
 						if (i==TotalTracks)
@@ -98,9 +98,6 @@ int		Dsk_Validate(const unsigned char *pDiskImage, const unsigned long DiskImage
 
 static int	DskGetSectorSize(int N)
 {
-	if (N<8)
-		return (1<<N)<<7;	
-	else
-		return 0x0200;
+	return (1<<(N&0x07))<<7;
 }
 

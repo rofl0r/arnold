@@ -50,9 +50,11 @@ typedef struct
 
 CHANNEL_PERIOD	ChannelPeriods[3]=
 {
-	{0,0,0x0ff, 0},
-	{0,0,0x0ff, 0},
-	{0,0,0x0ff, 0}
+	
+	{0,{{0}},0x0ff,{{0}}},
+	{0,{{0}},0x0ff,{{0}}},
+	{0,{{0}},0x0ff,{{0}}}
+
 };
 
 static 	FIXED_POINT16	NoisePeriod;
@@ -605,7 +607,7 @@ INLINE int	GetFinalVolumeForChannel(int ChannelIndex)
 
 PSG_OUTPUT_VOLUME		PSG_UpdateChannels(FIXED_POINT16 *pPeriodUpdate)
 {
-	PSG_OUTPUT_VOLUME PSG_Output;
+	PSG_OUTPUT_VOLUME PSG_Output={0,0,0,0};
 
 	/* update envelope */
 	Envelope_Update(pPeriodUpdate);

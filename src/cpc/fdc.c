@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -205,7 +205,7 @@ INLINE void	FDC_SeekComplete(int DriveIndex)
 		int ST0;
 
 		ST0 = fdc.ST0;
-		ST0 &= ~(FDC_ST0_HEAD_ADDRESS | FDC_ST0_UNIT_SELECT0 | FDC_ST0_UNIT_SELECT1);	
+		ST0 &= ~(FDC_ST0_HEAD_ADDRESS | FDC_ST0_UNIT_SELECT0 | FDC_ST0_UNIT_SELECT1);
 		ST0 |= DriveIndex;
 		fdc.ST0 = ST0;
 	}
@@ -315,15 +315,15 @@ void	FDC_BeginSeek(void)
 
 	/* set seek active bit in main status register */
 	fdc.MainStatusRegister|=(1<<DriveIndex);
-	
+
 	/* initialise step count */
 	fdc.StepCount[DriveIndex] = 0;
 
 	/* doing a seek operation */
 	/* say it's a recalibrate. Will get cleared if it is a seek operation */
-	fdc.Flags |= NEC765_FLAGS_SEEK_OPERATION | 
+	fdc.Flags |= NEC765_FLAGS_SEEK_OPERATION |
 				NEC765_FLAGS_SEEK_OPERATION_IS_RECALIBRATE;
-	
+
 	fdc.Flags &= ~NEC765_FLAGS_INTERRUPT;
 
 	/* seek? */
@@ -336,10 +336,15 @@ void	FDC_BeginSeek(void)
 
 		/* yes */
 		fdc.Flags &= ~NEC765_FLAGS_SEEK_OPERATION_IS_RECALIBRATE;
-	
+
 		/* new cylinder number */
 		fdc.NCN = fdc.CommandBytes[2] & 0x0ff;
-	
+
+        if (fdc.NCN==0x05)
+        {
+            printf("Here");
+        }
+
 		/* set seek direction */
 		if (PCN<fdc.NCN)
 		{
@@ -524,7 +529,7 @@ void	FDC_SetupResultPhase(int NoOfStatusBytes)
 	fdc.MainStatusRegister &= ~(FDC_MSR_EXECUTION_PHASE | FDC_MSR_DATA_REQUEST);
 	/* fdc data ready, and direction to cpu */
 	fdc.MainStatusRegister |= FDC_MSR_DATA_FLOW_DIRECTION;
-	
+
 	fdc.MainStatusRegister |= FDC_MSR_DATA_REQUEST;
 	fdc.DataRegister = fdc.CommandBytes[0];
 
@@ -567,7 +572,7 @@ void	FDC_SetupForExecutionPhase()
 	fdc.MainStatusRegister &= ~FDC_MSR_DATA_REQUEST;
 	/* entering execution phase */
 	fdc.MainStatusRegister |= FDC_MSR_EXECUTION_PHASE;
-	
+
 
 	/* enable ID on a read/write operation */
 	switch (fdc.CommandBytes[0] & FDC_COMMAND_WORD)
@@ -576,7 +581,7 @@ void	FDC_SetupForExecutionPhase()
 		/* write data */
 		/* read data */
 		/* write deleted data */
-		/* read id */	
+		/* read id */
 		/* read deleted data */
 		/* format a track */
 		/* scan equal */
@@ -595,13 +600,13 @@ void	FDC_SetupForExecutionPhase()
 			FDD_LED_SetState(fdc.CurrentDrive, TRUE);
 		}
 		break;
-	
+
 		default:
 			break;
 	}
-	
+
 	FDC_SetHighLevelState(NEC765_HIGH_LEVEL_STATE_EXECUTION_PHASE);
-	
+
 	fdc.CommandHandler(fdc.CommandState);
 }
 
@@ -610,7 +615,7 @@ void	FDC_UpdateStateStatus(void)
 	if (fdc.LowLevelState!=-1)
 	{
 		switch (fdc.LowLevelState)
-		{	
+		{
 			/* delay for a specified period, then set data request.
 			If data request is already set, then Overrun condition is set */
 			case NEC765_LOW_LEVEL_STATE_DELAY:
@@ -623,7 +628,7 @@ void	FDC_UpdateStateStatus(void)
 
 				/* get difference = number of cycles passed so far */
 				Difference = NopCount - fdc.NopCountOfDataRequestStart;
-				
+
 				/* exceeded time to data request? */
 				if (Difference>=fdc.CyclesToDataRequest)
 				{
@@ -670,12 +675,12 @@ void	FDC_UpdateStateStatus(void)
 				fdc.CommandBytes[0] = Data;
 				/* store number of bytes written so far */
 				fdc.CommandByteIndex = 1;
-			
+
 				/* get command word */
 				CommandIndex = Data & FDC_COMMAND_WORD;
-				
+
 				/* set current command */
-				fdc.CommandHandler = FDC_CommandTable[CommandIndex].CommandHandler; 
+				fdc.CommandHandler = FDC_CommandTable[CommandIndex].CommandHandler;
 
 				/* set number of bytes left to transfer */
 				fdc.CommandBytesRemaining = FDC_CommandTable[CommandIndex].NoOfCommandBytes;
@@ -719,7 +724,7 @@ void	FDC_UpdateStateStatus(void)
 				{
 					/* issue a data request */
 					fdc.MainStatusRegister |= FDC_MSR_DATA_REQUEST;
-				
+
 				}
 			}
 #endif
@@ -741,7 +746,7 @@ void	FDC_UpdateStateStatus(void)
 			}
 		}
 		break;
-	
+
 		case NEC765_HIGH_LEVEL_STATE_EXECUTION_PHASE_WRITE_DATA:
 		{
 			/* data request set? */
@@ -798,7 +803,7 @@ void	FDC_UpdateStateStatus(void)
 }
 
 
-void	FDC_UpdateStateData(void)
+void	FDC_UpdateStateData(BOOL bWrite)
 {
 
 	switch (fdc.HighLevelState)
@@ -806,10 +811,18 @@ void	FDC_UpdateStateData(void)
 		case NEC765_HIGH_LEVEL_STATE_COMMAND_PHASE_FIRST_BYTE:
 		{
 			/* data has been written */
-			if ((fdc.MainStatusRegister & FDC_MSR_DATA_REQUEST)==0)
+			if (
+                (bWrite==TRUE) &&
+                ((fdc.MainStatusRegister & FDC_MSR_DATA_FLOW_DIRECTION)==0)
+                )
+
 			{
 				unsigned char Data;
 				int	CommandIndex;
+
+
+                /* clear data request */
+                fdc.MainStatusRegister &= ~FDC_MSR_DATA_REQUEST;
 
 				Data = fdc.DataRegister;
 
@@ -827,12 +840,12 @@ void	FDC_UpdateStateData(void)
 				fdc.CommandBytes[0] = Data;
 				/* store number of bytes written so far */
 				fdc.CommandByteIndex = 1;
-			
+
 				/* get command word */
 				CommandIndex = Data & FDC_COMMAND_WORD;
-				
+
 				/* set current command */
-				fdc.CommandHandler = FDC_CommandTable[CommandIndex].CommandHandler; 
+				fdc.CommandHandler = FDC_CommandTable[CommandIndex].CommandHandler;
 
 				/* set number of bytes left to transfer */
 				fdc.CommandBytesRemaining = FDC_CommandTable[CommandIndex].NoOfCommandBytes;
@@ -855,8 +868,15 @@ void	FDC_UpdateStateData(void)
 		case NEC765_HIGH_LEVEL_STATE_COMMAND_PHASE_REMAINING_BYTES:
 		{
 			/* data has been written */
-			if ((fdc.MainStatusRegister & FDC_MSR_DATA_REQUEST)==0)
+			if (
+            (bWrite==TRUE) &&
+			((fdc.MainStatusRegister & FDC_MSR_DATA_FLOW_DIRECTION)==0)
+			)
+
 			{
+                /* clear data request */
+                fdc.MainStatusRegister &= ~FDC_MSR_DATA_REQUEST;
+
 				/* store byte */
 				fdc.CommandBytes[fdc.CommandByteIndex] = fdc.DataRegister;
 				/* store number of bytes written so far */
@@ -874,7 +894,7 @@ void	FDC_UpdateStateData(void)
 				{
 					/* issue a data request */
 					fdc.MainStatusRegister |= FDC_MSR_DATA_REQUEST;
-				
+
 				}
 			}
 		}
@@ -883,82 +903,94 @@ void	FDC_UpdateStateData(void)
 		case NEC765_HIGH_LEVEL_STATE_EXECUTION_PHASE_READ_DATA:
 		{
 			/* a read of the data register will clear the data request */
-		
-			/* overrun condition doesn't apply for last byte */
- 			if (fdc.ExecutionNoOfBytes==0)
-			{
-				fdc.MainStatusRegister &=~FDC_MSR_DATA_REQUEST;
-				FDC_PopHighLevelState();
-				return;
-			}
-		
+            if (
+            ((fdc.MainStatusRegister & FDC_MSR_DATA_FLOW_DIRECTION)!=0) &&
+            (bWrite==FALSE)
+            )
+            {
+                /* overrun condition doesn't apply for last byte */
+                if (fdc.ExecutionNoOfBytes==0)
+                {
+                    fdc.MainStatusRegister &=~FDC_MSR_DATA_REQUEST;
+                    FDC_PopHighLevelState();
+                    return;
 
-			/* data request set? */
-			if (fdc.MainStatusRegister & FDC_MSR_DATA_REQUEST)
-			{
-				/* set overrun condition */
-				fdc.ST1 |= FDC_ST1_OVERRUN;
-				/* clear request */
-				fdc.MainStatusRegister &=~FDC_MSR_DATA_REQUEST;
-				/* go to high level state */
-				FDC_PopHighLevelState();
-				return;
-			}
-		
-			
-			{
-				/* overrun not set */
+                }
 
-				/* get byte of data - store in data register */
-				fdc.DataRegister = fdc.ExecutionBuffer[fdc.ExecutionBufferByteIndex];
-				fdc.ExecutionBufferByteIndex++;
-				fdc.ExecutionNoOfBytes--;
+                /* clear data request */
+                fdc.MainStatusRegister &= ~FDC_MSR_DATA_REQUEST;
 
-				fdc.MainStatusRegister |= FDC_MSR_DATA_REQUEST;
-				/* setup a delay before data request is set */
-				FDC_SetupDataRequestDelay(DATA_RATE_US);
-			}
+                /* data request set? */
+                if ((fdc.ST1 & FDC_ST1_OVERRUN)!=0)
+                {
+                    /* clear request */
+                    fdc.MainStatusRegister &=~FDC_MSR_DATA_REQUEST;
+                    /* go to high level state */
+                    FDC_PopHighLevelState();
+                    return;
+                }
+
+
+                {
+                    /* overrun not set */
+
+                    /* get byte of data - store in data register */
+                    fdc.DataRegister = fdc.ExecutionBuffer[fdc.ExecutionBufferByteIndex];
+                    fdc.ExecutionBufferByteIndex++;
+                    fdc.ExecutionNoOfBytes--;
+
+                    fdc.MainStatusRegister |= FDC_MSR_DATA_REQUEST;
+                    /* setup a delay before data request is set */
+                    FDC_SetupDataRequestDelay(DATA_RATE_US);
+                }
+            }
 		}
 		break;
-	
+
 		case NEC765_HIGH_LEVEL_STATE_EXECUTION_PHASE_WRITE_DATA:
 		{
 			/* overrun not set */
+            if (
+                ((fdc.MainStatusRegister & FDC_MSR_DATA_FLOW_DIRECTION)==0) && (bWrite)
+                )
+            {
+                /* get data register and store data */
+                fdc.ExecutionBuffer[fdc.ExecutionBufferByteIndex] = fdc.DataRegister;
+                fdc.ExecutionBufferByteIndex++;
+                fdc.ExecutionNoOfBytes--;
 
-			/* get data register and store data */
-			fdc.ExecutionBuffer[fdc.ExecutionBufferByteIndex] = fdc.DataRegister;
-			fdc.ExecutionBufferByteIndex++;
-			fdc.ExecutionNoOfBytes--;
+                /* any bytes remaining? */
+                if (fdc.ExecutionNoOfBytes==0)
+                {
+                    /* no */
+                    fdc.MainStatusRegister &=~FDC_MSR_DATA_REQUEST;
+                    FDC_PopHighLevelState();
+                    return;
+                }
+                else
+                {
+                    /* yes */
+                    /* clear data request */
+                    fdc.MainStatusRegister &= ~FDC_MSR_DATA_REQUEST;
 
-			/* any bytes remaining? */
-			if (fdc.ExecutionNoOfBytes==0)
-			{
-				/* no */
-				fdc.MainStatusRegister &=~FDC_MSR_DATA_REQUEST;
-				FDC_PopHighLevelState();
-				return;
-			}
-			else
-			{
-				/* yes */
+                    /* data request set? */
+                    if ((fdc.ST1 & FDC_ST1_OVERRUN)!=0)
+                    {
+                        /* set overrun condition */
+                        fdc.ST1 |= FDC_ST1_OVERRUN;
+                        /* clear request */
+                        fdc.MainStatusRegister &=~FDC_MSR_DATA_REQUEST;
+                        /* go to high level state */
+                        FDC_PopHighLevelState();
+                        return;
+                    }
 
-				/* data request set? */
-				if (fdc.MainStatusRegister & FDC_MSR_DATA_REQUEST)
-				{
-					/* set overrun condition */
-					fdc.ST1 |= FDC_ST1_OVERRUN;
-					/* clear request */
-					fdc.MainStatusRegister &=~FDC_MSR_DATA_REQUEST;
-					/* go to high level state */
-					FDC_PopHighLevelState();
-					return;
-				}
-			
-				
-				fdc.MainStatusRegister |= FDC_MSR_DATA_REQUEST;
-				/* setup a delay before data request is set */
-				FDC_SetupDataRequestDelay(DATA_RATE_US);
-			}
+
+                    fdc.MainStatusRegister |= FDC_MSR_DATA_REQUEST;
+                    /* setup a delay before data request is set */
+                    FDC_SetupDataRequestDelay(DATA_RATE_US);
+                }
+            }
 		}
 		break;
 
@@ -972,8 +1004,14 @@ void	FDC_UpdateStateData(void)
 		case NEC765_HIGH_LEVEL_STATE_RESULT_PHASE:
 		{
 			/* data has been read */
-			if ((fdc.MainStatusRegister & FDC_MSR_DATA_REQUEST)==0)
+			if (
+			((fdc.MainStatusRegister & FDC_MSR_DATA_FLOW_DIRECTION)!=0) &&
+			(bWrite==FALSE)
+			)
+
 			{
+                /* clear data request */
+                fdc.MainStatusRegister &= ~FDC_MSR_DATA_REQUEST;
 				if (fdc.CommandBytesRemaining==0)
 				{
 					/* go to next state */
@@ -981,6 +1019,7 @@ void	FDC_UpdateStateData(void)
 				}
 				else
 				{
+
 
 					/* store byte */
 					fdc.DataRegister = fdc.CommandBytes[fdc.CommandByteIndex];
@@ -1023,15 +1062,12 @@ unsigned int	FDC_ReadDataRegister(void)
 {
 	unsigned char Data;
 
-	/* clear data request */
-	fdc.MainStatusRegister &=~FDC_MSR_DATA_REQUEST;
-
 	/* get data from data register */
 	Data = fdc.DataRegister;
 
 	FDC_UpdateDrives();
 
-	FDC_UpdateStateData();
+	FDC_UpdateStateData(FALSE);
 
 	/* return data */
 	return Data;
@@ -1041,14 +1077,10 @@ unsigned int	FDC_ReadDataRegister(void)
 /* - when writing command bytes, data written to port can be read back again */
 void	FDC_WriteDataRegister(int Data)
 {
-
-	/* clear data request */
-	fdc.MainStatusRegister &= ~FDC_MSR_DATA_REQUEST;
-
 	/* set data */
 	fdc.DataRegister = Data;
 
-	FDC_UpdateStateData();
+	FDC_UpdateStateData(TRUE);
 
 }
 
@@ -1069,7 +1101,7 @@ void	FDC_Standby(void)
 
 void	FDC_Reset(void)
 {
-	
+
 	fdc.Flags = 0;
 	fdc.PCN[0] = fdc.PCN[1] = fdc.PCN[2] = fdc.PCN[3] = 0;
 
@@ -1154,7 +1186,7 @@ void	FDC_ReadATrack(int State)
 				/* for now */
 				/* setup the initial sector offset */
 				fdc.SectorCounter = 0;
-				
+
 				/* If a sector is found which has C,H,R,N matching that
 				programmed, this flag will be reset. Otherwise it will
 				remain set. Therefore indicating if a sector was found
@@ -1234,7 +1266,7 @@ void	FDC_ReadATrack(int State)
 
 					if (
 						/* skip? */
-						((fdc.CommandBytes[0] & FDC_COMMAND_SKIP)!=0) && 
+						((fdc.CommandBytes[0] & FDC_COMMAND_SKIP)!=0) &&
 						/* deleted data mark? */
 						((ReadATrack_CHRN.ST2 & FDC_ST2_CONTROL_MARK)!=0)
 						)
@@ -1310,9 +1342,9 @@ void	FDC_ReadATrack(int State)
 					break;
 				}
 
-				
+
 				/* go to attempt to read it */
-				fdc.CommandState--;	
+				fdc.CommandState--;
 				bUpdateState = TRUE;
 			}
 			break;
@@ -1329,7 +1361,7 @@ void	FDC_ReadATrack(int State)
 				fdc.CommandBytes[0] = fdc.ST0;
 				fdc.CommandBytes[1] = fdc.ST1;
 				fdc.CommandBytes[2] = fdc.ST2;
-				
+
 				FDC_SetupResultPhase(7);
 
 				fdc.Flags &= ~NEC765_FLAGS_INTERRUPT;
@@ -1351,7 +1383,7 @@ void	FDC_Recalibrate(int State)
 		case 0:
 		{
 			FDC_BeginSeek();
-	
+
 			fdc.CommandState++;
 		}
 		break;
@@ -1404,7 +1436,7 @@ void	FDC_FormatATrack(int State)
 
 				/* reset status registers */
 				FDC_ClearStatusRegisters();
-				
+
 				FDI_SetDensity(fdc.CommandBytes[0]&0x040);
 
 				/* get current drive and side */
@@ -1426,26 +1458,26 @@ void	FDC_FormatATrack(int State)
 				fdc.SectorCounter  = 0;
 
 				FDI_EmptyTrack();
-			
+
 				fdc.CommandState++;
 				bUpdateState = TRUE;
 	#if 0
 				/* this is the delay from the point that the ID field is written to
 				the end of data for a sector */
-				fdc.StoredDelay = 
+				fdc.StoredDelay =
 				(
 				/* CRC */
-				2 + 
+				2 +
 				/* GAP 2 */
 				22 +
 				/* Sync (0) */
-				12 + 
+				12 +
 				/* A1 */
 				3 +
 				/* Data/Deleted Data Address Mark */
-				1 + 
+				1 +
 				/* N */
-				((1<<fdc.CommandBytes[2])<<7) + 
+				((1<<fdc.CommandBytes[2])<<7) +
 				/* CRC */
 				2 +
 				/* GAP 3 */
@@ -1493,7 +1525,7 @@ void	FDC_FormatATrack(int State)
 
 						/* GAP 2 */
 						FDD_WriteBytesToTrack(0x04e, 22);
-						
+
 						/* SYNC */
 						FDD_WriteBytesToTrack(0x00, 12);
 
@@ -1515,8 +1547,8 @@ void	FDC_FormatATrack(int State)
 						FDD_WriteByteToTrack(fdc.CRC);
 
 						FDD_WriteBytesToTrack(0x04e, fdc.CommandBytes[4]);
-					
-					
+
+
 						FDD_WriteBytesToTrack(0x04e, fdc.pTrackEnd - fdc.pTrackPtr);
 					}
 
@@ -1524,9 +1556,9 @@ void	FDC_FormatATrack(int State)
 	#endif
 
 					/* finished transfering ID's */
-					fdc.CommandState = 4;	
+					fdc.CommandState = 4;
 					bUpdateState = TRUE;
-		
+
 					/* last sector */
 	//				FDC_SetupDataRequestDelay(fdc.StoredDelay + NopsToNextIndex);
 					return;
@@ -1563,7 +1595,7 @@ void	FDC_FormatATrack(int State)
 
 						/* GAP 2 */
 						FDD_WriteBytesToTrack(0x04e, 22);
-						
+
 						/* SYNC */
 						FDD_WriteBytesToTrack(0x00, 12);
 
@@ -1608,7 +1640,7 @@ void	FDC_FormatATrack(int State)
 				format_chrn.N = FDC_DataBuffer[3];
 
 				/* write sector */
-				/* fdc.CommandBytes[2] = N */ 
+				/* fdc.CommandBytes[2] = N */
 				/* fdc.CommandBytes[3] = SC */
 				/* fdc.CommandBytes[4] = GPL */
 				/* fdc.CommandBytes[5] = D */
@@ -1619,8 +1651,8 @@ void	FDC_FormatATrack(int State)
 				fdc.SectorCounter++;
 				bUpdateState = TRUE;
 
-				fdc.CommandState--;	
-			
+				fdc.CommandState--;
+
 	//			FDC_SetupDataRequestDelay(fdc.StoredDelay + 12 + 3 + 1);
 			}
 			break;
@@ -1637,7 +1669,7 @@ void	FDC_FormatATrack(int State)
 				fdc.CommandBytes[0] = fdc.ST0;
 				fdc.CommandBytes[1] = fdc.ST1;
 				fdc.CommandBytes[2] = fdc.ST2;
-				
+
 				FDC_SetupResultPhase(7);
 
 				fdc.Flags &= ~NEC765_FLAGS_INTERRUPT;
@@ -1667,11 +1699,11 @@ BOOL FDC_LocateSector(void)
 		unsigned long status;
 
 		status = FDI_GetNextID(&fdc.chrn);
-		
+
 		if (status==0)
 		{
 			/* got id */
-			
+
 			/* got a id, therefore missing address mark is false */
 			fdc.ST1 &=~FDC_ST1_MISSING_ADDRESS_MARK;
 
@@ -1750,7 +1782,7 @@ void	FDC_ReadID(int State)
 
 				/* get drive and side */
 				FDC_GetDriveAndSide();
-				
+
 				FDI_SetDensity(fdc.CommandBytes[0]&0x040);
 
 				/* drive ready ? */
@@ -1767,12 +1799,12 @@ void	FDC_ReadID(int State)
 					{
 						unsigned long status;
 
-						
+
 						/* get id and store into internal registers */
 						status = FDI_GetNextID(&fdc.chrn);
-						
+
 						if (status==0)
-						{			
+						{
 							/* clear missing address mark error */
 							fdc.ST1 &=~FDC_ST1_MISSING_ADDRESS_MARK;
 							break;
@@ -1911,7 +1943,7 @@ void	FDC_ReadData(int State)
 				FDC_GetDriveAndSide();
 
 				FDC_ClearStatusRegisters();
-								
+
 				FDI_SetDensity(fdc.CommandBytes[0]&0x040);
 
 				if ((FDI_GetSelectedDriveFlags() & FDD_FLAGS_DRIVE_READY)==0)
@@ -1919,7 +1951,7 @@ void	FDC_ReadData(int State)
 					/* not ready */
 
 					fdc.ST0 = FDC_ST0_NOT_READY;
-				
+
 					fdc.CommandState = 4;
 					State = 4;
 					bUpdateState = TRUE;
@@ -1963,7 +1995,7 @@ void	FDC_ReadData(int State)
 								bControlMark = TRUE;
 							}
 						}
-						else 
+						else
 						{
 							/* READ DELETED DATA */
 
@@ -1988,7 +2020,7 @@ void	FDC_ReadData(int State)
 
 						if  (
 							/* skip flag set */
-							((fdc.CommandBytes[0] & FDC_COMMAND_SKIP)!=0) && 
+							((fdc.CommandBytes[0] & FDC_COMMAND_SKIP)!=0) &&
 							/* this sector will set control mark */
 							(bControlMark)
 							)
@@ -1999,7 +2031,7 @@ void	FDC_ReadData(int State)
 
 
 						if (!bSkip)
-						{	
+						{
 							/* no skip */
 
 							fdc.CommandState++;
@@ -2018,11 +2050,11 @@ void	FDC_ReadData(int State)
 							if (FDC_UpdateReadID())
 							{
 								/* no */
-					
+
 								/* have read last sector */
 								fdc.ST1 |= FDC_ST1_END_OF_CYLINDER;
 
-								fdc.CommandState = 4;	
+								fdc.CommandState = 4;
 								bUpdateState = TRUE;
 								break;
 							}
@@ -2037,7 +2069,7 @@ void	FDC_ReadData(int State)
 					}
 				}
 				while (1==1);
-		
+
 			}
 			break;
 
@@ -2047,14 +2079,14 @@ void	FDC_ReadData(int State)
 
 				if (fdc.ST1 & FDC_ST1_OVERRUN)
 				{
-					fdc.CommandState = 4;	
+					fdc.CommandState = 4;
 					bUpdateState = TRUE;
 					break;
 				}
 
 				if (
 					/* skip not set? */
-					((fdc.CommandBytes[0] & FDC_COMMAND_SKIP)==0) && 
+					((fdc.CommandBytes[0] & FDC_COMMAND_SKIP)==0) &&
 					/* control mark set? */
 					((fdc.ST2 & FDC_ST2_CONTROL_MARK)!=0)
 					)
@@ -2065,15 +2097,15 @@ void	FDC_ReadData(int State)
 
 				if (bHalt)
 				{
-					fdc.CommandState = 4;	
+					fdc.CommandState = 4;
 					bUpdateState = TRUE;
 					break;
 				}
 
 				/* error ? */
 				if (
-				   (fdc.chrn.ST1 & FDC_ST1_MISSING_ADDRESS_MARK) || 
-				   (fdc.chrn.ST2 & FDC_ST2_DATA_ERROR_IN_DATA_FIELD) || 
+				   (fdc.chrn.ST1 & FDC_ST1_MISSING_ADDRESS_MARK) ||
+				   (fdc.chrn.ST2 & FDC_ST2_DATA_ERROR_IN_DATA_FIELD) ||
 				   (fdc.chrn.ST2 & FDC_ST2_MISSING_ADDRESS_MARK_IN_DATA_FIELD)
 				   )
 				{
@@ -2089,7 +2121,7 @@ void	FDC_ReadData(int State)
 					}
 
 					/* we want to quit */
-					fdc.CommandState = 4;	
+					fdc.CommandState = 4;
 					bUpdateState = TRUE;
 					break;
 				}
@@ -2126,7 +2158,7 @@ void	FDC_ReadData(int State)
 				fdc.chrn.R = fdc.CommandBytes[5];
 				fdc.chrn.N = fdc.CommandBytes[6];
 
-				
+
 				fdc.CommandBytes[0] = fdc.ST0;
 				fdc.CommandBytes[1] = fdc.ST1;
 				fdc.CommandBytes[2] = fdc.ST2;
@@ -2161,7 +2193,7 @@ void	FDC_WriteData(int State)
 				FDC_GetDriveAndSide();
 
 				FDC_ClearStatusRegisters();
-				
+
 				FDI_SetDensity(fdc.CommandBytes[0]&0x040);
 
 				if ((FDI_GetSelectedDriveFlags() & FDD_FLAGS_DRIVE_READY)==0)
@@ -2169,13 +2201,13 @@ void	FDC_WriteData(int State)
 					/* not ready */
 
 					fdc.ST0 = FDC_ST0_NOT_READY;
-				
+
 					fdc.CommandState = 4;
 					bUpdateState = TRUE;
 					break;
 				}
 
-				fdc.CommandState++;	
+				fdc.CommandState++;
 				bUpdateState = TRUE;
 			}
 			break;
@@ -2193,7 +2225,7 @@ void	FDC_WriteData(int State)
 				else
 				{
 					/* error finding sector */
-					fdc.CommandState = 4;	
+					fdc.CommandState = 4;
 					bUpdateState = TRUE;
 					break;
 				}
@@ -2251,7 +2283,7 @@ void	FDC_WriteData(int State)
 				fdc.CommandBytes[0] = fdc.ST0;
 				fdc.CommandBytes[1] = fdc.ST1;
 				fdc.CommandBytes[2] = fdc.ST2;
-				
+
 				FDC_SetupResultPhase(7);
 
 				fdc.Flags &= ~NEC765_FLAGS_INTERRUPT;
@@ -2290,13 +2322,13 @@ void	FDC_Scan(int State)
 					/* not ready */
 
 					fdc.ST0 = FDC_ST0_NOT_READY;
-					bUpdateState = TRUE;				
+					bUpdateState = TRUE;
 					fdc.CommandState = 4;
 					break;
 				}
 
 				bUpdateState = TRUE;
-				fdc.CommandState++;	
+				fdc.CommandState++;
 			}
 			break;
 
@@ -2309,7 +2341,7 @@ void	FDC_Scan(int State)
 					{
 						fdc.CommandState++;
 
-						FDC_SetupWriteExecutionPhase(FDC_GetSectorSize(fdc.chrn.N),FDC_DataBuffer);					
+						FDC_SetupWriteExecutionPhase(FDC_GetSectorSize(fdc.chrn.N),FDC_DataBuffer);
 						break;
 					}
 					else
@@ -2323,7 +2355,7 @@ void	FDC_Scan(int State)
 
 				/* set end of cylinder */
 				fdc.ST1 |= FDC_ST1_END_OF_CYLINDER;
-				fdc.CommandState = 4;	
+				fdc.CommandState = 4;
 				bUpdateState = TRUE;
 			}
 			break;
@@ -2335,7 +2367,7 @@ void	FDC_Scan(int State)
 
 				/* next sector please */
 				fdc.CommandBytes[4]++;
-				
+
 				/* go to attempt to write it */
 				fdc.CommandState = 1;
 				bUpdateState = TRUE;
@@ -2354,7 +2386,7 @@ void	FDC_Scan(int State)
 				fdc.CommandBytes[0] = fdc.ST0;
 				fdc.CommandBytes[1] = fdc.ST1;
 				fdc.CommandBytes[2] = fdc.ST2;
-				
+
 				FDC_SetupResultPhase(7);
 
 				fdc.Flags &= ~NEC765_FLAGS_INTERRUPT;
@@ -2396,13 +2428,13 @@ void	FDC_SenseDriveStatus(int State)
 			if (Flags & FDD_FLAGS_WRITE_PROTECTED)
 			{
 				FDC_ST3 |= FDC_ST3_WRITE_PROTECTED;
-			}			
+			}
 		}
 		else
 		{
 			/* disk is not present */
 			FDC_ST3 |= FDC_ST3_WRITE_PROTECTED;
-		
+
 		}
 
 		/* track 0? */
@@ -2413,7 +2445,7 @@ void	FDC_SenseDriveStatus(int State)
 
 //		/* if not drive 0 - internal 3" drive */
 //		if (fdi.PhysicalDrive!=0)
-//		{	
+//		{
 //			/* say it's two side */
 //			FDC_ST3 |= FDC_ST3_TWO_SIDE;
 //		}
@@ -2429,7 +2461,7 @@ void	FDC_SenseDriveStatus(int State)
 	FDC_ST3_SET_DRIVE_AND_SIDE;
 
 	fdc.CommandBytes[0] = FDC_ST3;
-	
+
 	FDC_SetupResultPhase(1);
 
 	fdc.Flags &= ~NEC765_FLAGS_INTERRUPT;
@@ -2461,14 +2493,14 @@ void	FDC_ClearStatusRegisters(void)
 	fdc.ST0 = fdc.ST1 = fdc.ST2 = 0;
 }
 
-/* set FDC Status Register Interrupt Code, based on the values 
+/* set FDC Status Register Interrupt Code, based on the values
 currently stored in ST0, ST1 and ST2 */
 void	FDC_SetStatus0(void)
-{	
-	
+{
+
 	if ((
 		/* ST0 bits that specify an error */
-		(fdc.ST0 & (FDC_ST0_EQUIPMENT_CHECK | 
+		(fdc.ST0 & (FDC_ST0_EQUIPMENT_CHECK |
 					FDC_ST0_NOT_READY)) 	|
 		/* ST1 bits that specify an error */
 		(fdc.ST1 & (FDC_ST1_MISSING_ADDRESS_MARK |
@@ -2477,7 +2509,7 @@ void	FDC_SetStatus0(void)
 					FDC_ST1_OVERRUN |
 					FDC_ST1_DATA_ERROR |
 					FDC_ST1_END_OF_CYLINDER))	|
-		/* ST2 bits that specify an error */		
+		/* ST2 bits that specify an error */
 		(fdc.ST2 & (/*FDC_ST2_CONTROL_MARK | */
 					FDC_ST2_DATA_ERROR_IN_DATA_FIELD |
 					FDC_ST2_WRONG_CYLINDER |
@@ -2523,7 +2555,7 @@ static int	FDC_GetSectorSize(int N)
 		return 0x0050;
 	if (N>=8)
 		return 0x8000;
-	
+
 	return (1<<N)<<7;
 }
 

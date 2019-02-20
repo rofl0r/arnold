@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -103,7 +103,7 @@ unsigned int		FDC_ReadMainStatusRegister(void);
 enum
 {
 	NEC765_LOW_LEVEL_STATE_DELAY = 0,
-	
+
 	NEC765_HIGH_LEVEL_STATE_EXECUTION_PHASE_READ_DATA,
 	NEC765_HIGH_LEVEL_STATE_EXECUTION_PHASE_WRITE_DATA,
 	NEC765_HIGH_LEVEL_STATE_EXECUTION_PHASE,

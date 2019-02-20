@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -33,7 +33,7 @@ void	CRTC_MonitorReset(void);
 /*#define WIP */
 
 #include "crtc.h"
-#include "cpcglob.h"    
+#include "cpcglob.h"
 #include "render.h"
 #include "asic.h"
 #include "z80/z80.h"
@@ -44,7 +44,7 @@ void	CRTC_MonitorReset(void);
 #include "headers.h"
 
 
-#define LESS_MULTS 
+#define LESS_MULTS
 
 
 /*******************************************************/
@@ -160,7 +160,7 @@ const unsigned char   GA_HSyncWidth[16]=
 
 /*--------------------------------------------------------------------------*/
 
-/* 
+/*
 REG 0: Actual - 1
 REG 1: Actual
 REG 2: Actual
@@ -203,7 +203,7 @@ const unsigned char PreAsicCRTC_ReadMaskTable[32]=
         0x000,
         0x000,
         0x000,
-        
+
         0x000,  /* Light Pen (H) */
         0x000,  /* Light Pen (L) */
         0x0ff,
@@ -222,7 +222,7 @@ const unsigned char PreAsicCRTC_ReadMaskTable[32]=
         0x0ff,
 };
 
-const unsigned char PreAsicCRTC_WriteMaskTable[32] = 
+const unsigned char PreAsicCRTC_WriteMaskTable[32] =
 {
         0x0ff,
         0x0ff,
@@ -304,7 +304,7 @@ const unsigned char AsicCRTC_ReadMaskTable[32]=
         0x0ff,
 };
 
-const unsigned char AsicCRTC_WriteMaskTable[32] = 
+const unsigned char AsicCRTC_WriteMaskTable[32] =
 {
         0x0ff,
         0x0ff,
@@ -385,7 +385,7 @@ const unsigned char HD6845S_ReadMaskTable[32]=
 };
 
 /* these are anded before data is written */
-const unsigned char HD6845S_WriteMaskTable[32] = 
+const unsigned char HD6845S_WriteMaskTable[32] =
 {
         0x0ff,
         0x0ff,
@@ -466,7 +466,7 @@ static unsigned char HD6845R_ReadMaskTable[32]=
 };
 
 /* these are anded before data is written */
-static unsigned char HD6845R_WriteMaskTable[32] = 
+static unsigned char HD6845R_WriteMaskTable[32] =
 {
         0x0ff,
         0x0ff,
@@ -628,7 +628,7 @@ static unsigned char UM6845_ReadMaskTable[32]=
 /*------------------------------------------------------------------*/
 /* these are anded before data is written */
 
-static unsigned char UM6845_WriteMaskTable[32] = 
+static unsigned char UM6845_WriteMaskTable[32] =
 {
         0x0ff,
         0x0ff,
@@ -726,7 +726,7 @@ const unsigned char MC6845_WriteMaskTable[32]=
         0x0ff,
         0x03f,
         0x0ff,
-        
+
         0x0ff,
         0x0ff,
         0x0ff,
@@ -776,7 +776,7 @@ int		GA_CalculateCyclesToNextInterrupt(void)
 
 	/* require cycles to end of line */
 	CyclesToInterrupt+=CRTCRegisters[0] - CRTC_InternalState.HCount;
-		
+
 	/* number of complete lines to interrupt */
 	if (NumberOfLinesToInterrupt!=0)
 	{
@@ -794,7 +794,7 @@ Events are:
 
 HStart, HEnd, HTot/2, HTot, HSyncStart, HSyncEnd
 
-  0		40		32		64	46			
+  0		40		32		64	46
  */
 
 /*int CyclesToNextCRTCEvent( */
@@ -873,7 +873,7 @@ static void     CRTC_DoReg8(void)
                 CRTC_SetFlag(CRTC_R8DT_FLAG);
 				Delay = 0;
         }
-        
+
         CRTC_InternalState.HDelayReg8 = (unsigned char)Delay;
 
         CRTC_DoReg1();
@@ -896,13 +896,13 @@ static void CRTC_DoReg3(void)
 	int HorizontalSyncWidth = CRTCRegisters[3] & 0x0f;
 
 	/* HORIZONTAL SYNC */
-		
+
 	/* get horizontal sync - CRTC */
-    CRTC_InternalState.HorizontalSyncWidth = 
+    CRTC_InternalState.HorizontalSyncWidth =
 		CRTC_InternalState.CRTC_HSyncTable[HorizontalSyncWidth];
 
 	/* get horizontal sync - GA */
-	CRTC_InternalState.GA_State.GA_HSyncWidth = 
+	CRTC_InternalState.GA_State.GA_HSyncWidth =
 	CRTC_InternalState.GA_HsyncTable[HorizontalSyncWidth];
 
 	/* horizontal sync counter active? */
@@ -929,7 +929,7 @@ static void CRTC_DoReg3(void)
 /*
   HD6845S (Hitachi)     - Type 0
 
-  UM6845R (UMC) - Type 1 
+  UM6845R (UMC) - Type 1
 
   MC6845 (Motorola) - Type 2
 
@@ -938,8 +938,8 @@ static void CRTC_DoReg3(void)
   Pre-ASIC - type 4
 
   and type 2b which is a type 2 with a status register at Be00
-  
-        
+
+
 UM6845 Type 0???--(but some can act like Type 0 - )
 HD6845R ???
 */
@@ -975,15 +975,15 @@ void    CRTC_SetType(unsigned int Type)
                     /* NWC's testing code thinks it's a type 0 */
                     /* The demo thinks it's a type 0 */
                     /* S&KOH thinks it's a type 0 */
-                    
-					memcpy(CRTC_InternalState.CRTC_ReadMaskTable, 
+
+					memcpy(CRTC_InternalState.CRTC_ReadMaskTable,
 						HD6845S_ReadMaskTable, 16);
 
 					memcpy(CRTC_InternalState.CRTC_WriteMaskTable,
 						HD6845S_WriteMaskTable, 16);
 
 					/* set light pen registers - this is what my CPC
-					type 0 reports! */			
+					type 0 reports! */
 					CRTC_LightPenMA = 0x0147c;
  				}
 				break;
@@ -993,8 +993,8 @@ void    CRTC_SetType(unsigned int Type)
                     /* NWC's test code thinks it is a type 1 */
                     /* The demo thinks it's a type 1 */
                     /* S&KOH thinks it's a type 1 */
-                
-					memcpy(CRTC_InternalState.CRTC_ReadMaskTable, 
+
+					memcpy(CRTC_InternalState.CRTC_ReadMaskTable,
 						UM6845R_ReadMaskTable, 16);
 
 					memcpy(CRTC_InternalState.CRTC_WriteMaskTable,
@@ -1009,7 +1009,7 @@ void    CRTC_SetType(unsigned int Type)
                 case 2:
                 {
                     /* S&KOH currently thinks it's a type 1 */
-                    memcpy(CRTC_InternalState.CRTC_ReadMaskTable, 
+                    memcpy(CRTC_InternalState.CRTC_ReadMaskTable,
 						MC6845_ReadMaskTable, 16);
 
 					memcpy(CRTC_InternalState.CRTC_WriteMaskTable,
@@ -1026,7 +1026,7 @@ void    CRTC_SetType(unsigned int Type)
                 {
                         /* The Demo says it's a ASIC. NWC's CRTC test code says ASIC */
                         /* S&KOH says type 3 (meaning ASIC) */
-					memcpy(CRTC_InternalState.CRTC_ReadMaskTable, 
+					memcpy(CRTC_InternalState.CRTC_ReadMaskTable,
 						AsicCRTC_ReadMaskTable, 16);
 
 					memcpy(CRTC_InternalState.CRTC_WriteMaskTable,
@@ -1044,7 +1044,7 @@ void    CRTC_SetType(unsigned int Type)
                 {
                         /* The Demo says it's a type 4. NWC's CRTC test code says PreASIC */
                         /* S&KOH says type 4 */
-					memcpy(CRTC_InternalState.CRTC_ReadMaskTable, 
+					memcpy(CRTC_InternalState.CRTC_ReadMaskTable,
 						PreAsicCRTC_ReadMaskTable, 16);
 
 					memcpy(CRTC_InternalState.CRTC_WriteMaskTable,
@@ -1055,7 +1055,7 @@ void    CRTC_SetType(unsigned int Type)
 /*					CRTC_InternalState.CRTC_HsyncWidth[0] = 16;
 					CRTC_InternalState.GA_HsyncTable[0] = 6;
                   CRTC_LightPenMA = 0;
-*/        
+*/
                 }
                 break;
         }
@@ -1126,7 +1126,7 @@ unsigned int            CRTC_ReadStatusRegister(void)
                         CRTC_StatusRegister&=~CRTC_STATUS_IN_VSYNC;
                         if (CRTC_InternalState.CRTC_Flags & CRTC_VS_FLAG)
                                 CRTC_StatusRegister|=CRTC_STATUS_IN_VSYNC;
-                        
+
                         CRTC_StatusRegister|=UM6845R_StatusRegister;
 
                         return CRTC_StatusRegister &=(0x0ff^CRTC_STATUS_LPEN_REGISTER_FULL);
@@ -1151,12 +1151,12 @@ unsigned int            CRTC_ReadStatusRegister(void)
 unsigned char CRTC_ReadData(void)
 {
        int CRTC_RegIndex;
-  
+
         if (CRTC_InternalState.CRTC_Type==3)
         {
                 switch (CRTC_InternalState.CRTC_Reg & 0x07)
                 {
-         
+
                         /* light pen high */
                         case 0:
                                 return CRTCRegisters[16];
@@ -1216,7 +1216,7 @@ unsigned char CRTC_ReadData(void)
 
                         /* status 2 */
                         case 3:
-		                {       
+		                {
 							unsigned char Status;
 
 								Status = 0x0ff;
@@ -1235,7 +1235,7 @@ unsigned char CRTC_ReadData(void)
                                {
                                    Status|=0x020;
                                }
-   
+
 							   /* bit 3 -? begining of new line but not every frame??,
 							   bit 2 - hend? */
 
@@ -1301,7 +1301,7 @@ static void		CRTC_DoLineChecks(void)
     }
 
     /* check Vertical sync position */
-    if (CRTC_InternalState.LineCounter==CRTCRegisters[7])              
+    if (CRTC_InternalState.LineCounter==CRTCRegisters[7])
     {
 		if (CRTC_InternalState.CRTC_Type==3)
 		{
@@ -1328,12 +1328,12 @@ static void             CRTC_DoLineChecksCRTC2(void)
         		if ((CRTC_InternalState.LineCounter>>1) == CRTCRegisters[6])
         		{
                 		CRTC_ClearFlag(CRTC_VDISP_FLAG);
-						
+
                 		CRTC_SetRenderingFunction();
         		}
 
         		/* check Vertical sync position */
-        		if ((CRTC_InternalState.LineCounter>>1)==CRTCRegisters[7])              
+        		if ((CRTC_InternalState.LineCounter>>1)==CRTCRegisters[7])
         		{
                 		CRTC_InitVsync();
        			}
@@ -1362,7 +1362,7 @@ void    CRTC_WriteData(unsigned int Data)
 		case 1:
 		{
 			/* crtc type 1 has 0x0ff for reg 31 */
-			CRTCRegisters[31] = 0x0ff;	
+			CRTCRegisters[31] = 0x0ff;
 		}
 		break;
 
@@ -1445,8 +1445,8 @@ void    CRTC_SetRenderFunction(int RenderMode)
         }
         break;
         case RENDER_MODE_ASIC_FEATURES:
-        {               
-            CRTC_InternalState.pCRTC_RenderGraphicsFunction = CRTC_InternalState.pCRTC_GetGraphicsDataPLUS; 
+        {
+            CRTC_InternalState.pCRTC_RenderGraphicsFunction = CRTC_InternalState.pCRTC_GetGraphicsDataPLUS;
         }
         break;
     }
@@ -1497,9 +1497,9 @@ void    CRTC_GetGraphicsDataCPC_TrueColour(void)
         Addr = (unsigned long)(((LocalMA & (0x03000<<1))<<1) | (LocalMA & (0x03ff<<1)));
 
         /* take address, and put in vertical line count in place of these 3 bits. */
-        Addr |= CRTC_InternalState.RasterMA;       
+        Addr |= CRTC_InternalState.RasterMA;
 
-        GraphicsWord = ((Z80MemoryBase[(unsigned long)(Addr)])<<8)  
+        GraphicsWord = ((Z80MemoryBase[(unsigned long)(Addr)])<<8)
                                         | (Z80MemoryBase[(unsigned long)(Addr+1)]);
 
         Render_TrueColourRGB_PutDataWord(CRTC_InternalState.Monitor_State.MonitorHorizontalCount, GraphicsWord, CRTC_InternalState.Monitor_State.MonitorScanLineCount);
@@ -1519,10 +1519,10 @@ void    CRTC_GetGraphicsDataCPC_Paletted(void)
         Addr = (unsigned short)(((LocalMA & 0x03000)<<2) | ((LocalMA & 0x03ff)<<1));
 
         /* take address, and put in vertical line count in place of these 3 bits. */
-        Addr |= CRTC_InternalState.RasterMA;       
+        Addr |= CRTC_InternalState.RasterMA;
 
 
-        GraphicsWord = ((Z80MemoryBase[(unsigned long)(Addr)])<<8)  
+        GraphicsWord = ((Z80MemoryBase[(unsigned long)(Addr)])<<8)
                                         | (Z80MemoryBase[(unsigned long)(Addr+1)]);
 
         Render_Paletted_PutDataWord(CRTC_InternalState.Monitor_State.MonitorHorizontalCount, GraphicsWord, CRTC_InternalState.Monitor_State.MonitorScanLineCount);
@@ -1544,13 +1544,13 @@ void    CRTC_GetGraphicsDataPLUS_Paletted(void)
 
         /* take address, and put in vertical line count in place of these 3 bits. */
         Addr |= ASIC_RasterMA;
-		
+
         /* shift up previous 16 bits of data */
         CRTC_InternalState.GraphicsLong = CRTC_InternalState.GraphicsLong<<16;
 
         /* add in new 16 bits of data */
-        CRTC_InternalState.GraphicsLong = CRTC_InternalState.GraphicsLong | 
-                                        ((Z80MemoryBase[(unsigned long)(Addr)])<<8)  
+        CRTC_InternalState.GraphicsLong = CRTC_InternalState.GraphicsLong |
+                                        ((Z80MemoryBase[(unsigned long)(Addr)])<<8)
                                         | (Z80MemoryBase[(unsigned long)(Addr+1)]);
 
         /* Line, Column, ActualX, ActualY */
@@ -1575,10 +1575,10 @@ void    CRTC_GetGraphicsDataPLUS_TrueColour(void)
 
         /* shift up previous 16 bits of data */
         CRTC_InternalState.GraphicsLong = CRTC_InternalState.GraphicsLong<<16;
- 
+
         /* add in new 16 bits of data */
-        CRTC_InternalState.GraphicsLong = CRTC_InternalState.GraphicsLong | 
-                                        ((Z80MemoryBase[(unsigned long)(Addr)])<<8)  
+        CRTC_InternalState.GraphicsLong = CRTC_InternalState.GraphicsLong |
+                                        ((Z80MemoryBase[(unsigned long)(Addr)])<<8)
                                         | (Z80MemoryBase[(unsigned long)(Addr+1)]);
 
 	   /* Line, Column, ActualX, ActualY */
@@ -1610,7 +1610,7 @@ void    CRTC_RenderSync_TrueColour(void)
 }
 
 /* vertical count:
- vertical total - vertical sync position 
+ vertical total - vertical sync position
  horizontal count:
  horizontal total - horizontal sync position
 
@@ -1626,7 +1626,7 @@ void    CRTC_SetMA(int NewMA)
 
         ASICCRTC_RasterLine = CRTC_InternalState.RasterCounter;
         ASICCRTC_MALine = MALine;
-        
+
 }
 */
 /*void  CRTC_SetMAReload(int NewMAToSet)
@@ -1664,7 +1664,7 @@ void CRTC_DoHsync(void)
 #endif
 
 			/* enable interrupt synchronisation */
-/*			CRTC_InternalState.GA_State.GA_Flags |= GA_INT_SYNC_FLAG;	
+/*			CRTC_InternalState.GA_State.GA_Flags |= GA_INT_SYNC_FLAG;
 			CRTC_InternalState.GA_State.InterruptSyncCount = 0;
 */
 			GateArray_TriggerVsyncSynchronisation();
@@ -1686,12 +1686,12 @@ void CRTC_DoHsync(void)
                 if (CRTC_InternalState.Monitor_State.MonitorVsyncCount==0)
                 {
                         CRTC_InternalState.Monitor_State.MonitorFlags &= ~MONITOR_IN_VSYNC;
-                
+
                         CRTC_SetRenderingFunction();
                 }
         }
 
-        
+
         /* The GA takes the CRTC VSYNC and CRTC HSYNC and generates
          the GA VSYNC which is sent to the monitor.
         */
@@ -1706,7 +1706,7 @@ void CRTC_DoHsync(void)
                 if (GA_VSyncCounter == GA_VSyncWidth)
                 {
                         GA_VSyncActive = FALSE;
-  
+
                 }
         }
 */
@@ -1723,7 +1723,7 @@ void CRTC_DoHsync(void)
 
 	if (CPCHardware==CPC_HW_KCCOMPACT)
 	{
-		KCC_Update(); 
+		KCC_Update();
 	}
 }
 
@@ -1763,11 +1763,11 @@ static void     CRTC_InitVsync(void)
 
 			/* enable counter */
 			CRTC_SetFlag(CRTC_VSCNT_FLAG);
-		
+
 
 			CRTC_InterlaceControl_VsyncStart();
 
-		
+
 		}
 	}
 #endif
@@ -1785,7 +1785,7 @@ static void     CRTC_SetRenderingFunction(void)
     /* set graphics rendering function - either graphics or border */
     if (
 		(CRTC_InternalState.CRTC_Flags & CRTC_HDISP_FLAG) &&
-		(CRTC_InternalState.CRTC_Flags & CRTC_VDISP_FLAG) && 
+		(CRTC_InternalState.CRTC_Flags & CRTC_VDISP_FLAG) &&
 		(!(CRTC_InternalState.CRTC_Flags & CRTC_R8DT_FLAG))
 		)
     {
@@ -1817,7 +1817,7 @@ static void     CRTC_SetRenderingFunction(void)
     if ((CRTC_InternalState.Monitor_State.MonitorFlags & MONITOR_IN_VSYNC) || (CRTC_InternalState.CRTC_Flags & CRTC_HS_FLAG) || ASICCRTC_BlackDisplay)
     {
 		/* render sync */
-        CRTC_InternalState.CRTC_RenderType = CRTC_RENDER_SYNC;	
+        CRTC_InternalState.CRTC_RenderType = CRTC_RENDER_SYNC;
     }
 
 /*	if (PreviousRenderType!=CRTC_InternalState.CRTC_RenderType)
@@ -1886,7 +1886,7 @@ void    ASICCRTC_SetSoftScroll(int SoftScroll)
 
         ASICCRTC_VerticalSoftScroll = (unsigned char)((SoftScroll>>4) & 0x07);
 
-        ASICCRTC_RasterLine = (unsigned char)((CRTC_InternalState.RasterCounter + ASICCRTC_VerticalSoftScroll));
+        ASICCRTC_RasterLine = (unsigned char)(((CRTC_InternalState.RasterCounter + ASICCRTC_VerticalSoftScroll)&0x07));
 
         /* update HStart and HEnd */
         CRTC_DoReg1();
@@ -1911,15 +1911,15 @@ void ASICCRTC_ScreenSplit(void)
 {
         if (CPCHardware==CPC_HW_CPCPLUS)
         {
-        
+
                 /* this works if scroll is 0,1,2,3,4,5 or 6.
                  When scroll is 7, then it doesn't do the
                  split fault. At a guess, it does do it,
                  but the screen address is also set
                  by the scrolling hardware for the next char
                  and the error is not reproduced.
-                
-                 The fault doesn't appear when there is 
+
+                 The fault doesn't appear when there is
                  a Vertical Adjust, because the raster count
                  will be different.
 				*/
@@ -1927,7 +1927,7 @@ void ASICCRTC_ScreenSplit(void)
                 {
                         ASIC_DoScreenSplit = FALSE;
 
-                        CRTC_InternalState.MA = ASIC_GetSSA();	
+                        CRTC_InternalState.MA = ASIC_GetSSA();
                         CRTC_InternalState.MALine = CRTC_InternalState.MA;
 
                         /*ASICCRTC_RasterLine = CRTC_InternalState.RasterCounter; */
@@ -1940,7 +1940,7 @@ void ASICCRTC_ScreenSplit(void)
                         ASIC_DoScreenSplit = TRUE;
                 }
 
-                if (ASIC_RasterSplitLineMatch(CRTC_InternalState.LineCounter, CRTC_InternalState.RasterCounter))      
+                if (ASIC_RasterSplitLineMatch(CRTC_InternalState.LineCounter, CRTC_InternalState.RasterCounter))
                 {
                         if (!(CRTC_InternalState.CRTC_Flags & CRTC_VTOT_FLAG))
                         {
@@ -2037,7 +2037,7 @@ static void ASICCRTC_UpdateState(int RegIndex)
                     if (CRTC_InternalState.RasterCounter>=CRTCRegisters[9])
                     {
                             CRTC_SetFlag(CRTC_MR_FLAG);
-							
+
                             if (CRTC_InternalState.LineCounter==CRTCRegisters[4])
                             {
                                     CRTC_SetFlag(CRTC_VTOT_FLAG);
@@ -2097,7 +2097,7 @@ static void ASICCRTC_RestartFrame(void)
 
         CRTC_InternalState.MAStore = CRTC_InternalState.MALine;
 
-        CRTC_InternalState.RasterCounter = 0; 
+        CRTC_InternalState.RasterCounter = 0;
         CRTC_InternalState.LineCounter = 0;
 
         if (CRTC_InternalState.InterlaceAndVideoMode == 3)
@@ -2112,7 +2112,7 @@ static void ASICCRTC_RestartFrame(void)
         ASICCRTC_VTot();
 
         CRTC_SetFlag(CRTC_VDISP_FLAG);
-		
+
         CRTC_SetRenderingFunction();
 
         CRTC_DoLineChecks();
@@ -2122,7 +2122,7 @@ static void ASICCRTC_RestartFrame(void)
 /* executed for each complete line done by the CRTC */
 void    ASICCRTC_DoLine(void)
 {
-	
+
         ASICCRTC_RasterLine = (unsigned char)((ASICCRTC_RasterLine + 1) & 0x07);
 
         if (CRTC_InternalState.InterlaceAndVideoMode!=3)
@@ -2172,10 +2172,10 @@ void    ASICCRTC_DoLine(void)
                 {
                         CRTC_InternalState.RasterCounter = 0;
                 }
-                
+
                 CRTC_InternalState.MALine += CRTC_InternalState.HDispAdd;
                 /*MALine = MAStore; */
-        
+
                 if (ASICCRTC_VerticalSoftScroll==0)
                 {
                         ASICCRTC_MALine += CRTC_InternalState.HDispAdd;
@@ -2250,7 +2250,7 @@ void    ASICCRTC_DoLine(void)
                                         CRTC_SetFlag(CRTC_VTOT_FLAG);
 
                                 }
-                        }                                       
+                        }
                         CRTC_SetFlag(CRTC_MR_FLAG);
                 }
         }
@@ -2258,7 +2258,7 @@ void    ASICCRTC_DoLine(void)
         {
                 if ((ASICCRTC_RasterLine>=CRTCRegisters[9]) || (ASICCRTC_RasterLine==7))
                 {
-                        ASIC_RasterLineMatch = TRUE;    
+                        ASIC_RasterLineMatch = TRUE;
                 }
         }
 
@@ -2299,7 +2299,7 @@ static void CRTC0_UpdateState(int RegIndex)
 
 	  case 9:
             /* Reg 9 uses == compare, reg 9 latched! */
-            if ((CRTC_InternalState.RasterCounter==CRTCRegisters[9]) && 
+            if ((CRTC_InternalState.RasterCounter==CRTCRegisters[9]) &&
 				(CRTC_InternalState.HCount<=(CRTCRegisters[0]<<1)))
             {
                     CRTC_SetFlag(CRTC_MR_FLAG);
@@ -2307,7 +2307,7 @@ static void CRTC0_UpdateState(int RegIndex)
             else
             {
                     CRTC_ClearFlag(CRTC_MR_FLAG);
-		
+
             }
 			break;
 
@@ -2323,7 +2323,7 @@ static void CRTC0_RestartFrame(void)
         CRTC_InternalState.MA = GET_MA;
         CRTC_InternalState.MALine = CRTC_InternalState.MA;
         /*MAColumn = 0; */
-        CRTC_InternalState.RasterCounter = 0; 
+        CRTC_InternalState.RasterCounter = 0;
         CRTC_InternalState.LineCounter = 0;
 
         CRTC_InternalState.MAStore = GET_MA;
@@ -2341,12 +2341,12 @@ static void CRTC0_RestartFrame(void)
         ASICCRTC_VTot();
 
         CRTC_SetFlag(CRTC_VDISP_FLAG);
-		
+
         CRTC_SetRenderingFunction();
 
         CRTC_DoLineChecks();
 
-		
+
 		/* on type 0, the first line is always visible */
 
 #ifdef HD6845S
@@ -2362,7 +2362,7 @@ void    CRTC0_MaxRasterMatch(void)
 
         if (CRTC_InternalState.InterlaceAndVideoMode==3)
         {
-                if (CRTC_InternalState.RasterCounter == ((CRTCRegisters[9]>>1) + 
+                if (CRTC_InternalState.RasterCounter == ((CRTCRegisters[9]>>1) +
                         ((CRTC_InternalState.LineCounter^CRTC_InternalState.Frame) & CRTCRegisters[9] & 0x01)))
                 {
 
@@ -2397,16 +2397,16 @@ void    CRTC0_DoLine(void)
               CRTC_InternalState.RasterCounter = (CRTC_InternalState.RasterCounter + 2) & 0x01f;
       }
 */
-		
 
- 
+
+
 		CRTC3_DoVerticalSyncCounter();
 
         if (ASIC_RasterLineMatch == TRUE)
         {
                 ASIC_RasterLineMatch = FALSE;
 
-                ASICCRTC_MALine +=CRTC_InternalState.HDispAdd;     
+                ASICCRTC_MALine +=CRTC_InternalState.HDispAdd;
         }
 
 
@@ -2415,7 +2415,7 @@ void    CRTC0_DoLine(void)
 /*			CRTC_ClearFlag(CRTC_VSYNC_TRIGGERED_FLAG); */
 
 				CRTC_ClearFlag(CRTC_MR_FLAG);
-			
+
                 /*if (InterlaceAndVideoMode!=3) */
                 {
                         CRTC_InternalState.RasterCounter = 0;
@@ -2424,24 +2424,24 @@ void    CRTC0_DoLine(void)
               {
                       if (CRTCRegisters[9] & 1)
                       {
-                               MaxRaster is odd,  start raster count on zero. 
+                               MaxRaster is odd,  start raster count on zero.
                               CRTC_InternalState.RasterCounter = (CRTC_InternalState.RasterCounter & 0x01)^ 0x01;
                       }
                       else
                      {
-                               MaxRaster is even, start it at zero 
+                               MaxRaster is even, start it at zero
                               CRTC_InternalState.RasterCounter = CRTC_InternalState.RasterCounter & 0x01;
                       }
               }
 */
 
-                CRTC_InternalState.MALine +=CRTC_InternalState.HDispAdd;      
+                CRTC_InternalState.MALine +=CRTC_InternalState.HDispAdd;
 
                 if (ASICCRTC_VerticalSoftScroll==0)
                 {
                         ASICCRTC_MALine += CRTC_InternalState.HDispAdd;
                 }
-                
+
                 if (!(CRTC_InternalState.CRTC_Flags & CRTC_VADJ_FLAG))
                 {
                         if (!(CRTC_InternalState.CRTC_Flags & CRTC_VTOT_FLAG))
@@ -2457,10 +2457,10 @@ void    CRTC0_DoLine(void)
                 {
                         ASICCRTC_RasterLine = ASICCRTC_VerticalSoftScroll;
                 }
-        
+
         }
 
-        
+
 
 
 
@@ -2470,10 +2470,10 @@ void    CRTC0_DoLine(void)
                 CRTC_InternalState.VertAdjustCount = (unsigned char)((CRTC_InternalState.VertAdjustCount+1) & 0x01f);
 
                 /* vertical adjust matches counter? */
-                if (CRTC_InternalState.VertAdjustCount==CRTCRegisters[5])  
+                if (CRTC_InternalState.VertAdjustCount==CRTCRegisters[5])
                 {
                         CRTC_ClearFlag(CRTC_VADJ_FLAG);
-						
+
                         CRTC0_RestartFrame();
                 }
         }
@@ -2491,7 +2491,7 @@ void    CRTC0_DoLine(void)
                         /* yes */
                         CRTC_InternalState.VertAdjustCount = 0;
                         CRTC_SetFlag(CRTC_VADJ_FLAG);
-						
+
                         CRTC_InternalState.LineCounter = (unsigned char)((CRTC_InternalState.LineCounter + 1) & 0x07f);
                 }
                 else
@@ -2515,12 +2515,12 @@ void    CRTC0_DoLine(void)
 
 		CRTC_DoLineChecks();
 
-		
+
         if ((ASICCRTC_VerticalSoftScroll!=0) && (!(CRTC_InternalState.CRTC_Flags & CRTC_VADJ_FLAG)))
         {
                 if ((ASICCRTC_RasterLine>=CRTCRegisters[9]) || (ASICCRTC_RasterLine==7))
                 {
-                        ASIC_RasterLineMatch = TRUE;    
+                        ASIC_RasterLineMatch = TRUE;
                 }
         }
 
@@ -2569,7 +2569,7 @@ static BOOL	CRTC1_HTotMatch(void)
 static void CRTC1_UpdateState(int RegIndex)
 {
   switch (RegIndex)
-  {      
+  {
 		case 0:
 		{
 			if (!CRTC1_HTotMatch())
@@ -2615,7 +2615,7 @@ static void CRTC1_UpdateState(int RegIndex)
 			CRTC_DoLineChecks();
 		}
 		break;
-       
+
 		case 9:
 		{
 
@@ -2624,7 +2624,7 @@ static void CRTC1_UpdateState(int RegIndex)
                     if (CRTC_InternalState.RasterCounter==CRTCRegisters[9])
                     {
                             CRTC_SetFlag(CRTC_MR_FLAG);
-							
+
                             if (CRTC_InternalState.LineCounter == CRTCRegisters[4])
                             {
                                     CRTC_SetFlag(CRTC_VTOT_FLAG);
@@ -2682,12 +2682,12 @@ static void CRTC1_RestartFrame(void)
 		CRTC_InternalState.HDispAdd = 0;
 
         CRTC_InternalState.LineCounter = 0;
-	    CRTC_InternalState.RasterCounter = 0;                      
+	    CRTC_InternalState.RasterCounter = 0;
 
         ASICCRTC_VTot();
 
         CRTC_SetFlag(CRTC_VDISP_FLAG);
-		
+
         CRTC_SetRenderingFunction();
 
         CRTC_DoLineChecks();
@@ -2698,7 +2698,7 @@ static void CRTC1_RestartFrame(void)
 
         CRTC_InternalState.MA = GET_MA;
         CRTC_InternalState.MALine = CRTC_InternalState.MA;
-        CRTC_InternalState.RasterCounter = 0; 
+        CRTC_InternalState.RasterCounter = 0;
         CRTC_InternalState.LineCounter = 0;
 
 
@@ -2714,7 +2714,7 @@ static void CRTC1_RestartFrame(void)
         ASICCRTC_VTot();
 
         CRTC_SetFlag(CRTC_VDISP_FLAG);
-		
+
         CRTC_SetRenderingFunction();
 
         CRTC_DoLineChecks();
@@ -2725,7 +2725,7 @@ static void CRTC1_RestartFrame(void)
 void	CRTC1_MaxRasterMatch(void)
 {
         CRTC_ClearFlag(CRTC_MR_FLAG);
-        
+
 		if (CRTC_InternalState.InterlaceAndVideoMode == 3)
         {
                 /* in interlace sync and video mode, the raster counter increments by 1,
@@ -2739,7 +2739,7 @@ void	CRTC1_MaxRasterMatch(void)
         {
                 if (CRTC_InternalState.RasterCounter==CRTCRegisters[9])
                 {
-                        
+
                         CRTC_SetFlag(CRTC_MR_FLAG);
                 }
         }
@@ -2755,7 +2755,7 @@ void	CRTC1_MaxRasterMatch(void)
 
 /* executed for each complete line done by the CRTC */
 void    CRTC1_DoLine(void)
-{       
+{
         ASICCRTC_RasterLine = (unsigned char)((ASICCRTC_RasterLine + 1) & 0x07);
 
         /* increment raster counter */
@@ -2793,7 +2793,7 @@ void    CRTC1_DoLine(void)
 */
                 CRTC_InternalState.MALine = CRTC_InternalState.MAStore;
 
-  
+
                 if (ASICCRTC_VerticalSoftScroll==0)
                 {
                         ASICCRTC_MALine+=CRTC_InternalState.HDispAdd;
@@ -2811,10 +2811,10 @@ void    CRTC1_DoLine(void)
                 {
                         ASICCRTC_RasterLine = ASICCRTC_VerticalSoftScroll;
                 }
-        
+
         }
 
-        
+
 
 
 
@@ -2824,7 +2824,7 @@ void    CRTC1_DoLine(void)
                 CRTC_InternalState.VertAdjustCount = (unsigned char)((CRTC_InternalState.VertAdjustCount+1) & 0x01f);
 
                 /* vertical adjust matches counter? */
-                if (CRTC_InternalState.VertAdjustCount==CRTCRegisters[5])     
+                if (CRTC_InternalState.VertAdjustCount==CRTCRegisters[5])
                 {
                         CRTC_ClearFlag(CRTC_VADJ_FLAG);
                         CRTC1_RestartFrame();
@@ -2832,8 +2832,8 @@ void    CRTC1_DoLine(void)
                 }
         }
 
-        
-        /* on CRTC type 1, MA can be changed through char line 0 of frame, 
+
+        /* on CRTC type 1, MA can be changed through char line 0 of frame,
         the address generated depends on MA and what the current RA is, this
         is done in the CRTC_WriteReg */
         if (CRTC_InternalState.LineCounter == 0)
@@ -2845,7 +2845,7 @@ void    CRTC1_DoLine(void)
         if (CRTC_InternalState.CRTC_Flags & CRTC_VTOT_FLAG)
         {
                 CRTC_ClearFlag(CRTC_VTOT_FLAG);
-				
+
                 /* load vertical adjust */
                 /*VertAdjust = CRTCRegisters[5]; */
 
@@ -2858,9 +2858,9 @@ void    CRTC1_DoLine(void)
                         /* yes */
                         CRTC_InternalState.VertAdjustCount = 0;
                         CRTC_SetFlag(CRTC_VADJ_FLAG);
-						
+
                         CRTC_InternalState.LineCounter = (unsigned char)((CRTC_InternalState.LineCounter+1) & 0x07f);
-                
+
                         /*CRTC_DoLineChecks(); */
 
                 }
@@ -2874,7 +2874,7 @@ void    CRTC1_DoLine(void)
         if (CRTC_InternalState.RasterCounter > CRTCRegisters[9])
         {
                 MaxRasterMatch = TRUE;
-        
+
                 if (CRTC_InternalState.LineCounter == CRTCRegisters[4])
                 {
                         RestartFrame = TRUE;
@@ -2900,7 +2900,7 @@ void    CRTC1_DoLine(void)
 
                                 CRTC_SetFlag(CRTC_VTOT_FLAG);
                         }
-                }                                       
+                }
         }
 
 		CRTC_DoLineChecks();
@@ -2910,7 +2910,7 @@ void    CRTC1_DoLine(void)
         {
                 if ((ASICCRTC_RasterLine>=CRTCRegisters[9]) || (ASICCRTC_RasterLine==7))
                 {
-                        ASIC_RasterLineMatch = TRUE;    
+                        ASIC_RasterLineMatch = TRUE;
                 }
         }
 
@@ -2940,7 +2940,7 @@ static void CRTC2_UpdateState(int RegIndex)
     /* registers that can be changing immediatly */
     switch (RegIndex)
     {
-          
+
 			case 7:
 			{
              CRTC_DoLineChecks();
@@ -2978,7 +2978,7 @@ static void CRTC2_UpdateState(int RegIndex)
 static void CRTC2_RestartFrame(void)
 {
 	CRTC_InternalState.HDispAdd = 0;
-	CRTC_InternalState.RasterCounter = 0;                      
+	CRTC_InternalState.RasterCounter = 0;
 
         CRTC_InternalState.MA = GET_MA;
         CRTC_InternalState.MALine = CRTC_InternalState.MA;
@@ -2988,7 +2988,7 @@ static void CRTC2_RestartFrame(void)
         ASICCRTC_VTot();
 
         CRTC_SetFlag(CRTC_VDISP_FLAG);
-		
+
         CRTC_SetRenderingFunction();
 
         CRTC_DoLineChecksCRTC2();
@@ -2998,7 +2998,7 @@ static void CRTC2_RestartFrame(void)
 void	CRTC2_MaxRasterMatch(void)
 {
         CRTC_ClearFlag(CRTC_MR_FLAG);
-        
+
 		if (CRTC_InternalState.InterlaceAndVideoMode == 3)
         {
                 /* in interlace sync and video mode, the raster counter increments by 1,
@@ -3027,7 +3027,7 @@ void	CRTC2_MaxRasterMatch(void)
 
 /* executed for each complete line done by the CRTC */
 void    CRTC2_DoLine(void)
-{       
+{
         ASICCRTC_RasterLine = (unsigned char)((ASICCRTC_RasterLine + 1) & 0x07);
 
         /* increment raster counter */
@@ -3066,7 +3066,7 @@ void    CRTC2_DoLine(void)
                 if (!(CRTC_InternalState.CRTC_Flags & CRTC_VTOT_FLAG))
                 {
                         CRTC_InternalState.LineCounter = (unsigned char)((CRTC_InternalState.LineCounter+1) & 0x07f);
-                
+
                         CRTC_DoLineChecksCRTC2();
                 }
 
@@ -3077,10 +3077,10 @@ void    CRTC2_DoLine(void)
                 {
                         ASICCRTC_RasterLine = ASICCRTC_VerticalSoftScroll;
                 }
-        
+
         }
 
-        
+
 
 
 
@@ -3090,7 +3090,7 @@ void    CRTC2_DoLine(void)
                 CRTC_InternalState.VertAdjustCount = (unsigned char)((CRTC_InternalState.VertAdjustCount+1) & 0x01f);
 
                 /* vertical adjust matches counter? */
-                if (CRTC_InternalState.VertAdjustCount==CRTCRegisters[5])     
+                if (CRTC_InternalState.VertAdjustCount==CRTCRegisters[5])
                 {
                         CRTC_ClearFlag(CRTC_VADJ_FLAG);
                         CRTC2_RestartFrame();
@@ -3111,9 +3111,9 @@ void    CRTC2_DoLine(void)
                         /* yes */
                         CRTC_InternalState.VertAdjustCount = 0;
                         CRTC_SetFlag(CRTC_VADJ_FLAG);
-						
+
                         CRTC_InternalState.LineCounter = (unsigned char)((CRTC_InternalState.LineCounter+1) & 0x07f);
-                
+
                         CRTC_DoLineChecksCRTC2();
 
                 }
@@ -3138,7 +3138,7 @@ void    CRTC2_DoLine(void)
 					}
 					else
 					{
-			
+
                         	if (CRTC_InternalState.LineCounter == CRTCRegisters[4])
                         	{
                                 	/* Vtot match too */
@@ -3146,15 +3146,15 @@ void    CRTC2_DoLine(void)
                                 	CRTC_SetFlag(CRTC_VTOT_FLAG);
                         	}
 					}
-                }                                       
+                }
 		}
 
-        
+
         if ((ASICCRTC_VerticalSoftScroll!=0) && (!(CRTC_InternalState.CRTC_Flags & CRTC_VADJ_FLAG)))
         {
                 if ((ASICCRTC_RasterLine>=CRTCRegisters[9]) || (ASICCRTC_RasterLine==7))
                 {
-                        ASIC_RasterLineMatch = TRUE;    
+                        ASIC_RasterLineMatch = TRUE;
                 }
         }
 
@@ -3216,7 +3216,7 @@ void    CRTC_NextMonitorLine(void)
 		return;
 	}
 
-	
+
 	ScanLineCount = CRTC_InternalState.Monitor_State.MonitorScanLineCount;
 
 	ScanLineCount++;
@@ -3228,7 +3228,7 @@ void    CRTC_NextMonitorLine(void)
     if (ScanLineCount>=(39*8))
     {
 			ScanLineCount = 0;
-			
+
 #ifdef LESS_MULTS
 			Render_FirstLine();
 #endif
@@ -3258,8 +3258,8 @@ void	CRTC_DoMonitorHsync(void)
 {
 /*	CRTC_InternalState.Monitor_State.MonitorFlags&=~MONITOR_IN_HSYNC; */
 
-	CRTC_InternalState.Monitor_State.CharsAfterHsync=0; 
-	
+	CRTC_InternalState.Monitor_State.CharsAfterHsync=0;
+
 	CRTC_NextMonitorLine();
 }
 
@@ -3329,7 +3329,7 @@ void	CRTC_StartMonitorHsync(void)
 	CRTC_InternalState.Monitor_State.MonitorHorizontalCount = 0;
 	CRTC_InternalState.Monitor_State.CharsAfterHsync = 0;
 	CRTC_InternalState.Monitor_State.MonitorFlags|=MONITOR_IN_HSYNC;
-	
+
 	CRTC_NextMonitorLine();
 }
 
@@ -3456,7 +3456,7 @@ unsigned long PreviousHsyncFlags = 0;
 void	Monitor_UpdateHorizontal(void)
 {
 
-		
+
 	if (CRTC_InternalState.Monitor_State.HSyncRetraceCount>0)
 	{
 
@@ -3469,7 +3469,7 @@ void	Monitor_UpdateHorizontal(void)
 			CRTC_InternalState.Monitor_State.HSyncRetraceCount = 0;
 			return;
 		}
-	}	
+	}
 #ifndef SIMPLE_MONITOR_EMULATION
 /*		if (CRTC_InternalState.CRTC_Flags & CRTC_HS_FLAG)
 		{
@@ -3514,13 +3514,13 @@ void	Monitor_UpdateHorizontal(void)
 				return;
 			}
 		}
-	
+
 	}
 #endif
 
 	PreviousHsyncFlags = CRTC_InternalState.CRTC_Flags;
 
-	if (CRTC_InternalState.Monitor_State.CharsAfterHsync==(64-8))	
+	if (CRTC_InternalState.Monitor_State.CharsAfterHsync==(64-8))
 	{
 		CRTC_StartMonitorHsync();
 	}
@@ -3563,7 +3563,7 @@ void CRTC_DoCycles(int Cycles)
             {
 				unsigned long PreviousFlags = CRTC_InternalState.CRTC_Flags;
 				CRTC_ClearFlag(CRTC_HTOT_FLAG);
-					
+
 		       /* update lines after VSYNC count - used to handle multiple VSYNCs
 				per frame*/
 					CRTC_InternalState.Monitor_State.LinesAfterVsync++;
@@ -3605,7 +3605,7 @@ void CRTC_DoCycles(int Cycles)
 					}
 
                     if ((ASICCRTC_SoftScroll & 0x080)!=0)
-                    {               
+                    {
                             /* doesn't work if the extend border is not set */
 
 
@@ -3623,12 +3623,12 @@ void CRTC_DoCycles(int Cycles)
                                     /* take address, and put in vertical line count in place of these 3 bits. */
                                     Addr |= (Addr & (0x0ffff^0x03800)) | ((ASICCRTC_RasterLine & 0x07)<<11);
 
-                                    CRTC_InternalState.GraphicsLong = ((Z80MemoryBase[(unsigned long)(Addr)])<<8)  
+                                    CRTC_InternalState.GraphicsLong = ((Z80MemoryBase[(unsigned long)(Addr)])<<8)
                                                                     | (Z80MemoryBase[(unsigned long)(Addr+1)]);
                             }
                     }
 
-				
+
 					if (((PreviousFlags^CRTC_InternalState.CRTC_Flags) & CRTC_VSCNT_FLAG)!=0)
 					{
 						/* vsync counter bit has changed state */
@@ -3653,8 +3653,8 @@ void CRTC_DoCycles(int Cycles)
 							if (CRTC_InternalState.Monitor_State.MonitorFlags & MONITOR_VSYNC_SYNC)
 							{
 									CRTC_InternalState.Monitor_State.MonitorFlags &=~MONITOR_VSYNC_SYNC;
-							
-									if ((CRTC_InternalState.Monitor_State.LinesAfterVsync>=272)) 
+
+									if ((CRTC_InternalState.Monitor_State.LinesAfterVsync>=272))
 									{
 										CRTC_InternalState.Monitor_State.LinesAfterVsync = 0;
 
@@ -3666,19 +3666,19 @@ void CRTC_DoCycles(int Cycles)
 					}
 
 					CRTC_InternalState.CRTC_FlagsAtLastHtot = CRTC_InternalState.CRTC_Flags;
-           
+
                     /* must be called each line to turn on the correct sprites! */
                     ASIC_GenerateSpriteActiveMaskForLine(ASICCRTC_Line);
 
 			 }
-            
-		
+
+
 			/* does horizontal equal Htot? */
 			if (CRTC_InternalState.HCount == CRTCRegisters[0])
 			{
 				CRTC_SetFlag(CRTC_HTOT_FLAG);
 			}
-			
+
 			if (CRTC_InternalState.HCount == (CRTCRegisters[0]>>1))
 			{
 					unsigned long Flags;
@@ -3708,7 +3708,7 @@ void CRTC_DoCycles(int Cycles)
 								CRTC_DoMonitorHsync();
 							}
                         }
-#endif                                        
+#endif
                     /* if horizontal sync count = Horizontal Sync Width then
                      stop horizontal sync */
                     if (CRTC_InternalState.HorizontalSyncCount==CRTC_InternalState.HorizontalSyncWidth)
@@ -3717,8 +3717,8 @@ void CRTC_DoCycles(int Cycles)
 
                             /* stop horizontal sync counter */
                             CRTC_ClearFlag(CRTC_HS_FLAG);
-							
-                                            
+
+
                             /* call functions that would happen on a HSYNC */
                             CRTC_DoHsync();
                     }
@@ -3732,15 +3732,15 @@ void CRTC_DoCycles(int Cycles)
                     both Horizontal Sync Position and HorizontalSyncWidth, and
                     the HSYNC is not even started */
                     if (CRTC_InternalState.HorizontalSyncWidth!=0)
-                    {						
+                    {
 							/* are we already in a HSYNC? */
                             if (!(CRTC_InternalState.CRTC_Flags & CRTC_HS_FLAG))
                             {
                                     /* no.. */
-    
+
                                     /* enable horizontal sync counter */
                                     CRTC_SetFlag(CRTC_HS_FLAG);
-									
+
                                     /* initialise counter */
                                     CRTC_InternalState.HorizontalSyncCount = 0;
 
@@ -3749,7 +3749,7 @@ void CRTC_DoCycles(int Cycles)
             }
 
 
-            if (CRTC_InternalState.HCount == CRTC_InternalState.HStart)           
+            if (CRTC_InternalState.HCount == CRTC_InternalState.HStart)
             {
                     /* enable horizontal display */
                     CRTC_SetFlag(CRTC_HDISP_FLAG);
@@ -3757,10 +3757,10 @@ void CRTC_DoCycles(int Cycles)
             }
 
             /* register 8 only defines delay to add to HDisp */
-            if (CRTC_InternalState.HCount == CRTC_InternalState.HEnd)             
+            if (CRTC_InternalState.HCount == CRTC_InternalState.HEnd)
             {
                     CRTC_ClearFlag(CRTC_HDISP_FLAG);
-					
+
                     CRTC_InternalState.HDispAdd = CRTCRegisters[1];
 
                     /* if max raster matches, store current MA */
@@ -3841,12 +3841,12 @@ static void	CRTC_HStage_UpdateClosestStage(void)
 				if equal, we check this too as well as previously set flags */
 				HStage_Type&=CRTC_HSTAGE_CHECK_HEND;
 			}
-		
+
 			HStage_Next = CRTC_InternalState.HEnd;
 		}
 	}
 
-	
+
 	if (HStageCheck & CRTC_HSTAGE_CHECK_HSTART)
 	{
 		/* is HSTART closer than current H Stage? */
@@ -3930,7 +3930,7 @@ void    CRTC_Reset(void)
 
 		CRTC_InternalState.GA_State.GA_Flags &=~GA_HSYNC_FLAG;
 		CRTC_InternalState.GA_State.GA_Flags &=~GA_VSYNC_FLAG;
-		
+
 		/* not reached last raster in char */
 		CRTC_ClearFlag(CRTC_MR_FLAG);
 		/* not in vertical adjust */
@@ -3938,7 +3938,7 @@ void    CRTC_Reset(void)
 		/* do not display graphics */
 		CRTC_ClearFlag(CRTC_VDISP_FLAG);
 		CRTC_ClearFlag(CRTC_HDISP_FLAG);
-		
+
 		CRTC_ClearFlag(CRTC_R8DT_FLAG);
 
         /* reset all registers */
@@ -3965,7 +3965,7 @@ void    CRTC_Reset(void)
         CRTC_InternalState.Frame = 0;
 
 		CRTC_MonitorReset();
-		
+
 #ifdef LESS_MULTS
         Render_FirstLine();
 #endif
@@ -3987,7 +3987,7 @@ void	CRTC_LightPen_Trigger(int XPos, int YPos)
 	 y pos is in mode 2 pixels
 
 	 x,y pos are in visible display area
-	
+
 	 in mode 2, there are 16 pixels per nop.
 	 each nop is 2 bytes
 
@@ -4025,7 +4025,7 @@ void	CRTC_LightPen_Trigger(int X, int Y)
 	{
 		LinesToTrigger = (312 - MonitorLine) + Y;
 	}
-	
+
 	Nops = (LinesToTrigger<<6);
 
 	MonitorX = CRTC_InternalState.Monitor_State.MonitorHorizontalCount;
@@ -4042,16 +4042,16 @@ void	CRTC_LightPen_Trigger(int X, int Y)
 	}
 
 	Nops += (CharsToTrigger>>1);
-	
-		
+
+
 /*		unsigned long Nops;
 
 		Nops = (YPos<<6) + (XPos>>5) + ((8*10)*64);
 */
 //		CRTC_LightPen_Trigger(Nops);
 
-	
-	
+
+
 	LightPen_Strobe = 1;
 
 	ClocksToLightPenTrigger = Nops;

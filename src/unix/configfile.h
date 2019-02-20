@@ -46,3 +46,5 @@ void setDiskPathDriveB(const char *);
 void setInsertedCartPath(const char *);
 void setInsertedTapePath(const char *);
 void setInsertedRomPath(int nSlot, const char *);
+void setMultifaceCPCPath(const char *);
+void setMultifacePLUSPath(const char *);

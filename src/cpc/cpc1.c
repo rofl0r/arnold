@@ -1,6 +1,6 @@
-/*
+/* 
  *  Arnold emulator (c) Copyright, Kevin Thacker 1997-2001
- *
+ *  
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -19,7 +19,7 @@
  */
 /*********************************
 
-  CPC Hardware code
+  CPC Hardware code 
 (c) Kevin Thacker 1997-2001
 
   Ram Sizes that are valid:
@@ -47,7 +47,7 @@
 #include "garray.h"
 #include "asic.h"
 #include "z80/z80.h"
-#include "cpcglob.h"
+#include "cpcglob.h"    
 #include "diskimage/diskimg.h"
 #include "printer.h"
 #include "cheatdb.h"
@@ -91,7 +91,7 @@ static CPC_RESET_FUNCTION resetFunctions[32];
 
 void CPC_InstallResetFunction(CPC_RESET_FUNCTION resetFunction)
 {
-	resetFunctions[NumResetFunctions] = resetFunction;
+	resetFunctions[NumResetFunctions] = resetFunction;	
 	NumResetFunctions++;
 }
 
@@ -109,7 +109,7 @@ void CPC_InstallWritePort(CPCPortWrite *writePort)
 
 static unsigned long   NopCount = 0;
 
-//static unsigned char *pCPCAmsdos;
+//static unsigned char *pCPCAmsdos;       
 
 /* if CPC464/664/6128 or KC Compact selected these pointers are defined */
 /* DOS rom is NULL if no DOS is on the motherboard */
@@ -152,7 +152,7 @@ void CPC_SetDOSRom(const unsigned char *pDOSRom)
 static unsigned char *ExpansionROMTable[256];
 
 /* this is the index of the currently selected rom as written by the ROM select I/O */
-static int     RomSelection;
+static int     RomSelection;   
 
 /* selected expansion rom */
 unsigned char   *pUpperRom;
@@ -196,11 +196,6 @@ BOOL Keyboard_HasBeenScanned()
 	return KeyboardScanned;
 }
 
-void Keyboard_ResetHasBeenScanned()
-{
-    KeyboardScanned = FALSE;
-}
-
 
 unsigned char Joystick_ReadJoystickPort(void)
 {
@@ -218,24 +213,28 @@ unsigned char Keyboard_Read(void)
     {
 		unsigned char Data = 0x07f;
 
+#if 0
 		switch (CPC_HardwareConnectedToJoystickPort)
 		{
-//			case JOYSTICK_HARDWARE_AMX_MOUSE:
-	//			Data = AmxMouse_ReadJoystickPort();
-		//		break;
+			case JOYSTICK_HARDWARE_AMX_MOUSE:
+				Data = AmxMouse_ReadJoystickPort();
+				break;
 
-			//case JOYSTICK_HARDWARE_SPANISH_LIGHTGUN:
-				//Data = SpanishLightGun_ReadJoystickPort();
-				//break;
+			case JOYSTICK_HARDWARE_SPANISH_LIGHTGUN:
+				Data = SpanishLightGun_ReadJoystickPort();
+				break;
 
-//			case JOYSTICK_HARDWARE_WESTPHASER:
-	//			Data = WestPhaser_ReadJoystickPort();
-		//		break;
+			case JOYSTICK_HARDWARE_WESTPHASER:
+				Data = WestPhaser_ReadJoystickPort();
+				break;
 			default:
 			case JOYSTICK_HARDWARE_JOYSTICK:
+#endif
 				Data = Joystick_ReadJoystickPort();
+#if 0
 				break;
-		}
+		}		
+#endif
 		return (unsigned char)((Data & 0x07f) | (KeyboardData[9] & 0x080));
 
 	}
@@ -309,7 +308,7 @@ void	CPC_GenerateKeyboardClash(void)
 					/* common key(s) pressed in these two lines */
 
 					Line2 = Line2 & (~(Line1 ^ Line2));
-
+				
 					KeyboardData[j] = Line2;
 				}
 			}
@@ -321,7 +320,7 @@ void	CPC_GenerateKeyboardClash(void)
 /***************************************************************************
 
  ROM CODE
-
+ 
  **************************************************************************/
 
 /* expansion roms that are installed */
@@ -384,8 +383,8 @@ BOOL    ExpansionRom_CheckRomAddrValid(unsigned short Addr)
         return TRUE;
 }
 
-/* Byte 0: ROM Type
-                0 = Foreground, 1 = Background, 2 = Extension
+/* Byte 0: ROM Type 
+                0 = Foreground, 1 = Background, 2 = Extension 
    Byte 1: ROM Mark
    Byte 2: ROM Version
    Byte 3: ROM Modification
@@ -425,7 +424,7 @@ BOOL    ExpansionRom_Validate(const unsigned char *pData, unsigned long DataSize
 
                     /* a 0 indicates the end of the name table */
                     if (pNames[0]!=0x00)
-					{
+					{                
                         pNames++;
 
                         /* if we were reading through rom data and ran out of
@@ -448,7 +447,7 @@ BOOL    ExpansionRom_Validate(const unsigned char *pData, unsigned long DataSize
 BOOL ExpansionRom_GetRomName(const int RomIndex, char **RomName)
 {
         unsigned char *pRomData = ExpansionRomData[RomIndex];
-
+        
 		*RomName = NULL;
         if (pRomData!=NULL)
         {
@@ -474,7 +473,7 @@ BOOL ExpansionRom_GetRomName(const int RomIndex, char **RomName)
                 {
 					/* count this character */
                     NameLength++;
-
+                
 					/* if this character has bit 7 set, then it is the last
 					character in the name. If this character doesn't have bit 7 set
 					then this is not the last character */
@@ -505,7 +504,7 @@ BOOL ExpansionRom_GetRomName(const int RomIndex, char **RomName)
 
         return FALSE;
 }
-
+ 
 
 /* insert a expansion rom; returns status code */
 int    ExpansionRom_SetRomData(const unsigned char *RomData, const unsigned long RomDataSize, const int RomIndex)
@@ -513,13 +512,13 @@ int    ExpansionRom_SetRomData(const unsigned char *RomData, const unsigned long
 	const unsigned char *pRomData;
 	unsigned long RomLength;
 	int Status = ARNOLD_STATUS_ERROR;
-
+	
     /* remove an existing rom */
     if (ExpansionRomData[RomIndex]!=NULL)
     {
         ExpansionRom_Remove(RomIndex);
     }
-
+    
 	pRomData = RomData;
 	RomLength = RomDataSize;
 
@@ -549,7 +548,7 @@ int    ExpansionRom_SetRomData(const unsigned char *RomData, const unsigned long
             {
                 /* it is valid */
 
-                /* we want to check if a foreground rom data file is
+                /* we want to check if a foreground rom data file is 
                 loaded into any slot above 0, or a non-foreground not
                 loaded into slot 0 */
 
@@ -568,10 +567,10 @@ int    ExpansionRom_SetRomData(const unsigned char *RomData, const unsigned long
                 {
                     /* copy rom data into allocated block */
                     memcpy(ExpansionRomData[RomIndex],pRomData,RomLength);
-
+    
                     /* mark it as active */
                     ExpansionRom_SetActiveState(RomIndex, TRUE);
-
+                 
 					/* ok! */
 					Status = ARNOLD_STATUS_OK;
                 }
@@ -665,9 +664,9 @@ void	ExpansionROM_SetupTable(void)
 		{
 			pExpansionRom = (unsigned char *)((unsigned long)pExpansionRom - (unsigned long)0x0c000);
 		}
-
+		
 		ExpansionROMTable[i] = pExpansionRom;
-
+	
 	}
 }
 
@@ -683,7 +682,7 @@ void	ExpansionROM_RefreshTable(void)
 	{
 		int i;
 		unsigned char *pExpansionROM;
-
+				
 		pExpansionROM = (unsigned char *)((unsigned long)pBasic - (unsigned long)0x0c000);
 
 		/* for CPC and KC Compact, fill all entries with BASIC */
@@ -696,10 +695,10 @@ void	ExpansionROM_RefreshTable(void)
 		if (pDOS!=NULL)
 		{
 			pExpansionROM = (unsigned char *)((unsigned long)pDOS - (unsigned long)0x0c000);
-
+	
 			/* yes */
 			ExpansionROMTable[7] = pExpansionROM;
-		}
+		}	
 	}
 
 	/* now override with expansion roms that are enabled */
@@ -759,7 +758,7 @@ void    ROM_Select(int Selection)
  7,6            PSG Control
  5              Datarecorder write      (implement using serial port??)
  4              Datarecorder motor on   (implement using serial port??)
- 3..0           Keyboard row select
+ 3..0           Keyboard row select     
 
  port address: &F7xx
  PPI_control bit usage
@@ -846,11 +845,11 @@ void	PPI_UpdatePortBInputData(void)
 		else
 		{
 			/* set computer name */
-			Data |= ((ComputerNameIndex & 0x07)<<1);
+			Data |= ((ComputerNameIndex & 0x07)<<1);        
 
 			/* set screen refresh */
 			Data |= PPI_SCREEN_REFRESH_50HZ;
-
+        
 			/* on CPC464+, /EXP is set to 0 */
 		}
 
@@ -887,7 +886,7 @@ typedef struct
 
 	/* current inputs */
 	unsigned char	inputs[4];
-
+	
 	/* masks for input/output. 0x0ff = keep input, 0x00 = keep output */
 	unsigned char	io_mask[4];
 	/* control information */
@@ -904,7 +903,7 @@ void    PPI_Reset(void)
 {
         /*  as per MTM docs. */
         PPI_WriteControl(0x09b);
-
+		
 		PPI_UpdatePortBInputData();
 
 		/* inputs on CPC */
@@ -926,21 +925,21 @@ static void     UpdatePSG(void)
 		default:
         case 0:
 			break;
-
+        
         case 1:
         {
             /* PSG Read Data - psg data bus holds data */
 			ppi8255.inputs[0] = (unsigned char)PSG_ReadData();
         }
         break;
-
+        
         case 2:
         {
             /* PSG Write Data */
             PSG_WriteData(ppi8255.final_outputs[0]);
 	    }
         break;
-
+        
         case 3:
         {
             /* PSG Register Select */
@@ -961,7 +960,7 @@ static int PPI_PortC;*/
 static unsigned char PPI_PreviousPortC = 0;
 /* current port C written */
 static unsigned char PPI_CurrentPortC = 0;
-
+ 
 
 void PPI_DoPortBInput(void)
 {
@@ -973,7 +972,7 @@ void PPI_DoPortBInput(void)
 
 
         /* set state of vsync bit */
-        if (CRTC_InternalState.CRTC_Flags & CRTC_VS_FLAG)
+        if (CRTC_InternalState.CRTC_Flags & CRTC_VS_FLAG)                    
         {
                 Data |= VSYNC_ACTIVE;
         }
@@ -990,11 +989,11 @@ void PPI_DoPortBInput(void)
 			CassetteReadBit = Cassette_Read(NopsPassed);
 
 	        Data |= (CassetteReadBit<<7);
-
+		
 			/* store previous port B read nop count */
 			PortBRead_PreviousNopCount = CurrentNopCount;
 		}
-
+        
 
         ppi8255.inputs[1] = Data;
 
@@ -1034,13 +1033,13 @@ void	Amstrad_PPI_Refresh(void)
 		}
 	}
 
-	SelectedKeyboardLine = Data & 0x0f;
+	SelectedKeyboardLine = Data & 0x0f; 
 
     UpdatePSG();
 
 	/* when the keyboard is checked, the I/O status of the ports forces the outputs to zeros!
 	causing the motor to be switched on and off quickly, should this be correct? */
-
+	
 	/* tape motor */
 	if (((PPI_PreviousPortC^PPI_CurrentPortC)&0x010)!=0)
 	{
@@ -1077,14 +1076,14 @@ void	Amstrad_PPI_Refresh(void)
 
 INLINE static int ppi_read_port(int port_index)
 {
-	return ((ppi8255.inputs[port_index] & ppi8255.io_mask[port_index]) |
+	return ((ppi8255.inputs[port_index] & ppi8255.io_mask[port_index]) | 
 	        (ppi8255.latched_outputs[port_index] & (~ppi8255.io_mask[port_index])));
 }
 
 INLINE static void ppi_write_port(int port_index, int data)
 {
     ppi8255.latched_outputs[port_index] = data;
-
+    
     ppi8255.final_outputs[port_index] = ((ppi8255.latched_outputs[port_index] & (~ppi8255.io_mask[port_index])) |
                                 (0x0ff & ppi8255.io_mask[port_index]));
 }
@@ -1159,7 +1158,7 @@ void    PPI_WriteControl(int Data)
 			if ((Data & PPI_CONTROL_PORT_C_LOWER_STATUS)==0)
 			{
 				/* lower part of port is in output mode */
-
+				
 				ppi8255.io_mask[2] &= 0x0f0;
 			}
 
@@ -1186,7 +1185,7 @@ void    PPI_WriteControl(int Data)
 
 			Data |= PPI_CONTROL_PORT_B_STATUS;
             Data &= ~(PPI_CONTROL_PORT_C_LOWER_STATUS | PPI_CONTROL_PORT_C_UPPER_STATUS);
-
+			
 			ppi8255.control = Data;
 
 			/* on CPC+ port A can be programmed as input or output */
@@ -1202,7 +1201,7 @@ void    PPI_WriteControl(int Data)
 			}
 
 			ppi_write_port(0, ppi8255.latched_outputs[0]);
-
+	
 			Amstrad_PPI_Refresh();
 		}
 
@@ -1246,10 +1245,10 @@ int PPI_ReadControl(void)
     {
         /* for CPC+, this is the result of reading PPI Control port, value
         returned is based on value last written. */
-
+                		
 		/* in ranges:
 
-			0x080-0x08f, 0x0a0-0x0af,0x0c0-0x0cf,0x0e0-0x0ef?
+			0x080-0x08f, 0x0a0-0x0af,0x0c0-0x0cf,0x0e0-0x0ef? 
 		*/
 		if  ((ppi8255.latched_outputs[3] & 0x090)==0x080)
 		{
@@ -1292,7 +1291,7 @@ void    PPI_SetPortBDataFromSnapshot(int Data)
 	if this snapshot has been loaded from another emulator */
 }
 
-
+	
 int PPI_GetPortBDataForSnapshot(void)
 {
 	/* CPCEMU stores the inputs to this port regardless of it's input/output setting */
@@ -1380,7 +1379,7 @@ void    CPC_SetCPCType(CPC_TYPE_ID Type)
       //                  pOS = Roms664.pOs;
         //                pBasic = Roms664.pBasic;
           //              pDOS = pCPCAmsdos;
-
+         
 						/* if CPC, do not allow type 3 to be selected */
 						if (CPC_GetCRTCType()==3)
 						{
@@ -1395,7 +1394,7 @@ void    CPC_SetCPCType(CPC_TYPE_ID Type)
             //            pOS = Roms6128.pOs;
               //          pBasic = Roms6128.pBasic;
                 //        pDOS = pCPCAmsdos;
-
+        
 						/* if CPC, do not allow type 3 to be selected */
 						if (CPC_GetCRTCType()==3)
 						{
@@ -1404,10 +1403,10 @@ void    CPC_SetCPCType(CPC_TYPE_ID Type)
 
 						{
 							unsigned long RamConfig;
-
+														
 							/* ensure extra 64k is present */
 							RamConfig = CPC_GetRamConfig();
-							CPC_SetRamConfig(CPC_RAM_CONFIG_64K_RAM | RamConfig);
+							CPC_SetRamConfig(CPC_RAM_CONFIG_64K_RAM | RamConfig);	
 						}
 
 
@@ -1419,7 +1418,7 @@ void    CPC_SetCPCType(CPC_TYPE_ID Type)
 //					pOS = RomsKCC.pOs;
 //					pBasic = RomsKCC.pBasic;
 //					pDOS = pCPCAmsdos;
-
+        
 					/* force type 0, my KC Compact has a HD6845S */
 					/* this is likely to be the only type of CRTC */
 					/* used by this system */
@@ -1433,17 +1432,17 @@ void    CPC_SetCPCType(CPC_TYPE_ID Type)
   //                      pOS = ASIC_GetCartPage(0);
     //                    pBasic = ASIC_GetCartPage(1);
       //                  pDOS = ASIC_GetCartPage(3);
-
+         
 						/* if plus, force crtc type 3 */
 						CPC_SetCRTCType(3);
 
 						if (Type==CPC_TYPE_6128PLUS)
 						{
 							unsigned long RamConfig;
-
+														
 							/* ensure extra 64k is present */
 							RamConfig = CPC_GetRamConfig();
-							CPC_SetRamConfig(CPC_RAM_CONFIG_64K_RAM | RamConfig);
+							CPC_SetRamConfig(CPC_RAM_CONFIG_64K_RAM | RamConfig);	
 						}
 				}
                 break;
@@ -1472,7 +1471,7 @@ void    CPC_SetMonitorType(CPC_MONITOR_TYPE_ID MonitorType)
                 MonitorType = CPC_MONITOR_COLOUR;
         }
 
-        /* if we are in CPC plus mode, and Green is specified, use Grey Scale instead */
+        /* if we are in CPC plus mode, and Green is specified, use Grey Scale instead */        
         if (CPC_GetHardware()==CPC_HW_CPCPLUS)
         {
                 if (MonitorType == CPC_MONITOR_GREEN_SCREEN)
@@ -1528,12 +1527,12 @@ void    CPC_SetMonitorBrightness(int BrightnessSetting)
         {
                 BrightnessSetting = MONITOR_BRIGHTNESS_MIN;
         }
-
+        
         if (BrightnessSetting>MONITOR_BRIGHTNESS_MAX)
         {
                 BrightnessSetting = MONITOR_BRIGHTNESS_MAX;
         }
-
+        
         MonitorBrightness = BrightnessSetting;
 
         /* update monitor settings */
@@ -1595,7 +1594,8 @@ void    CPC_Reset(void)
 {
 	int i;
 
-    Keyboard_ResetHasBeenScanned();
+	/* reset keyboard scanned flag; used by auto-type feature */
+	KeyboardScanned = FALSE;
 
 	/* reset lower rom index */
 	LowerRomIndex = 0;
@@ -1649,15 +1649,15 @@ void    CPC_Reset(void)
 		/* set Z80 vector base for mode 2. This will
 		be overridden when the ASIC IM2 ints are enabled. */
 		Z80_SetInterruptVector(0);
-
+	
 		/* set lower rom */
 		pOS = ASIC_GetCartPage(0);
 	}
-
+	
 	/* reset lower rom */
 	pLowerRom = pOS;
 
-
+	
 	CPC_ResetTiming();
 	CPC_ResetNopCount();
 
@@ -1719,7 +1719,7 @@ static int     RamConfigurationSetup[8*4]=
 };
 
 /* 64*4 pointers to blocks of memory. 64 ram selections, with 4 pointers per selection */
-unsigned char   *RamConfigurationTable[64*4];
+unsigned char   *RamConfigurationTable[64*4];   
 
 unsigned char   *Z80MemoryBase=NULL;                    /* Location of memory block */
 
@@ -1775,15 +1775,15 @@ BOOL    AllocateEmulatorMemory(void)
   To select ram, (1 indicates significant bits, x indicates a bit
   that is ignored):
 
-  %11xxx111	-
+  %11xxx111	- 
 	&c4,&cc,&d4,&dc,&e4,&ec,&f4,&fc - select block 0
 	&c5,&cd,&d5,&dd,&e5,&ed,&f5,&fd - select block 1
-	&c6,&ce,&d6,&de,&e6,&ee,&f6,&fe - select block 2
-	&c7,&cf,&d7,&df,&e7,&ef,&f7,&ff - select block 3
+	&c6,&ce,&d6,&de,&e6,&ee,&f6,&fe - select block 2 
+	&c7,&cf,&d7,&df,&e7,&ef,&f7,&ff - select block 3 
 
   256k Dk'Tronics silicon disk expansion only (tested on Craig Harrison's ram expansion):
 
-  %111xx111 -
+  %111xx111 - 
 	&e4 - select block 0
 	&e5 - select block 1
 	&e6 - select block 2
@@ -1805,7 +1805,7 @@ BOOL    AllocateEmulatorMemory(void)
 
 
 
-/* RamConfig = Config value programmed to hardware,
+/* RamConfig = Config value programmed to hardware, 
    RamConfigAdjusted = Config adjusted to access expansion memory,
    pExtraMemoryBase = Address of Extra ram */
 void	SetupMemoryPaging(int RamConfig, int RamConfigAdjusted, unsigned char *pExtraMemoryBase)
@@ -1825,7 +1825,7 @@ void	SetupMemoryPaging(int RamConfig, int RamConfigAdjusted, unsigned char *pExt
 		if (BlockIndex>3)
 		{
 			/* extra ram memory block - adjusted for z80 memory address to be added on for access */
-			pBlockAddr = pExtraMemoryBase + (unsigned long)((BlockIndex-4)<<14) + (BankIndex<<16)
+			pBlockAddr = pExtraMemoryBase + (unsigned long)((BlockIndex-4)<<14) + (BankIndex<<16) 
 						- (unsigned long)(p<<14);
 		}
 		else
@@ -1833,11 +1833,11 @@ void	SetupMemoryPaging(int RamConfig, int RamConfigAdjusted, unsigned char *pExt
 			/* base 64k ram memory block - adjusted for Z80 memory address to be added on for access */
 			if (BlockIndex==p)
 			{
-				pBlockAddr = Z80MemoryBase;
+				pBlockAddr = Z80MemoryBase;	
 			}
 			else
 			{
-				// BlockIndex is original position
+				// BlockIndex is original position 
 				// (e.g. "3" in position 1. Here we need to add &c000-&4000
 				pBlockAddr = Z80MemoryBase + ((BlockIndex<<14) - (p<<14));
 			}
@@ -1886,34 +1886,14 @@ void	Setup256kSiliconDiskExpansion(unsigned char *pExpansionMemoryAddress)
 	}
 }
 
-
-void	Setup256kExpansion(unsigned char *pExpansionMemoryAddress)
-{
-	int i;
-
-	for (i=0; i<64; i++)
-	{
-		if ((i & 0x020)==0)
-		{
-			SetupMemoryPaging(i, (i & 0x01f), pExpansionMemoryAddress);
-		}
-	}
-}
-
 /* handles 64k and 128k */
-void InitialiseMemoryPaging(unsigned long RamConfig)
+void InitialiseMemoryPaging(unsigned long RamConfig)	
 {
 	SetupNoExpansionMemory();
 
 	if (RamConfig & CPC_RAM_CONFIG_64K_RAM)
 	{
 		Setup64kRamExpansion(Amstrad_MemoryPages[0]);
-	}
-
-	// to check
-	if (RamConfig & CPC_RAM_CONFIG_256K_RAM)
-	{
-		Setup256kExpansion(Amstrad_MemoryPages[0]);
 	}
 
 	if (RamConfig & CPC_RAM_CONFIG_256K_SILICON_DISK)
@@ -1932,7 +1912,7 @@ static unsigned long CPC_RamUsedMask;
 static void	AllocateRamPages(void)
 {
 	int i;
-	unsigned long	RamMask;
+	unsigned long	RamMask;	
 	unsigned long	RamRequired;
 
 	/* free extra ram */
@@ -1999,7 +1979,7 @@ void	CPC_SetRamConfig(unsigned long RamConfig)
 
 		if (RamConfig & CPC_RAM_CONFIG_64K_RAM)
 		{
-			CPC_RamUsedMask |=
+			CPC_RamUsedMask |= 
 				(CPC_RAM_BLOCK_0_MASK |
 				CPC_RAM_BLOCK_1_MASK |
 				CPC_RAM_BLOCK_2_MASK |
@@ -2007,10 +1987,10 @@ void	CPC_SetRamConfig(unsigned long RamConfig)
 		}
 
 		/* dk'tronics 256k expansion */
-		if (RamConfig & CPC_RAM_CONFIG_256K_RAM)
+/*		if (RamConfig & CPC_RAM_CONFIG_256K_RAM)
 		{
 
-			CPC_RamUsedMask |=
+			CPC_RamUsedMask |= 
 				(CPC_RAM_BLOCK_4_MASK |
 				CPC_RAM_BLOCK_5_MASK |
 				CPC_RAM_BLOCK_6_MASK |
@@ -2028,12 +2008,12 @@ void	CPC_SetRamConfig(unsigned long RamConfig)
 				CPC_RAM_BLOCK_18_MASK |
 				CPC_RAM_BLOCK_19_MASK);
 		}
-
-
+*/
+		
 		/* dk'tronics 256k silicon disk */
 		if (RamConfig & CPC_RAM_CONFIG_256K_SILICON_DISK)
 		{
-			CPC_RamUsedMask |=
+			CPC_RamUsedMask |= 
 				(CPC_RAM_BLOCK_16_MASK |
 				CPC_RAM_BLOCK_17_MASK |
 				CPC_RAM_BLOCK_18_MASK |
@@ -2056,14 +2036,14 @@ void	CPC_SetRamConfig(unsigned long RamConfig)
 	/* allocate extra ram */
 	AllocateRamPages();
 
-	InitialiseMemoryPaging(RamConfig);
+	InitialiseMemoryPaging(RamConfig);	
 }
 
 unsigned long CPC_GetRamConfig(void)
 {
 	return CPC_CurrentRamConfig;
 }
-
+          
 void    CPC_SetHardware(int Hardware)
 {
         CPC_Hardware = Hardware;
@@ -2071,11 +2051,11 @@ void    CPC_SetHardware(int Hardware)
         CRTC_SetCPCMode(CPC_Hardware);
 
         if (Hardware==CPC_HW_CPCPLUS)
-        {
+        {    
 			pOS = ASIC_GetCartPage(0);
 			pBasic = ASIC_GetCartPage(1);
 			pDOS = ASIC_GetCartPage(3);
-
+  
             CPC_EnableASICRamWrites(FALSE);
 
             /* if green screen was specified, and we changed to CPC+ mode,
@@ -2092,7 +2072,7 @@ void    CPC_SetHardware(int Hardware)
         }
 
         CRTC_SetRenderFunction(RENDER_MODE_STANDARD);
-
+		
 		PPI_UpdatePortBInputData();
 }
 
@@ -2118,18 +2098,18 @@ BOOL    CPC_Initialise(void)
 		AllocateEmulatorMemory();
 
 		/* allocate additional ram */
-		CPC_SetRamConfig(CPC_RAM_CONFIG_64K_RAM | CPC_RAM_CONFIG_256K_RAM|CPC_RAM_CONFIG_256K_SILICON_DISK);
+		CPC_SetRamConfig(CPC_RAM_CONFIG_64K_RAM | CPC_RAM_CONFIG_256K_SILICON_DISK);	
 
 		/*CPC_SetMemorySize(128); */
 
 		FDD_InitialiseAll();
-
+		
 		PSG_Init();
 
         CRTC_Initialise();
 
         GateArray_Initialise();
-
+        
         /* set colour mode */
         GateArray_SetMonitorColourMode(MONITOR_MODE_COLOUR);
 
@@ -2174,14 +2154,14 @@ BOOL    CPC_Initialise(void)
 
 void    CPC_Finish(void)
 {
-
+	
 	Render_Finish();
 	Cassette_Finish();
 
         AudioEvent_Finish();
 
         Cartridge_Remove();
-
+        
         ASIC_Finish();
 
         /* clear memory used by any expansion roms */
@@ -2221,19 +2201,6 @@ Z80_WORD Z80_RD_BASE_WORD(Z80_WORD Addr)
 
 extern unsigned char *pReadRamPtr[8];
 
-
-Z80_BYTE		Z80_RD_BYTE_IM0()
-{
-	// change depending on cpc or cpc+
-	return 0x0ff;
-}
-
-Z80_WORD		Z80_RD_WORD_IM0()
-{
-	// change depending on cpc or cpc+
-	return 0x0ffff;
-}
-
 /* read a byte from emulator memory with paging */
 Z80_BYTE        Z80_RD_MEM(Z80_WORD Addr)
 {
@@ -2241,10 +2208,10 @@ Z80_BYTE        Z80_RD_MEM(Z80_WORD Addr)
         unsigned char                   *pAddr;
 
         /* calculate 16k page */
-        MemBlock = (Addr>>13);
+        MemBlock = (Addr>>13);	
 
         /* calculate address to read from */
-        pAddr = pReadRamPtr[MemBlock] + Addr;
+        pAddr = pReadRamPtr[MemBlock] + Addr;	
 
         /* return byte at memory address */
         return pAddr[0];
@@ -2262,7 +2229,7 @@ void CPC_WriteMemory(Z80_WORD Addr,Z80_BYTE Data)
         MemBlock = (Addr>>13) & 0x07;
 
         /* calculate address to write to */
-        pAddr = pWriteRamPtr[MemBlock] + Addr;
+        pAddr = pWriteRamPtr[MemBlock] + Addr;	
 
         /* write byte to memory address */
         pAddr[0] = Data;
@@ -2278,12 +2245,12 @@ void CPCPlus_WriteMemoryWithASICRamEnabled(Z80_WORD Addr,Z80_BYTE Data)
         MemBlock = (Addr>>13) & 0x07;
 
         /* calculate address to write to */
-        pAddr = pWriteRamPtr[MemBlock] + Addr;
+        pAddr = pWriteRamPtr[MemBlock] + Addr;	
 
         /* write byte to memory address */
         pAddr[0] = Data;
 
-		if ((Addr & 0x04000)!=0)
+		if ((Addr & 0x04000)!=0)	
 		{
 			/* execute function which determines if writes
 			to ASIC ram have been performed */
@@ -2311,23 +2278,18 @@ void    CPC_EnableASICRamWrites(BOOL Status)
 /* write a byte to emulator memory with paging */
 void Z80_WR_MEM(Z80_WORD Addr,Z80_BYTE Data)
 {
-//	if ((Addr==0x035a5) && (Data==0x0ee))
-	///{
-	//	printf("here");
-	//}
-
 	pWriteMemory(Addr,Data);
 }
 
 /*--------------------------------------------------------------------------*/
 /* Port Write
-
-  bit 15 = 0; Gate Array
-  bit 14 = 0; CRTC Write
-  bit 13 = 0; Select Expansion Rom
-  bit 12 = 0; Printer Port
-  bit 11 = 0; PPI Write
-  bit 10 = bit 7 = 0; FDC Write
+  
+  bit 15 = 0; Gate Array 
+  bit 14 = 0; CRTC Write 
+  bit 13 = 0; Select Expansion Rom 
+  bit 12 = 0; Printer Port 
+  bit 11 = 0; PPI Write 
+  bit 10 = bit 7 = 0; FDC Write 
 */
 
 static void AmstradDiscInterface_PortWrite(Z80_WORD Port, Z80_BYTE Data)
@@ -2376,7 +2338,7 @@ static Z80_BYTE Amstrad_DiscInterface_PortRead(Z80_WORD Port)
 			return FDC_ReadDataRegister();
 		}
 		break;
-
+	
 		default:
 			break;
 	}
@@ -2411,7 +2373,7 @@ void	CPC_OR_CPCPLUS_Out(Z80_WORD Port, Z80_BYTE Data)
 
         unsigned int            Index;
 
-        Index = (Port>>8) & 0x03;
+        Index = (Port>>8) & 0x03;	
 
 		switch (Index)
 		{
@@ -2442,7 +2404,7 @@ void	CPC_OR_CPCPLUS_Out(Z80_WORD Port, Z80_BYTE Data)
 		/* on CPC, write to printer through LS chip */
 		Printer_WriteDataByte(Data);
 	}
-
+		
 	if ((Port & 0x0800)==0)
     {
         unsigned int            Index;
@@ -2479,7 +2441,7 @@ void	CPC_OR_CPCPLUS_Out(Z80_WORD Port, Z80_BYTE Data)
 
 	if (Amstrad_DiscInterface_Enabled)
 	{
-		if ((Port & 0x0480)==0)
+		if ((Port & 0x0480)==0) 
 		{
 			AmstradDiscInterface_PortWrite(Port, Data);
 		}
@@ -2511,7 +2473,7 @@ void	CPC_OR_CPCPLUS_Out(Z80_WORD Port, Z80_BYTE Data)
 
 
 
-/*
+/* 
 	Z8536 OPERATION IN KC COMPACT:
 
 	Port C - Timer - Handles interrupts
@@ -2591,7 +2553,7 @@ void	KCC_Update(void)
 
 			kcc_int_ff = 1;
 		}
-
+	
 		previous_counter_outputs = z8536.counter_outputs[2];
 	}
 
@@ -2618,7 +2580,7 @@ void	KCCompact_Out(Z80_WORD Port, Z80_BYTE Data)
 
         unsigned int            Index;
 
-        Index = (Port>>8) & 0x03;
+        Index = (Port>>8) & 0x03;	
 
 		switch (Index)
 		{
@@ -2653,7 +2615,7 @@ void	KCCompact_Out(Z80_WORD Port, Z80_BYTE Data)
 
 		Z8536_WriteData(Index, Data);
 	}
-
+	
 	if ((Port & 0x0800)==0)
     {
         unsigned int            Index;
@@ -2693,7 +2655,7 @@ void	KCCompact_Out(Z80_WORD Port, Z80_BYTE Data)
 
 	if (Amstrad_DiscInterface_Enabled)
 	{
-		if ((Port & 0x0480)==0)
+		if ((Port & 0x0480)==0) 
 		{
 			AmstradDiscInterface_PortWrite(Port, Data);
 		}
@@ -2720,7 +2682,7 @@ void    Z80_DoOut(Z80_WORD Port,Z80_BYTE Data)
 		}
 		break;
 	}
-
+		        
 	if (NumWritePorts!=0)
 	{
 		int i;
@@ -2735,10 +2697,10 @@ void    Z80_DoOut(Z80_WORD Port,Z80_BYTE Data)
 
 /*--------------------------------------------------------------------------*/
 /* Port Read
-
-  bit 14 = 0; CRTC Read
-  bit 11 = 0; PPI Read
-  bit 10 = bit 7 = 0; FDC Read
+  
+  bit 14 = 0; CRTC Read 
+  bit 11 = 0; PPI Read 
+  bit 10 = bit 7 = 0; FDC Read 
 */
 
 
@@ -2817,7 +2779,7 @@ Z80_BYTE        CPC_In(Z80_WORD Port)
 				Data = Amstrad_DiscInterface_PortRead(Port);
 			}
 		}
-
+			
 		if (NumReadPorts!=0)
 		{
 			int i;
@@ -3044,14 +3006,14 @@ Z80_BYTE        Z80_DoIn(Z80_WORD Port)
 	{
 		case CPC_HW_CPC:
 			return CPC_In(Port);
-
+		
 		case CPC_HW_CPCPLUS:
 			return CPCPlus_In(Port);
 
 		case CPC_HW_KCCOMPACT:
 			return KCCompact_In(Port);
 	}
-
+	
 	return 0x0ff;
 }
 
@@ -3077,7 +3039,7 @@ unsigned long CPC_GetNopCount(void)
 void    Z80_AcknowledgeInterrupt(void)
 {
         /* interrupt acknowledge func */
-
+        
         /* CRTC acknowledge int */
         GateArray_AcknowledgeInterrupt();
         /* ASIC acknowledge int */

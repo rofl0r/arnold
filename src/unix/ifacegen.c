@@ -20,6 +20,7 @@
 /* generic interface code */
 #include "ifacegen.h"
 #include "global.h"
+#include "configfile.h"
 #include "../cpc/cpc.h"
 #include "../cpc/diskimage/diskimg.h"
 #include <string.h>
@@ -29,6 +30,7 @@
 #include <stdlib.h>
 #include "../cpc/snapshot.h"
 #include "../cpc/tzx.h"
+#include "../cpc/sampload.h"
 
 BOOL Multiface_LoadRomFromFile(const MULTIFACE_ROM_TYPE RomType, const char *pFilename)
 {

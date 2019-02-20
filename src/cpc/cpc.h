@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -42,7 +42,7 @@ enum
 
 #include "z80/z80.h"
 
-#include "cpcglob.h"	
+#include "cpcglob.h"
 
 #include "debugger/gdebug.h"
 
@@ -79,7 +79,7 @@ enum
 
 #define NOPS_PER_MONITOR_SCREEN (NOPS_PER_LINE*LINES_PER_SCREEN)
 
-typedef struct 
+typedef struct
 {
 	/* The port I/O address is logically ANDed with this value
 	to remove bits we are not interested in */
@@ -210,7 +210,7 @@ typedef enum
 	CPC_KEY_JOY_FIRE1,
 	CPC_KEY_JOY_FIRE2,
 	CPC_KEY_SPARE,
-	CPC_KEY_DEL, 
+	CPC_KEY_DEL,
 
 
 	/* no key press */
@@ -265,7 +265,7 @@ enum
 	CPC_HW_CPCPLUS,
 	/* CPC hardware design */
 	/* seperate 8255, CRTC and Gate Array */
-	CPC_HW_CPC,	
+	CPC_HW_CPC,
 	/* standard CPC464 hardware */
 	CPC_HW_CPC464,
 	/* standard CPC664 hardware */
@@ -309,7 +309,7 @@ int PPI_GetPortCDataForSnapshot(void);
 void	ROM_Select(int);
 
 BOOL	AllocateEmulatorMemory(void);
-void	InitialiseMemoryPaging(unsigned long);	
+void	InitialiseMemoryPaging(unsigned long);
 void	FreeEmulatorMemory(void);
 
 /* select crtc emulation */
@@ -420,7 +420,7 @@ void	CPC_SetHardwareConnectedToJoystickPort(JOYSTICK_HARDWARE_ID HardwareID);
 /*
 typedef struct
 {
-	union 
+	union
 	{
 		signed long	L;
 
@@ -499,5 +499,6 @@ void	Amstrad_RamExpansion_Install(void);
 void	Amstrad_RamExpansion_DeInstall(void);
 
 BOOL Keyboard_HasBeenScanned();
+void Keyboard_ResetHasBeenScanned();
 
 #endif

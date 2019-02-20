@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -32,7 +32,7 @@ const TCHAR	*GetExtensionFromFilename(const TCHAR *Filename);
 /*BOOL	CheckFileCanBeOpened(TCHAR *Filename); */
 const TCHAR	*GetFilenameFromPathAndFilename(const TCHAR *PathAndFilename);
 const TCHAR	*GetPathFromPathAndFilename(const TCHAR *PathAndFilename);
-const TCHAR *BuildPathAndFilenameFromPathAndFilename(const TCHAR *pPath, TCHAR *pFilename);
+const TCHAR *BuildPathAndFilenameFromPathAndFilename(const TCHAR *pPath, const TCHAR *pFilename);
 
 
 #endif

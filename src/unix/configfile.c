@@ -174,9 +174,9 @@ const char *absolutePath(const char *path) {
 	int i;
 	if (path[0] == '~') {
 		home = getenv("HOME");
-		i = snprintf(myPath, 255, home);
+		i = snprintf(myPath, 255, "%s", home);
 		if (i<255) {
-			i += snprintf(myPath+i, 255-i, sConfigPaths[0]+1);
+			i += snprintf(myPath+i, 255-i, "%s", sConfigPaths[0]+1);
 		}
 		myPath[i] = '\0';
 		return myPath;

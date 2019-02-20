@@ -92,7 +92,7 @@ static char *Memdump_DumpLine_ByteView(MEMDUMP_WINDOW *pMemdumpWindow, int Line)
 {
     int i;
 	int x;
-	char *pString = pMemdumpWindow->pBuffer;
+	char *pString = (char *) pMemdumpWindow->pBuffer;
 	int Addr;
 
 	Addr = Memdump_GetLineAddress(pMemdumpWindow, Line);
@@ -131,7 +131,7 @@ static char *Memdump_DumpLine_ByteView(MEMDUMP_WINDOW *pMemdumpWindow, int Line)
 	}
 
     /* return mem-dump string */
-    return pMemdumpWindow->pBuffer;
+    return (char *) pMemdumpWindow->pBuffer;
 }
 
 
@@ -141,7 +141,7 @@ static char *Memdump_DumpLine_WordView(MEMDUMP_WINDOW *pMemdumpWindow, int Line)
 {
     int i;
 	int x;
-	char *pString = pMemdumpWindow->pBuffer;
+	char *pString = (char *) pMemdumpWindow->pBuffer;
 	int Addr;
 
 	Addr = Memdump_GetLineAddress(pMemdumpWindow, Line);
@@ -182,7 +182,7 @@ static char *Memdump_DumpLine_WordView(MEMDUMP_WINDOW *pMemdumpWindow, int Line)
 	}
 #endif
     /* return mem-dump string */
-    return pMemdumpWindow->pBuffer;
+    return (char *) pMemdumpWindow->pBuffer;
 }
 
 char *Memdump_DumpLine(MEMDUMP_WINDOW *pMemdumpWindow, int Line)

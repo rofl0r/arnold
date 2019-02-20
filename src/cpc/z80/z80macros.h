@@ -20,17 +20,9 @@
  */
 #include "z80.h"
 
-#define INC_REFRESH(Count)                              \
-        R.R+=Count
+#define ADD_PC(count) \
+		R.PC.W.l += count
 
-#define SETUP_INDEXED_ADDRESS(Index)	\
-{												\
-	Z80_BYTE_OFFSET Offset;						\
-												\
-    Offset = (Z80_BYTE_OFFSET)Z80_RD_OPCODE_BYTE(2);/*((Z80_WORD)(R.PC.W+2));*/   \
-												\
-	R.IndexPlusOffset = Index+Offset;			\
-}
 
 /* overflow caused, when both are + or -, and result is different. */
 #define SET_OVERFLOW_FLAG_A_ADD(Reg, Result) \
@@ -99,6 +91,11 @@ Z80_FLAGS_REG &= (0x0ff^Z80_ZERO_FLAG);     \
                 Z80_FLAGS_REG |= Z80_ZERO_FLAG;             \
         }                                                               \
 }                                                                       
+#define SET_UNDOC_BITS() \
+{ \
+Z80_FLAGS_REG = Z80_FLAGS_REG & ((1<<5)|(1<<3)); \
+Z80_FLAGS_REG = Z80_FLAGS_REG|(Z80.Memptr.B.h&((1<<5)|(1<<3))); \
+}
 
 #define SET_SIGN_FLAG(Register)         \
 {                                                                       \
@@ -158,76 +155,6 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | ((Result>>16) & 0x01); \
         Z80_FLAGS_REG |= ParityTable[Register & 0x0ff];     \
 }
 
-
-/* was 2,2 */
-#define _OUT(Register)                                  \
-{                                                                               \
-/*        Z80_UpdateCycles(2);  */                    \
-		Z80_DoOut(R.BC.W,Register);                     \
-                                                                                \
-/*        Z80_UpdateCycles(2);      */                \
-Cycles = 4; \
-}
-
-
-#define _IN(Register)                                   \
-{                                                                               \
-/*        Z80_UpdateCycles(2);    */                  \
-		Register = Z80_DoIn(R.BC.W);            \
-		{											\
-			Z80_BYTE	Flags;						\
-			Flags = Z80_FLAGS_REG;						\
-			Flags = Flags & Z80_CARRY_FLAG;			\
-			Flags = ZeroSignParityTable[Register];	\
-			Z80_FLAGS_REG = Flags;						\
-		}											\
- /*       Z80_UpdateCycles(2);		*/				\
-	Cycles = 4; \
-}
-
-
-#define LD_R_n(Register) \
-        Register = Z80_RD_OPCODE_BYTE(1)
-
-#define LD_RI_n(Register) \
-        Register = Z80_RD_OPCODE_BYTE(2)
-
-
-#define LD_R_HL(Register) \
-        Register = Z80_RD_BYTE(R.HL.W); \
-
-#define LD_R_INDEX(Index,Register)                      \
-{                                                                                       \
-        Register = RD_BYTE_INDEX(Index);                \
-                                                                                        \
-}
-
-#define LD_INDEX_R(Index,Register)                      \
-{                                                                                       \
-        WR_BYTE_INDEX_OLD(Index,Register);                  \
-                                                                                        \
-}
-
-
-#define LD_HL_R(Register) \
-        Z80_WR_BYTE(R.HL.W,Register); \
-
-#define LD_A_RR(Register) \
-        R.AF.B.h = Z80_RD_BYTE(Register)
-
-#define LD_RR_A(Register) \
-        Z80_WR_BYTE(Register,R.AF.B.h) 
-
-#define LD_INDEX_n(Index)                       \
-{                                                                       \
-        /*Z80_BYTE      Data;*/                                 \
-                                                                        \
-        R.TempByte = Z80_RD_OPCODE_BYTE(3);	/*Z80_RD_BYTE((Z80_WORD)(R.PC.W+3));*/ \
-                                                                                        \
-        WR_BYTE_INDEX_OLD(Index,R.TempByte);                                \
-}
-
-
 /*------------------*/
 /* RES */
 
@@ -254,12 +181,13 @@ Cycles = 4; \
 #define RES_INDEX(AndMask,IndexReg)     \
 {                                                               \
         /*Z80_BYTE Data;*/                              \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
                                                                 \
-        R.TempByte = RD_BYTE_INDEX(IndexReg);   \
+        R.TempByte = RD_BYTE_INDEX();   \
                                                                 \
         RES(AndMask, R.TempByte);                       \
                                                                 \
-        WR_BYTE_INDEX(IndexReg,R.TempByte);     \
+        WR_BYTE_INDEX(R.TempByte);     \
 }
 
 
@@ -291,29 +219,52 @@ Cycles = 4; \
 {                                                               \
         /*Z80_BYTE      Data;*/                         \
                                                                 \
-        R.TempByte = RD_BYTE_INDEX(IndexReg);   \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
                                                                 \
         SET(OrMask, R.TempByte);                        \
                                                                 \
-        WR_BYTE_INDEX(IndexReg,R.TempByte);     \
+        WR_BYTE_INDEX(R.TempByte);     \
 }
 
 
-/* BIT */
+/* BIT n,r */
 #define BIT(BitIndex,Register)          \
 {                                                                       \
 	Z80_BYTE	Flags;						\
-	Z80_BYTE	Reg753;					\
-	Z80_BYTE	RegShift;				\
-	Flags = Z80_FLAGS_REG;						\
-	Reg753 = Register;			\
-	RegShift = Reg753;			\
-	Reg753 = Reg753 & (Z80_SIGN_FLAG | Z80_UNUSED_FLAG1 | Z80_UNUSED_FLAG2);	\
-	RegShift = ((((~RegShift) & (1<<BitIndex))>>BitIndex)<<Z80_ZERO_FLAG_BIT);	\
-  Flags = Flags & Z80_CARRY_FLAG; \
-  Flags = Flags | RegShift; \
-  Flags = Flags | Reg753;		\
-  Z80_FLAGS_REG = Flags | Z80_HALFCARRY_FLAG; \
+	Z80_BYTE	Result;					\
+	const Z80_BYTE	Mask = (1<<BitIndex);					\
+	Flags = Z80_FLAGS_REG & Z80_CARRY_FLAG;	/* CF not changed, NF set to zero */ \
+	Flags |= Z80_HALFCARRY_FLAG;			/* HF set */ \
+\
+	Result = Register & Mask;		/* perform AND operation */ \
+	/* handle SF,YF,XF */ \
+	/* there will be 1 in the place of the bit if it is set */ \
+	/* if bit 7 was tested there will be a 1 there, but not in 5 or 3 */ \
+	/* if bit 5 was tested there will be a 1 there, but not in 7 or 3 */ \
+	/* if bit 3 was tested there will be a 1 there, but not in 7 or 5 */ \
+	Flags |= Result & (Z80_SIGN_FLAG | Z80_UNUSED_FLAG1 | Z80_UNUSED_FLAG2);	\
+	Result = (~Result) & Mask; /* if bit is 1, then ZF is reset */ \
+	Flags |= ((Result>>BitIndex)<<Z80_ZERO_FLAG_BIT); /* ZF */ \
+	Flags |= ((Result>>BitIndex)<<Z80_PARITY_FLAG_BIT); /* PF is a copy of ZF */ \
+	Z80_FLAGS_REG = Flags; \
+}
+
+/* BIT n,(HL), BIT n,(IX+d)*/
+#define BIT_MP(BitIndex,Register)          \
+{                                                                       \
+	Z80_BYTE	Flags;						\
+	Z80_BYTE	Result;					\
+	const Z80_BYTE	Mask = (1<<BitIndex);					\
+	Flags = Z80_FLAGS_REG & Z80_CARRY_FLAG;	/* CF not changed, NF set to zero */ \
+	Flags |= Z80_HALFCARRY_FLAG;			/* HF set */ \
+\
+	Result = Register & Mask;		/* perform AND operation */ \
+	Flags |= R.MemPtr.B.h & ((1<<5) | (1<<3)); \
+	Result = (~Result) & Mask; /* if bit is 1, then ZF is reset */ \
+	Flags |= ((Result>>BitIndex)<<Z80_ZERO_FLAG_BIT); /* ZF */ \
+	Flags |= ((Result>>BitIndex)<<Z80_PARITY_FLAG_BIT); /* PF is a copy of ZF */ \
+	Z80_FLAGS_REG = Flags; \
 }
 
 #define BIT_REG(BitIndex, Register)     \
@@ -324,22 +275,15 @@ Cycles = 4; \
 
 #define BIT_HL(BitIndex)                                \
 {                                                                       \
-        /*Z80_BYTE      Data;*/                                 \
-                                                                        \
-        R.TempByte = Z80_RD_BYTE(R.HL.W);               \
-                                                                        \
-        BIT(BitIndex,R.TempByte);                               \
+        BIT_MP(BitIndex,Z80_RD_BYTE(R.HL.W));                               \
                                                                         \
 }                                                       
 
 #define BIT_INDEX(BitIndex, IndexReg)                           \
 {                                                                       \
-        /*Z80_BYTE Data;*/                                      \
-                                                                        \
-        R.TempByte = RD_BYTE_INDEX(IndexReg);   \
-                                                                        \
-        BIT(BitIndex,R.TempByte);                               \
-}                                                       
+        BIT_MP(BitIndex,RD_BYTE_INDEX(IndexReg));                               \
+}           
+
 /*------------------*/
 #define SHIFTING_FLAGS(Register)        \
         SET_ZERO_SIGN_PARITY(Register)  \
@@ -400,11 +344,12 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                                       \
         /*Z80_BYTE Data;        */                              \
                                                                         \
-        R.TempByte = RD_BYTE_INDEX(IndexReg);   \
+ 		SETUP_INDEXED_ADDRESS(IndexReg); \
+       R.TempByte = RD_BYTE_INDEX();   \
                                                                         \
         RL_WITH_FLAGS(R.TempByte);                                              \
                                                                         \
-        WR_BYTE_INDEX(IndexReg,R.TempByte);             \
+        WR_BYTE_INDEX(R.TempByte);             \
 }                                                                       \
 
   
@@ -450,11 +395,12 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                                       \
         /*Z80_BYTE Data;*/                                      \
                                                                         \
-        R.TempByte = RD_BYTE_INDEX(IndexReg);   \
+ 		SETUP_INDEXED_ADDRESS(IndexReg); \
+       R.TempByte = RD_BYTE_INDEX();   \
                                                                         \
         RR_WITH_FLAGS(R.TempByte);                                              \
                                                                         \
-        WR_BYTE_INDEX(IndexReg,R.TempByte);             \
+        WR_BYTE_INDEX(R.TempByte);             \
 }                                                                       \
 
 /* rol doesn't set sign or zero! */
@@ -499,11 +445,12 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                                       \
         /*Z80_BYTE      Data;   */                              \
                                                                         \
-        R.TempByte = RD_BYTE_INDEX(IndexReg);   \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
                                                                         \
         RLC_WITH_FLAGS(R.TempByte);                     \
                                                                         \
-        WR_BYTE_INDEX(IndexReg,R.TempByte);             \
+        WR_BYTE_INDEX(R.TempByte);             \
 }                                                                       \
 
 #define RRC(Register)                           \
@@ -545,11 +492,12 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                                       \
         /*Z80_BYTE      Data;   */                      \
                                                                         \
-        R.TempByte = RD_BYTE_INDEX(IndexReg);   \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
                                                                         \
         RRC_WITH_FLAGS(R.TempByte);                     \
                                                                         \
-        WR_BYTE_INDEX(IndexReg,R.TempByte);             \
+        WR_BYTE_INDEX(R.TempByte);             \
 }                                                                       \
 
 #define SLA(Register)							\
@@ -589,11 +537,12 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                                       \
         /*Z80_BYTE      Data;   */                      \
                                                                         \
-        R.TempByte = RD_BYTE_INDEX(IndexReg);   \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
                                                                         \
         SLA_WITH_FLAGS(R.TempByte);                     \
                                                                         \
-        WR_BYTE_INDEX(IndexReg,R.TempByte);     \
+        WR_BYTE_INDEX(R.TempByte);     \
 }                                                                       \
 
 
@@ -634,11 +583,12 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                                       \
         /*Z80_BYTE      Data;*/                                 \
                                                                         \
-        R.TempByte = RD_BYTE_INDEX(Index);      \
+		SETUP_INDEXED_ADDRESS(Index); \
+        R.TempByte = RD_BYTE_INDEX();      \
                                                                         \
         SRA_WITH_FLAGS(R.TempByte);                                             \
                                                                         \
-        WR_BYTE_INDEX(Index,R.TempByte);                \
+        WR_BYTE_INDEX(R.TempByte);                \
 }                                                                       \
 
 
@@ -678,11 +628,12 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                                       \
         /*Z80_BYTE      Data;*/                         \
                                                                         \
-        R.TempByte = RD_BYTE_INDEX(Index);      \
+		SETUP_INDEXED_ADDRESS(Index); \
+        R.TempByte = RD_BYTE_INDEX();      \
                                                                         \
         SRL_WITH_FLAGS(R.TempByte);                     \
                                                                         \
-        WR_BYTE_INDEX(Index,R.TempByte);                \
+        WR_BYTE_INDEX(R.TempByte);                \
 }                                                                       \
 
 
@@ -722,11 +673,12 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                                       \
         /*Z80_BYTE      Data;   */                      \
                                                                         \
-        R.TempByte = RD_BYTE_INDEX(IndexReg);   \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
                                                                         \
         SLL_WITH_FLAGS(R.TempByte);                     \
                                                                         \
-        WR_BYTE_INDEX(IndexReg,R.TempByte);     \
+        WR_BYTE_INDEX(R.TempByte);     \
 }                                                                       \
 
 /*-----------------*/
@@ -763,7 +715,8 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
         /*Z80_BYTE      Data;*/                         \
                                                                 \
                                                                 \
-        R.TempByte = RD_BYTE_INDEX(Index);      \
+ 		SETUP_INDEXED_ADDRESS(Index); \
+       R.TempByte = RD_BYTE_INDEX(Index);      \
                                                                                 \
         AND_A_X(R.TempByte);                                    \
 }
@@ -792,6 +745,7 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                               \
         /*Z80_BYTE      Data;*/                         \
                                                                 \
+		SETUP_INDEXED_ADDRESS(Index); \
         R.TempByte = RD_BYTE_INDEX(Index);      \
                                                                         \
         XOR_A_X(R.TempByte);                                    \
@@ -820,6 +774,7 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                               \
         /*Z80_BYTE      Data;*/                         \
                                                                 \
+		SETUP_INDEXED_ADDRESS(Index); \
         R.TempByte = RD_BYTE_INDEX(Index);      \
                                                                         \
         OR_A_X(R.TempByte);                                     \
@@ -876,11 +831,12 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                                       \
         /*Z80_BYTE      Data;*/                         \
                                                                         \
-        R.TempByte = RD_BYTE_INDEX(Index);      \
+ 		SETUP_INDEXED_ADDRESS(Index); \
+       R.TempByte = RD_BYTE_INDEX();      \
                                                                         \
         INC_X(R.TempByte);                                      \
                                                                         \
-        WR_BYTE_INDEX(Index,R.TempByte);                \
+        WR_BYTE_INDEX(R.TempByte);                \
 }
 
 
@@ -958,62 +914,13 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                                       \
         /*Z80_BYTE      Data;*/                                 \
                                                                         \
-        R.TempByte = RD_BYTE_INDEX(Index);      \
+		SETUP_INDEXED_ADDRESS(Index); \
+        R.TempByte = RD_BYTE_INDEX();      \
                                                                         \
         DEC_X(R.TempByte);                                      \
                                                                         \
-        WR_BYTE_INDEX(Index,R.TempByte);                \
+        WR_BYTE_INDEX(R.TempByte);                \
 }
-
-/*-----------------*/
-
-#define LD_RR_nn(Register) \
-        Register = Z80_RD_OPCODE_WORD(1);	/*Z80_RD_WORD((Z80_WORD)(R.PC.W+1));*/ \
-
-#define LD_INDEXRR_nn(Index) \
-        Index = Z80_RD_OPCODE_WORD(2)	/*Z80_RD_WORD((Z80_WORD)(R.PC.W+2))*/
-     
-#define LD_INDEXRR_nnnn(Index)          \
-{                                                                       \
-        Z80_WORD        Addr;                                   \
-                                                                        \
-        Addr = Z80_RD_OPCODE_WORD(2);	/*Z80_RD_WORD((Z80_WORD)(R.PC.W+2));*/       \
-                                                                        \
-        Index = Z80_RD_WORD(Addr);              \
-}
-
-#define LD_nnnn_INDEXRR(Index)          \
-{                                                                       \
-        Z80_WORD                Addr;                                   \
-                                                                        \
-        Addr = Z80_RD_OPCODE_WORD(2);	/*Z80_RD_WORD((Z80_WORD)(R.PC.W+2));*/       \
-                                                                        \
-        Z80_WR_WORD(Addr,Index);                \
-}
-
-#define LD_RR_nnnn(Register)            \
-{                                                                       \
-        Z80_WORD                Addr;                                   \
-                                                                        \
-        Addr = Z80_RD_OPCODE_WORD(2);	/*Z80_RD_WORD((Z80_WORD)(R.PC.W+2));*/       \
-                                                                        \
-        Register = Z80_RD_WORD(Addr);   \
-                                                                        \
-}
-
-#define LD_nnnn_RR(Register)            \
-{                                                                       \
-        Z80_WORD        Addr;                                   \
-                                                                        \
-        Addr = Z80_RD_OPCODE_WORD(2);	/*Z80_RD_WORD((Z80_WORD)(R.PC.W+2));*/       \
-                                                                        \
-        Z80_WR_WORD(Addr, Register);    \
-                                                                        \
-}
-
-
-        
-
 
 /*------------*/
 /* Macros */
@@ -1233,11 +1140,12 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                                       \
         /*Z80_BYTE      Data;*/                         \
                                                                         \
-        R.TempByte = RD_BYTE_INDEX(IndexReg);   \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
                                                                         \
         SLA_WITH_FLAGS(R.TempByte);                     \
                                                                         \
-        WR_BYTE_INDEX(IndexReg,R.TempByte);     \
+        WR_BYTE_INDEX(R.TempByte);     \
                                                                         \
         Reg = R.TempByte;                                               \
 }
@@ -1247,11 +1155,12 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                                       \
         /*Z80_BYTE      Data;*/                         \
                                                                         \
-        R.TempByte = RD_BYTE_INDEX(IndexReg);   \
+ 		SETUP_INDEXED_ADDRESS(IndexReg); \
+       R.TempByte = RD_BYTE_INDEX();   \
                                                                         \
         SRA_WITH_FLAGS(R.TempByte);                     \
                                                                         \
-        WR_BYTE_INDEX(IndexReg,R.TempByte);     \
+        WR_BYTE_INDEX(R.TempByte);     \
                                                                         \
         Reg = R.TempByte;                                               \
 }
@@ -1261,11 +1170,12 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                                       \
         /*Z80_BYTE      Data;*/                         \
                                                                         \
-        R.TempByte =  RD_BYTE_INDEX(IndexReg);  \
+ 		SETUP_INDEXED_ADDRESS(IndexReg); \
+       R.TempByte =  RD_BYTE_INDEX();  \
                                                                         \
         SLL_WITH_FLAGS(R.TempByte);                     \
                                                                         \
-        WR_BYTE_INDEX(IndexReg,R.TempByte);     \
+        WR_BYTE_INDEX(R.TempByte);     \
                                                                         \
         Reg = R.TempByte;                                               \
 }
@@ -1275,11 +1185,12 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                                       \
         /*Z80_BYTE      Data;   */                      \
                                                                         \
-        R.TempByte = RD_BYTE_INDEX(IndexReg);   \
+ 		SETUP_INDEXED_ADDRESS(IndexReg); \
+       R.TempByte = RD_BYTE_INDEX();   \
                                                                         \
         SRL_WITH_FLAGS(R.TempByte);                     \
                                                                         \
-        WR_BYTE_INDEX(IndexReg,R.TempByte);     \
+        WR_BYTE_INDEX(R.TempByte);     \
                                                                         \
         Reg = R.TempByte;                                               \
 }
@@ -1288,11 +1199,12 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                                       \
         /*Z80_BYTE      Data;   */                      \
                                                                         \
-        R.TempByte = RD_BYTE_INDEX(IndexReg);   \
+ 		SETUP_INDEXED_ADDRESS(IndexReg); \
+       R.TempByte = RD_BYTE_INDEX();   \
                                                                         \
         RLC_WITH_FLAGS(R.TempByte);                     \
                                                                         \
-        WR_BYTE_INDEX(IndexReg,R.TempByte);     \
+        WR_BYTE_INDEX(R.TempByte);     \
                                                                         \
         Reg = R.TempByte;                                               \
 }
@@ -1301,11 +1213,12 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                                       \
         /*Z80_BYTE      Data;*/                         \
                                                                         \
-        R.TempByte = RD_BYTE_INDEX(IndexReg);   \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
                                                                         \
         RRC_WITH_FLAGS(R.TempByte);                     \
                                                                         \
-        WR_BYTE_INDEX(IndexReg,R.TempByte);     \
+        WR_BYTE_INDEX(R.TempByte);     \
                                                                         \
         Reg = R.TempByte;                                               \
 }
@@ -1315,11 +1228,12 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                                       \
         /*Z80_BYTE      Data;*/                         \
                                                                         \
-        R.TempByte = RD_BYTE_INDEX(IndexReg);   \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
                                                                         \
         RR_WITH_FLAGS(R.TempByte);                      \
                                                                         \
-        WR_BYTE_INDEX(IndexReg,R.TempByte);     \
+        WR_BYTE_INDEX(R.TempByte);     \
                                                                         \
         Reg = R.TempByte;                                               \
                                                                         \
@@ -1330,11 +1244,12 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                                       \
         /*Z80_BYTE      Data;*/                         \
                                                                         \
-        R.TempByte = RD_BYTE_INDEX(IndexReg);   \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
                                                                         \
         RL_WITH_FLAGS(R.TempByte);                      \
                                                                         \
-        WR_BYTE_INDEX(IndexReg,R.TempByte);     \
+        WR_BYTE_INDEX(R.TempByte);     \
                                                                         \
         Reg = R.TempByte;                                               \
                                                                         \
@@ -1344,11 +1259,12 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                               \
         /*Z80_BYTE      Data;*/                         \
                                                                 \
-        R.TempByte = RD_BYTE_INDEX(IndexReg);   \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
                                                                 \
         SET(OrMask, R.TempByte);                        \
                                                                 \
-        WR_BYTE_INDEX(IndexReg,R.TempByte);     \
+        WR_BYTE_INDEX(R.TempByte);     \
                                                                \
         Reg = R.TempByte;                                               \
 }
@@ -1357,11 +1273,12 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 {                                                               \
         /*Z80_BYTE Data;*/                              \
                                                                 \
-        R.TempByte = RD_BYTE_INDEX(IndexReg);   \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
                                                                 \
         RES(AndMask, R.TempByte);                       \
                                                                 \
-        WR_BYTE_INDEX(IndexReg,R.TempByte);     \
+        WR_BYTE_INDEX(R.TempByte);     \
         Reg = R.TempByte;                                               \
 }
 
@@ -1412,35 +1329,8 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
 										\
         Z80_WR_WORD(R.SP.W,Data);		\
 }
-
-/*---------------------------------------------------------*/
-/* perform a RST which is equivalent to a 1 byte CALL */
-
-#define RST(Addr)						\
-{										\
-        /* push return address on stack */	\
-        PUSH((Z80_WORD)(R.PC.W.l+1));			\
-											\
-        /* set program counter to address */	\
-        R.PC.W.l = Addr;							\
-}
-
-#define LD_R_R(Reg1,Reg2)				\
-		Reg1 = Reg2
-
-#define SET_IM(x)				\
-        R.IM = x;				\
-
 #define HALT()			    R.Flags |=Z80_EXECUTING_HALT_FLAG
            
-
-#define LD_I_A() R.I = R.AF.B.h
-
-/* increment register pair */
-#define INC_rp(x)	(x++)
-/* decrement register pair */
-#define DEC_rp(x)	(x--)
-
 
 /* swap two words */
 #define SWAP(Reg1,Reg2) \
@@ -1451,21 +1341,3 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
         Reg1 = Reg2;            \
         Reg2 = tempR;           \
 }
-
-#define JP_rp(x)	(R.PC.W.l=x)
-
-#define LD_SP_rp(x)	(R.SP.W=x)
-
-
-/* EX (SP), HL */
-#define EX_SP_rr(Register)                              \
-{                                                                               \
-        Z80_WORD        temp;                                   \
-                                                                                \
-        temp = Z80_RD_WORD(R.SP.W);                     \
-        Z80_WR_WORD(R.SP.W, Register);          \
-        Register = temp;                                        \
-}
-
-#define ADD_PC(x)	(R.PC.W.l+=x)
-

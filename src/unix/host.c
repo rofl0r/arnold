@@ -267,7 +267,7 @@ void	Host_InitDriveLEDIndicator()
 		if(fd_console < 0) {
 			fprintf(stderr, Messages[84], fn_console);
 			perror(NULL);
-			fprintf(stderr, Messages[85]);
+			fprintf(stderr, "%s", Messages[85]);
 		}
 		ioctl(fd_console,KDGETLED,&led_save);
 }

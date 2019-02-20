@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -78,7 +78,7 @@ void	PSG_Reset(void)
 		PSG_RegisterSelect(i);
 		PSG_WriteData(0);
 	}
-	
+
 	PSGPlay_Reset();
 }
 
@@ -109,7 +109,7 @@ unsigned int		PSG_ReadData(void)
 
 			/* get keyboard data */
 			KeyboardData = Keyboard_Read();
-	
+
 			/* output has a AND mask of 0, input has a AND mask of 0x0ff */
 
 			/* if port A is set to input, a read will return keyboard line data */
@@ -131,6 +131,8 @@ unsigned int		PSG_ReadData(void)
 
 void	PSG_WriteData(unsigned int Data )
 {
+	Data = Data & PSG_ReadAndMask[ay.PSG_SelectedRegister];
+
 	/* if port A or port B is set to output, writing to the port register will store the value */
 	/* it can be read again as soon as the port is set to output */
 	/* write data to register */

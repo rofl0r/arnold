@@ -52,7 +52,7 @@ void	FDD_PerformStep(unsigned long DriveIndex, signed int StepDirection)
 	int Flags;
 
 	theDrive = FDD_GetDrive(DriveIndex);
-	
+
 	/* perform step */
 	CurrentTrack = theDrive->CurrentTrack;
 	CurrentTrack += StepDirection;
@@ -77,7 +77,7 @@ void	FDD_PerformStep(unsigned long DriveIndex, signed int StepDirection)
 		/* yes */
 		Flags |= FDD_FLAGS_HEAD_AT_TRACK_0;
 	}
-	
+
 	theDrive->Flags = Flags;
 
 	theDrive->CurrentTrack = CurrentTrack;
@@ -93,7 +93,7 @@ void	FDD_InsertDisk(int Drive,BOOL Status)
 
 	/* say disk is or isn't present */
 	drive->Flags &=~FDD_FLAGS_DISK_PRESENT;
-	
+
 	if (Status)
 	{
 		drive->Flags |= FDD_FLAGS_DISK_PRESENT;

@@ -32,17 +32,17 @@ int Riff_GetChunkLength(RIFF_CHUNK *pChunk)
 }
 
 /* set length of a chunk */
-void	Riff_SetChunkLength(RIFF_CHUNK *pChunk, unsigned long Length)
+void	Riff_SetChunkLength(RIFF_CHUNK *pChunk, unsigned int Length)
 {
 #ifdef CPC_LSB_FIRST
 	pChunk->ChunkLength = Length;
 #else
-	pChunk->Chunklength = SwapEndianLong(Length);
+	pChunk->ChunkLength = SwapEndianLong(Length);
 #endif
 }
 
 /* return length of chunk */
-unsigned long Riff_GetChunkName(RIFF_CHUNK *pChunk)
+unsigned int Riff_GetChunkName(RIFF_CHUNK *pChunk)
 {
 	return pChunk->ChunkName;
 }
@@ -50,24 +50,24 @@ unsigned long Riff_GetChunkName(RIFF_CHUNK *pChunk)
 /* return pointer to chunk data */
 unsigned char   *Riff_GetChunkDataPtr(RIFF_CHUNK *pChunk)
 {
-        return (unsigned char *)((int)pChunk + sizeof(RIFF_CHUNK));
+        return (unsigned char *)((long)pChunk + sizeof(RIFF_CHUNK));
 }
 
 /* get next chunk after chunk specified */
 RIFF_CHUNK      *Riff_GetNextChunk(RIFF_CHUNK *pChunk)
 {
-        return (RIFF_CHUNK *)((int)pChunk + Riff_GetChunkLength(pChunk) + sizeof(RIFF_CHUNK));
+        return (RIFF_CHUNK *)((long)pChunk + Riff_GetChunkLength(pChunk) + sizeof(RIFF_CHUNK));
 }
 
 
 /* given the pointer to the header, the sub-chunks are searched
  for a chunk of the name given. If one is found a pointer to
  it is returned, otherwise NULL is returned.*/
-RIFF_CHUNK      *Riff_FindNamedSubChunk(RIFF_CHUNK *pHeader, unsigned long ChunkName)
+RIFF_CHUNK      *Riff_FindNamedSubChunk(RIFF_CHUNK *pHeader, unsigned int ChunkName)
 {
         /* pointer to data to start searching from
          is pointer to data, +4 for the AMS! type. */
-        RIFF_CHUNK *pChunk = (RIFF_CHUNK *)((int)Riff_GetChunkDataPtr(pHeader) + 4);
+        RIFF_CHUNK *pChunk = (RIFF_CHUNK *)((long)Riff_GetChunkDataPtr(pHeader) + 4);
         
         /* get length of RIFF chunk */
         int ParentChunkLength = Riff_GetChunkLength(pHeader);
@@ -85,7 +85,7 @@ RIFF_CHUNK      *Riff_FindNamedSubChunk(RIFF_CHUNK *pHeader, unsigned long Chunk
                 /* next chunk */
                 pChunk = Riff_GetNextChunk(pChunk);
         }
-        while (((int)pChunk-(int)pHeader)<ParentChunkLength);
+        while (((long)pChunk-(long)pHeader)<ParentChunkLength);
 
         /* couldn't find named chunk */
         return NULL;
@@ -94,15 +94,15 @@ RIFF_CHUNK      *Riff_FindNamedSubChunk(RIFF_CHUNK *pHeader, unsigned long Chunk
 /* current chunk is first chunk in file. */
 RIFF_CHUNK *Riff_GetFirstChunk(unsigned char *pFileStart)
 {
-	return (RIFF_CHUNK *)(pFileStart + sizeof(RIFF_CHUNK) + sizeof(unsigned long));
+	return (RIFF_CHUNK *)(pFileStart + sizeof(RIFF_CHUNK) + sizeof(unsigned int));
 }
 
 /* check all chunks are of a valid size in the RIFF file */
 /* a chunck has a valid size if it doesn't go over the end of the file! */
-BOOL	Riff_CheckChunkSizesAreValid(unsigned char *pRiffFile, unsigned long RiffFileSize)
+BOOL	Riff_CheckChunkSizesAreValid(unsigned char *pRiffFile, unsigned int RiffFileSize)
 {
-	unsigned long OffsetInFile = 0;
-	unsigned long ChunkLength;
+	unsigned int OffsetInFile = 0;
+	unsigned int ChunkLength;
 
 	/* get first chunk in file */
 	RIFF_CHUNK *pCurrentChunk = Riff_GetFirstChunk(pRiffFile);

@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -70,7 +70,7 @@ void Debugger_OpenCPCInfo(HWND hParent);
 #include "general\lnklist\lnklist.h"
 
 
-typedef struct 
+typedef struct
 {
 
 	int SearchStringCount;
@@ -107,6 +107,15 @@ typedef struct
 
 } DEBUGGER_DATA;
 
+HWND hCPCInfo;
+#define CPCEMU_DEBUG_CPCINFO_CLASS "ARNOLD_DEBUG_CPCINFO_CLASS"
+
+HWND hCPCPLUSInfo;
+#define CPCEMU_DEBUG_CPCPLUSINFO_CLASS "ARNOLD_DEBUG_CPCPLUSINFO_CLASS"
+
+HWND hCRTCInfo;
+#define CPCEMU_DEBUG_CRTCINFO_CLASS "ARNOLD_DEBUG_CRTCINFO_CLASS"
+
 static DEBUGGER_DATA DebuggerData;
 
 
@@ -135,7 +144,7 @@ void	ForceRedraw(HWND hwnd)
 	if (hwnd!=0)
 	{
 		RECT	WindowRect;
-	
+
 		/* get the client rectangle */
 		GetClientRect(hwnd,&WindowRect);
 
@@ -156,7 +165,7 @@ void *GetWindowDataPtr(HWND hwnd)
 	{
 		int AddrLow = GetWindowWord(hwnd,0);
 		int AddrHigh = GetWindowWord(hwnd,2);
-		
+
 		return (void *)((AddrLow & 0x0ffff) | ((AddrHigh & 0x0ffff)<<16));
 	}
 }
@@ -191,7 +200,7 @@ typedef struct
 	int NoOfBytes;
 } WINDOW_INFO;
 
-void	GetWindowInfo(HWND hwnd, WINDOW_INFO *pInfo)
+void	GetWindowInfoI(HWND hwnd, WINDOW_INFO *pInfo)
 {
 HDC hDC;
 RECT	WindowRect;
@@ -210,7 +219,7 @@ TEXTMETRIC FontMetric;
 
 		pInfo->FontWidth = FontMetric.tmMaxCharWidth;
 		pInfo->FontHeight = FontMetric.tmHeight + FontMetric.tmExternalLeading;
- 
+
         GetClientRect(hwnd,&WindowRect);
 
 		pInfo->WindowWidth = WindowRect.right-WindowRect.left;
@@ -237,7 +246,7 @@ BOOL CALLBACK  HexSearchDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM 
 
     switch (iMsg)
     {
-        
+
 	case WM_INITDIALOG:
 		return TRUE;
 
@@ -316,7 +325,7 @@ BOOL HexSearchDialog(HWND hwnd,int *pSearchCount, TCHAR **pSearchString, TCHAR *
 	{
 		return FALSE;
 	}
-	
+
 	return TRUE;
 }
 
@@ -352,9 +361,9 @@ long FAR PASCAL MemDumpWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 		case WM_RBUTTONDOWN:
 		{
 			POINT point;
-			
-			point.x = LOWORD(lParam);  // horizontal position of cursor 
-			point.y = HIWORD(lParam);  // vertical position of cursor 
+
+			point.x = LOWORD(lParam);  // horizontal position of cursor
+			point.y = HIWORD(lParam);  // vertical position of cursor
 
 			ClientToScreen(hwnd, &point);
 
@@ -369,8 +378,8 @@ long FAR PASCAL MemDumpWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 	case WM_COMMAND:
 		{
 			MEMDUMP_WINDOW *pMemdumpWindow = (MEMDUMP_WINDOW *)GetWindowDataPtr(hwnd);
-		
-		
+
+
 			switch (LOWORD(wParam))
 			{
 				case ID_MEMDUMP_GOTOADDRESS:
@@ -399,10 +408,10 @@ long FAR PASCAL MemDumpWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 					{
 						MessageBox(hwnd,Messages[42], Messages[43], MB_ICONEXCLAMATION | MB_OK);
 					}
-					
-					
+
+
 					ForceRedraw(hwnd);
-					
+
 
 				}
 				break;
@@ -414,7 +423,7 @@ long FAR PASCAL MemDumpWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 	{
 		int VirtualKeyCode = (int)wParam;
 		MEMDUMP_WINDOW *pMemdumpWindow = (MEMDUMP_WINDOW *)GetWindowDataPtr(hwnd);
-		
+
 		switch (VirtualKeyCode)
 		{
 			case VK_F3:
@@ -456,7 +465,7 @@ long FAR PASCAL MemDumpWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 				Memdump_ToggleLocation(pMemdumpWindow);
 			}
 			break;
-		
+
 			case VK_PRIOR:
 			{
 				MemDump_PageUp(pMemdumpWindow);
@@ -486,14 +495,14 @@ long FAR PASCAL MemDumpWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 
 		WINDOW_INFO WindowInfo;
 
-		GetWindowInfo(hwnd, &WindowInfo);
-		
-		xPos = LOWORD(lParam);  // horizontal position of cursor 
-		yPos = HIWORD(lParam);  // vertical position of cursor 
+		GetWindowInfoI(hwnd, &WindowInfo);
+
+		xPos = LOWORD(lParam);  // horizontal position of cursor
+		yPos = HIWORD(lParam);  // vertical position of cursor
 
 		CharX = xPos/WindowInfo.FontWidth;
 		CharY = yPos/WindowInfo.FontHeight;
-		
+
 		MemDump_SelectByCharXY(pMemdumpWindow, CharX,CharY);
 
 		ForceRedraw(hwnd);
@@ -528,7 +537,7 @@ long FAR PASCAL MemDumpWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 	{
 		int chCharCode = (TCHAR) wParam;
 		MEMDUMP_WINDOW *pMemdumpWindow = (MEMDUMP_WINDOW *)GetWindowDataPtr(hwnd);
-		
+
 		switch (chCharCode)
 		{
 			case 'V':
@@ -543,7 +552,7 @@ long FAR PASCAL MemDumpWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 		ForceRedraw(hwnd);
 	}
 	break;
-	
+
 	case WM_PAINT:
         {
 			HDC hDC;
@@ -551,25 +560,25 @@ long FAR PASCAL MemDumpWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 			int j;
 			RECT WindowRect;
 			int NoOfCharsInWidth, NoOfCharsInHeight;
-			
+
 			WINDOW_INFO WindowInfo;
 
 			MEMDUMP_WINDOW *pMemdumpWindow = (MEMDUMP_WINDOW *)GetWindowDataPtr(hwnd);
-			
+
 			/* get window info */
-			GetWindowInfo(hwnd,&WindowInfo);
+			GetWindowInfoI(hwnd,&WindowInfo);
 
 			GetClientRect(hwnd, &WindowRect);
 
 			BeginPaint( hwnd, &PaintStruct);
 
-			hDC = PaintStruct.hdc;	
+			hDC = PaintStruct.hdc;
 
 			hFont = GetStockObject(ANSI_FIXED_FONT);
 
 			hOldFont = SelectObject(hDC, hFont);
 
-			SetTextColor(hDC,RGB(0,0,0));	
+			SetTextColor(hDC,RGB(0,0,0));
 
 			NoOfCharsInWidth = WindowInfo.NoOfCharsInWidth;
 			NoOfCharsInHeight = WindowInfo.NoOfCharsInHeight;
@@ -584,7 +593,7 @@ long FAR PASCAL MemDumpWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 			/* show cursor */
 			{
 				RECT CursorRect;
-				
+
 				CursorRect.left = pMemdumpWindow->CursorXAbsolute*WindowInfo.FontWidth;
 				CursorRect.top = pMemdumpWindow->CursorYAbsolute*WindowInfo.FontHeight;
 				CursorRect.right = CursorRect.left + WindowInfo.FontWidth;
@@ -600,7 +609,7 @@ long FAR PASCAL MemDumpWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 				int TextOut_Length;
 				TCHAR *pMemDumpString;
 
-				pMemDumpString = Memdump_DumpLine(pMemdumpWindow, j);	
+				pMemDumpString = Memdump_DumpLine(pMemdumpWindow, j);
 
 				TextOut_Length = _tcslen(pMemDumpString);
 
@@ -611,7 +620,7 @@ long FAR PASCAL MemDumpWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 
 				TextOut(hDC, 0, j*WindowInfo.FontHeight, pMemDumpString,TextOut_Length);
 			}
-     
+
 
 			SelectObject(hDC,hOldFont);
 
@@ -645,14 +654,14 @@ long FAR PASCAL MemDumpWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 				case SB_LINEDOWN:
 					MemDump_CursorDown(pMemdumpWindow);
 					break;
-					
+
 				case SB_LINEUP:
 					MemDump_CursorUp(pMemdumpWindow);
 					break;
 			}
 
 			ForceRedraw(hwnd);
-		
+
 		}
 		return TRUE;
 
@@ -674,17 +683,17 @@ long FAR PASCAL MemDumpWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 
     return DefWindowProc(hwnd, iMsg, wParam, lParam);
 
-} 
+}
 
 
 void	Debugger_RegisterMemdumpClass(HWND hParent)
 {
 	HINSTANCE hInstance = (HINSTANCE)GetWindowLong(hParent,GWL_HINSTANCE);
-	
+
 	WNDCLASSEX	DebugWindowClass;
 
 	DebugWindowClass.cbSize = sizeof(WNDCLASSEX);
-	DebugWindowClass.style = CS_HREDRAW | CS_VREDRAW;	// | CS_OWNDC; 
+	DebugWindowClass.style = CS_HREDRAW | CS_VREDRAW;	// | CS_OWNDC;
 	DebugWindowClass.lpfnWndProc = MemDumpWindowProc;
 	DebugWindowClass.cbClsExtra = 0;
 	DebugWindowClass.cbWndExtra = 4;
@@ -713,7 +722,7 @@ void Debugger_OpenMemdump(HWND hParent)
 			CPCEMU_DEBUG_MEMDUMP_CLASS,
 			Messages[45],
 			WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_VSCROLL,
-			CW_USEDEFAULT, 
+			CW_USEDEFAULT,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,
@@ -752,7 +761,7 @@ void	Debugger_SetDissassembleAddress(int Addr)
 }
 
 void	DissassembleWindow_Render(DISSASSEMBLE_WINDOW *pDissassembleWindow, HDC hDC, int X, int Y,int FontHeight)
-{ 
+{
 	int YCoord;
 	int i;
 
@@ -775,7 +784,7 @@ void	DissassembleWindow_Render(DISSASSEMBLE_WINDOW *pDissassembleWindow, HDC hDC
 		}
 
 		TextOut(hDC, X, YCoord, pDebugString,TextOut_Length);
-		
+
 		YCoord += FontHeight;
 	}
 }
@@ -792,7 +801,7 @@ long FAR PASCAL DissassembleWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPA
     case WM_CREATE:
 		{
 			DISSASSEMBLE_WINDOW *pDissassembleWindow;
-			
+
 			pDissassembleWindow = Dissassemble_Create();
 
 
@@ -800,15 +809,15 @@ long FAR PASCAL DissassembleWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPA
 //			pDissassembleWindow->DissassembleInstruction = Debug_DissassembleInstruction;
 
 			SetWindowDataPtr(hwnd, (void *)pDissassembleWindow);
-	
+
 			{
 				TCHAR	Title[256];
-	
+
 				_stprintf(Title, Messages[46], Dissassemble_GetViewName(pDissassembleWindow));
-			
+
 				SetWindowText(hwnd,Title);
 			}
-	
+
 		}
 
 
@@ -818,9 +827,9 @@ long FAR PASCAL DissassembleWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPA
 		case WM_RBUTTONDOWN:
 		{
 			POINT point;
-			
-			point.x = LOWORD(lParam);  // horizontal position of cursor 
-			point.y = HIWORD(lParam);  // vertical position of cursor 
+
+			point.x = LOWORD(lParam);  // horizontal position of cursor
+			point.y = HIWORD(lParam);  // vertical position of cursor
 
 			ClientToScreen(hwnd, &point);
 
@@ -835,7 +844,7 @@ long FAR PASCAL DissassembleWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPA
 	case WM_COMMAND:
 		{
 			DISSASSEMBLE_WINDOW *pDissassembleWindow = (DISSASSEMBLE_WINDOW *)GetWindowDataPtr(hwnd);
-				
+
 			switch (LOWORD(wParam))
 			{
 				case ID_DISSASSEMBLE_GOTOADDRESS:
@@ -865,28 +874,28 @@ long FAR PASCAL DissassembleWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPA
 
 //			int WindowHeight;
 			int NoOfCharsInWidth, NoOfCharsInHeight;
-	
+
 			//int Addr = GetWindowWord(hwnd,0);
 			DISSASSEMBLE_WINDOW *pDissassembleWindow;
 
 			pDissassembleWindow = (DISSASSEMBLE_WINDOW *)GetWindowDataPtr(hwnd);
-		
+
 			/* get window info */
-			GetWindowInfo(hwnd,&WindowInfo);
+			GetWindowInfoI(hwnd,&WindowInfo);
 
 			/* get client rect of window */
 			GetClientRect(hwnd,&WindowRect);
 
 			BeginPaint( hwnd, &PaintStruct);
 
-			hDC = PaintStruct.hdc;	
+			hDC = PaintStruct.hdc;
 
 			hFont = GetStockObject(ANSI_FIXED_FONT);
 			hPen = GetStockObject(BLACK_BRUSH);
 
 			hOldFont = SelectObject(hDC, hFont);
 			hOldPen = SelectObject(hDC, hPen);
-   
+
 			FillRect(hDC,&WindowRect,GetStockObject(WHITE_BRUSH));
 
 			NoOfCharsInWidth = WindowInfo.NoOfCharsInWidth;
@@ -902,8 +911,8 @@ long FAR PASCAL DissassembleWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPA
 			// debug display
 			{
 				RECT CursorRect;
-				
-				CursorRect.left = 0;	
+
+				CursorRect.left = 0;
 				CursorRect.top = pDissassembleWindow->CursorYAbsolute*WindowInfo.FontHeight;
 				CursorRect.right = WindowInfo.NoOfCharsInWidth*WindowInfo.FontWidth;
 				CursorRect.bottom = CursorRect.top + WindowInfo.FontHeight;
@@ -912,10 +921,10 @@ long FAR PASCAL DissassembleWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPA
 				FillRect(hDC, &CursorRect, GetStockObject(GRAY_BRUSH));
 			}
 
-			
+
 
 			DissassembleWindow_Render(pDissassembleWindow, hDC, 0,0, WindowInfo.FontHeight);
-			
+
 			SelectObject(hDC, hOldPen);
 			SelectObject(hDC, hOldFont);
 
@@ -933,7 +942,7 @@ long FAR PASCAL DissassembleWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPA
 	{
 		int VirtualKeyCode = (int)wParam;
 		DISSASSEMBLE_WINDOW *pMemdumpWindow = (DISSASSEMBLE_WINDOW *)GetWindowDataPtr(hwnd);
-		
+
 		switch (VirtualKeyCode)
 		{
 			case VK_UP:
@@ -962,7 +971,7 @@ long FAR PASCAL DissassembleWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPA
 			{
 			}
 			break;
-		
+
 			case VK_PRIOR:
 			{
 				Dissassemble_PageUp(pMemdumpWindow);
@@ -1005,10 +1014,10 @@ long FAR PASCAL DissassembleWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPA
 		DISSASSEMBLE_WINDOW *pDissassembleWindow = (DISSASSEMBLE_WINDOW *)GetWindowDataPtr(hwnd);
 
 		// get window info
-		GetWindowInfo(hwnd, &WindowInfo);
-		
-		xPos = LOWORD(lParam);  // horizontal position of cursor 
-		yPos = HIWORD(lParam);  // vertical position of cursor 
+		GetWindowInfoI(hwnd, &WindowInfo);
+
+		xPos = LOWORD(lParam);  // horizontal position of cursor
+		yPos = HIWORD(lParam);  // vertical position of cursor
 
 		CharX = xPos/WindowInfo.FontWidth;
 		CharY = yPos/WindowInfo.FontHeight;
@@ -1051,7 +1060,7 @@ long FAR PASCAL DissassembleWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPA
 	{
 		int chCharCode = (TCHAR) wParam;
 		DISSASSEMBLE_WINDOW *pDissassembleWindow = (DISSASSEMBLE_WINDOW *)GetWindowDataPtr(hwnd);
-		
+
 		switch (chCharCode)
 		{
 			case 'O':
@@ -1070,12 +1079,12 @@ long FAR PASCAL DissassembleWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPA
 			case 'v':
 			{
 				TCHAR	Title[256];
-		
+
 				Dissassemble_ToggleView(pDissassembleWindow);
-		
+
 
 				_stprintf(Title, Messages[46], Dissassemble_GetViewName(pDissassembleWindow));
-				
+
 				SetWindowText(hwnd,Title);
 
 			}
@@ -1108,14 +1117,14 @@ long FAR PASCAL DissassembleWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPA
 				case SB_LINEDOWN:
 					Dissassemble_CursorDown(pDissassembleWindow);
 					break;
-					
+
 				case SB_LINEUP:
 					Dissassemble_CursorUp(pDissassembleWindow);
 					break;
 			}
 
 			ForceRedraw(hwnd);
-		
+
 		}
 		return TRUE;
 
@@ -1137,7 +1146,7 @@ long FAR PASCAL DissassembleWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPA
 
     return DefWindowProc(hwnd, iMsg, wParam, lParam);
 
-} 
+}
 
 void	Debugger_RegisterDissassemblerClass(HWND hParent)
 {
@@ -1146,7 +1155,7 @@ void	Debugger_RegisterDissassemblerClass(HWND hParent)
 	WNDCLASSEX	DissassembleWindowClass;
 
 	DissassembleWindowClass.cbSize = sizeof(WNDCLASSEX);
-	DissassembleWindowClass.style = CS_HREDRAW | CS_VREDRAW;	// | CS_OWNDC; 
+	DissassembleWindowClass.style = CS_HREDRAW | CS_VREDRAW;	// | CS_OWNDC;
 	DissassembleWindowClass.lpfnWndProc = DissassembleWindowProc;
 	DissassembleWindowClass.cbClsExtra = 0;
 	DissassembleWindowClass.cbWndExtra = 4;
@@ -1176,7 +1185,7 @@ void Debugger_OpenDissassemble(HWND hParent)
 			_T(CPCEMU_DEBUG_DISSASSEMBLE_CLASS),
 			_T(""),
 			WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_VSCROLL,
-			CW_USEDEFAULT, 
+			CW_USEDEFAULT,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,
@@ -1204,14 +1213,14 @@ void	Debugger_Initialise(HWND hwnd)
 	LinkList_InitialiseList(&DebuggerData.pDissassemble_WindowList);
 	/* initialise the memdump window list */
 	LinkList_InitialiseList(&DebuggerData.pMemdump_WindowList);
-	
+
 	/* load mem-dump pop-up window */
 	DebuggerData.hMemdumpPopupMenu = LoadMenu(hInstance, MAKEINTRESOURCE(IDR_MENU_MEMDUMP));
 	/* load dissassemble pop-up window */
 	DebuggerData.hDissassemblePopupMenu = LoadMenu(hInstance, MAKEINTRESOURCE(IDR_MENU_DISSASSEMBLE));
 	/* load mem-dump pop-up window */
 	DebuggerData.hShowGfxPopupMenu = LoadMenu(hInstance, MAKEINTRESOURCE(IDR_MENU_SHOWASGFX));
-	
+
 	DebuggerData.hParentHwnd = hwnd;
 
 	Debugger_RegisterDissassemblerClass(hwnd);
@@ -1243,7 +1252,7 @@ void	Debugger_Close()
 	{
 		PostMessage(DebuggerData.hMemDump, WM_CLOSE, 0,0);
 	}
-	
+
 	if (DebuggerData.hDissassemble!=NULL)
 	{
 		PostMessage(DebuggerData.hDissassemble, WM_CLOSE, 0,0);
@@ -1350,7 +1359,7 @@ BOOL CALLBACK  DebuggerDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 
     switch (iMsg)
     {
-        
+
         case WM_CREATE:
             return TRUE;
 
@@ -1383,7 +1392,7 @@ BOOL CALLBACK  DebuggerDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 					Debug_SetState(DEBUG_STOPPED);
 				}
 				return TRUE;
-			
+
 			case ID_VIEW_OPENMEMORYDUMPWINDOW:
 			{
 				Debugger_OpenMemdump(hwnd);
@@ -1393,7 +1402,7 @@ BOOL CALLBACK  DebuggerDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 			case ID_VIEW_OPENDISSASSEMBLYWINDOW:
 			{
 				Debugger_OpenDissassemble(hwnd);
-				
+
 				Debugger_SetDissassembleAddress(Z80_GetReg(Z80_PC));
 			}
 			return TRUE;
@@ -1418,14 +1427,14 @@ BOOL CALLBACK  DebuggerDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 
 				}
 				return TRUE;
-			
-			
+
+
 			case ID_VIEW_OPENCRTCVIEW:
 				{
 					Debugger_OpenCRTCInfo(hwnd);
 				}
 				return TRUE;
-			
+
 			case ID_VIEW_OPENCPCPLUSHARDWAREVIEW:
 				{
 					Debugger_ShowSprite(hwnd);
@@ -1433,7 +1442,7 @@ BOOL CALLBACK  DebuggerDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 					//ShowASICDialog(hwnd);
 				}
 				return TRUE;
-			
+
 			case IDC_DEBUGGER_SHOWGFX:
 				{
 					Debugger_ShowGfx(hwnd);
@@ -1484,7 +1493,7 @@ BOOL CALLBACK  DebuggerDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 
 			default:
 				break;
-			
+
 			}
 
 
@@ -1494,7 +1503,7 @@ BOOL CALLBACK  DebuggerDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 		break;
 
 		case WM_CLOSE:
-			{	
+			{
 
 				Debugger_Close();
 				//Debugger_DestroyCRTCDialog();
@@ -1523,7 +1532,7 @@ BOOL CALLBACK  EnterHexDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 
     switch (iMsg)
     {
-        
+
 	case WM_INITDIALOG:
 		return TRUE;
 
@@ -1596,7 +1605,7 @@ BOOL HexDialog(HWND hwnd, int *pValue)
 	{
 		return FALSE;
 	}
-	
+
 	return TRUE;
 }
 
@@ -1638,7 +1647,7 @@ void	Debugger_UpdateDebugDialog()
 	if (DebuggerData.hDebuggerDialog!=NULL)
 	{
 	TCHAR	OutputString[64];
-	
+
 //	Z80_REGISTERS	*R;
 
 //	R = Z80_GetReg();
@@ -1647,36 +1656,36 @@ void	Debugger_UpdateDebugDialog()
 	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_BC, Z80_GetReg(Z80_BC));
 	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_DE, Z80_GetReg(Z80_DE));
 	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_HL, Z80_GetReg(Z80_HL));
-	
+
 	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_PC, Z80_GetReg(Z80_PC));
 	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_SP, Z80_GetReg(Z80_SP));
-	
+
 	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_ALTAF, Z80_GetReg(Z80_AF2));
 	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_ALTHL, Z80_GetReg(Z80_HL2));
 	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_ALTDE, Z80_GetReg(Z80_DE2));
 	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_ALTBC, Z80_GetReg(Z80_BC2));
-	
+
 	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_IX, Z80_GetReg(Z80_IX));
 	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_IY, Z80_GetReg(Z80_IY));
 
 
 	SetDlgHexByte(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_I, Z80_GetReg(Z80_I));
-	
+
 	SetDlgHexByte(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_R, Z80_GetReg(Z80_R));
 
 	SetDlgHexDigit(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_IM, Z80_GetReg(Z80_IM));
-	
+
 	SetDlgHexDigit(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_IFF1, Z80_GetReg(Z80_IFF1));
 	SetDlgHexDigit(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_IFF2, Z80_GetReg(Z80_IFF2));
 
 	SetDlgItemText(DebuggerData.hDebuggerDialog,IDC_STATIC_FLAGS, Debug_FlagsAsString());
 
 
-	memset(OutputString,0,sizeof(OutputString));
-	Debug_DissassembleInstruction(Z80_GetReg(Z80_PC), OutputString);
-	SetDlgItemText(DebuggerData.hDebuggerDialog,IDC_STATIC_DISSASSEMBLY, OutputString);
+	//memset(OutputString,0,sizeof(OutputString));
+	//Debug_DissassembleInstruction(Z80_GetReg(Z80_PC), OutputString);
+//	SetDlgItemText(DebuggerData.hDebuggerDialog,IDC_STATIC_DISSASSEMBLY, OutputString);
 
-	Debugger_SetDissassembleAddress(Z80_GetReg(Z80_PC));
+	//Debugger_SetDissassembleAddress(Z80_GetReg(Z80_PC));
 
 	}
 }
@@ -1705,10 +1714,10 @@ void	Debugger_OpenDebugDialog(void)
 				hMenu = LoadMenu(hInstance,MAKEINTRESOURCE(IDR_MENU2));
 
 				SetMenu(DebuggerData.hDebuggerDialog,hMenu);
-			
+
 				/* set default text sizes for controls */
 
-				
+
 				{
 					int i;
 
@@ -1778,7 +1787,7 @@ BOOL CALLBACK  CRTCDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lPara
 
     switch (iMsg)
     {
-		case WM_INITDIALOG:        
+		case WM_INITDIALOG:
 			return TRUE;
 
 		case WM_CREATE:
@@ -1871,7 +1880,7 @@ long FAR PASCAL SpriteWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lP
 
     case WM_CREATE:
 		break;
-	
+
     case WM_PAINT:
         {
 			BeginPaint( hwnd, &PaintStruct);
@@ -1881,7 +1890,7 @@ long FAR PASCAL SpriteWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lP
 			EndPaint( hwnd, &PaintStruct );
 			return TRUE;
 		}
-		break;	
+		break;
 
 	case WM_SIZE:
 		UpdateWindow(hwnd);
@@ -1892,14 +1901,15 @@ long FAR PASCAL SpriteWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lP
 
 	case WM_DESTROY:
 	{
+	    DebuggerData.hSprite = NULL;
 	}
 	break;
-	
+
    }
 
     return DefWindowProc(hwnd, iMsg, wParam, lParam);
 
-} 
+}
 
 void	Debugger_ShowSprite(HWND hParent)
 {
@@ -1913,7 +1923,7 @@ void	Debugger_ShowSprite(HWND hParent)
 			CPCEMU_DEBUG_SPRITE_CLASS,
 			Messages[49],
 			WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_VSCROLL,
-			0, 
+			0,
 			0,
 			(16*8)+32,
 			32+32,
@@ -1940,7 +1950,7 @@ void	Debugger_RegisterSpriteClass(HWND hParent)
 	WNDCLASSEX	SpriteWindowClass;
 
 	SpriteWindowClass.cbSize = sizeof(WNDCLASSEX);
-	SpriteWindowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC; 
+	SpriteWindowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
 	SpriteWindowClass.lpfnWndProc = SpriteWindowProc;
 	SpriteWindowClass.cbClsExtra = 0;
 	SpriteWindowClass.cbWndExtra = 0;
@@ -1986,7 +1996,7 @@ int	j;
 		pBitmapInfo->bmiHeader.biYPelsPerMeter = 480;
 		pBitmapInfo->bmiHeader.biClrUsed = 32;
 		pBitmapInfo->bmiHeader.biClrImportant = 32;
-		pBitmapInfo->bmiHeader.biSizeImage = 16*16; 
+		pBitmapInfo->bmiHeader.biSizeImage = 16*16;
 
 		pBitmapInfo->bmiColors[0].rgbReserved = 0;
 		pBitmapInfo->bmiColors[0].rgbRed = 0;
@@ -2013,7 +2023,7 @@ int	j;
 				{
 					for (x=0; x<16; x++)
 					{
-						
+
 						BitmapData[((1-j)*(pBitmapInfo->bmiHeader.biWidth*16)) + (i*16) + (((15-y)*pBitmapInfo->bmiHeader.biWidth)+x)] = ASIC_GetSpritePixel((j<<3)+i, x, y);
 					}
 				}
@@ -2037,7 +2047,7 @@ int	j;
 
 #define CPCEMU_DEBUG_SHOWGFX_CLASS "ARNOLD_DEBUG_SHOWGFX_CLASS"
 
-typedef struct 
+typedef struct
 {
 	int Mode;
 	int BaseAddr;
@@ -2123,7 +2133,7 @@ long FAR PASCAL ShowGfxWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 
 
     case WM_CREATE:
-		
+
 //	    hShowGfxToolbar = CreateToolbarEx(
 //		hwnd,
   //      WS_CHILD | WS_BORDER | WS_VISIBLE,	// | CCS_TOP,
@@ -2147,7 +2157,7 @@ long FAR PASCAL ShowGfxWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 		SHOW_GFX *pShowGfx = (SHOW_GFX *)GetWindowDataPtr(hwnd);
 
 		int VirtualKeyCode = (int)wParam;
-		
+
 		switch (VirtualKeyCode)
 		{
 			case '0':
@@ -2225,7 +2235,7 @@ long FAR PASCAL ShowGfxWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 				pShowGfx->WidthInBytes++;
 			}
 			break;
-		
+
 
 
 
@@ -2241,9 +2251,9 @@ long FAR PASCAL ShowGfxWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 	case WM_RBUTTONDOWN:
 	{
 		POINT point;
-		
-		point.x = LOWORD(lParam);  // horizontal position of cursor 
-		point.y = HIWORD(lParam);  // vertical position of cursor 
+
+		point.x = LOWORD(lParam);  // horizontal position of cursor
+		point.y = HIWORD(lParam);  // vertical position of cursor
 
 		ClientToScreen(hwnd, &point);
 
@@ -2266,7 +2276,7 @@ long FAR PASCAL ShowGfxWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 			case ID_SHOWASGFX_SET_ADDR:
 			{
 				int NewAddr;
-				
+
 				if (HexDialog(hwnd,&NewAddr))
 				{
 					pShowGfx->BaseAddr = NewAddr;
@@ -2331,7 +2341,7 @@ long FAR PASCAL ShowGfxWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 	{
 		SHOW_GFX *pShowGfx = (SHOW_GFX *)GetWindowDataPtr(hwnd);
 
-		int ScrollCode = (int)LOWORD(wParam); // scroll bar value 
+		int ScrollCode = (int)LOWORD(wParam); // scroll bar value
 
 		switch (ScrollCode)
 		{
@@ -2345,7 +2355,7 @@ long FAR PASCAL ShowGfxWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 			case SB_LINEDOWN:
 				ShowGfx_LineUp(pShowGfx);
 				break;
-				
+
 			case SB_LINEUP:
 				ShowGfx_LineDown(pShowGfx);
 				break;
@@ -2373,7 +2383,7 @@ long FAR PASCAL ShowGfxWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 
 
     case WM_PAINT:
-        {			
+        {
 			SHOW_GFX *pShowGfx = (SHOW_GFX *)GetWindowDataPtr(hwnd);
 
 			if (BeginPaint( hwnd, &PaintStruct))
@@ -2382,13 +2392,13 @@ long FAR PASCAL ShowGfxWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 				HDC hDC = PaintStruct.hdc;
 				WINDOW_INFO WindowInfo;
 
-				GetWindowInfo(hwnd,&WindowInfo);
+				GetWindowInfoI(hwnd,&WindowInfo);
 
 				hFont = GetStockObject(ANSI_FIXED_FONT);
 
 				hOldFont = SelectObject(hDC, hFont);
 
-				SetTextColor(hDC,RGB(255,255,255));	
+				SetTextColor(hDC,RGB(255,255,255));
 
 				SetBkMode(hDC, TRANSPARENT);
 
@@ -2410,13 +2420,13 @@ long FAR PASCAL ShowGfxWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 			}
 			return TRUE;
 		}
-		return TRUE;	
+		return TRUE;
 
 	case WM_SIZE:
 		UpdateWindow(hwnd);
 
 		SendMessage(hShowGfxToolbar, WM_SIZE, 0,0);
-		
+
 		return TRUE;
 
 	case WM_ERASEBKGND:
@@ -2425,7 +2435,7 @@ long FAR PASCAL ShowGfxWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 	case WM_CLOSE:
 	{
 		Debugger_DestroyShowGfxWindow();
-	}	
+	}
 	break;
 
     case WM_DESTROY:
@@ -2434,6 +2444,7 @@ long FAR PASCAL ShowGfxWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 
 		free(pShowGfx);
 
+		hShowGfx = NULL;
 		//Debugger_DestroyShowGfxWindow();
 		//DestroyWindow(hShowGfxToolbar);
 
@@ -2444,7 +2455,7 @@ long FAR PASCAL ShowGfxWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 
     return DefWindowProc(hwnd, iMsg, wParam, lParam);
 
-} 
+}
 
 void	Debugger_ShowGfx(HWND hParent)
 {
@@ -2460,7 +2471,7 @@ void	Debugger_ShowGfx(HWND hParent)
 			CPCEMU_DEBUG_SHOWGFX_CLASS,
 			Messages[50],
 			WS_OVERLAPPEDWINDOW | WS_VSCROLL,
-			0, 
+			0,
 			0,
 			320,
 			200,
@@ -2475,7 +2486,7 @@ void	Debugger_ShowGfx(HWND hParent)
 		pShowGfx->WidthInBytes = 80;
 		pShowGfx->BaseAddr = 0;
 		pShowGfx->WindowHeight= 200;
-		
+
 		SetWindowDataPtr(hShowGfx, pShowGfx);
 
 		ShowWindow( hShowGfx, TRUE);
@@ -2496,7 +2507,7 @@ void	Debugger_RegisterShowGfxClass(HWND hParent)
 	WNDCLASSEX	ShowGfxWindowClass;
 
 	ShowGfxWindowClass.cbSize = sizeof(WNDCLASSEX);
-	ShowGfxWindowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC; 
+	ShowGfxWindowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
 	ShowGfxWindowClass.lpfnWndProc = ShowGfxWindowProc;
 	ShowGfxWindowClass.cbClsExtra = 0;
 	ShowGfxWindowClass.cbWndExtra = 6;
@@ -2536,7 +2547,7 @@ int	j;
 	BaseAddr = pShowGfx->BaseAddr;
 	Width = pShowGfx->WidthInBytes;
 	ModeIndex = pShowGfx->Mode;
-	
+
 	if ((Width<<3)>PlotWidth)
 	{
 		PlotWidth = 320>>3;
@@ -2547,7 +2558,7 @@ int	j;
 	}
 
 	pPixelData = CPC_GetModePixelData(ModeIndex);
-	
+
 	// initialise space for header
 	pBitmapInfo = (BITMAPINFO *)malloc(sizeof(BITMAPINFO) + sizeof(RGBQUAD)*256);
 
@@ -2564,7 +2575,7 @@ int	j;
 		pBitmapInfo->bmiHeader.biYPelsPerMeter = 480;
 		pBitmapInfo->bmiHeader.biClrUsed = 16;
 		pBitmapInfo->bmiHeader.biClrImportant = 16;
-		pBitmapInfo->bmiHeader.biSizeImage = 320*200; 
+		pBitmapInfo->bmiHeader.biSizeImage = 320*200;
 
 		// setup colour palette to render memory graphics with
 		//
@@ -2577,27 +2588,27 @@ int	j;
 		}
 
 		memset(BitmapData, 0, 320*200);
-		
-		
+
+
 		// if "sprite" method
 		for (j=0; j<200; j++)
 		{
 			for (x=0; x<PlotWidth; x++)
 			{
 				int p;
-				
+
 				/* calc address to get graphics from */
 				Z80_WORD ByteAddr = (unsigned short)(BaseAddr + x + (j*Width));
 				/* get gfx byte */
 				Z80_BYTE GfxByte = Z80_RD_MEM(ByteAddr);
-				
-				
-				
+
+
+
 				/* get pixel translation for this byte for selected mode */
 				PIXEL_DATA 	*pBytePixelData = &pPixelData[GfxByte & 0x0ff];
 				/* pointer to bitmap data to write to */
 				unsigned char *pByteBitmap = (unsigned char *)(&BitmapData[(x*8)+((199-j)*320)]);
-				
+
 				/* write pixel index's to bitmap */
 				for (p=0; p<4; p++)
 				{
@@ -2650,7 +2661,7 @@ void	Debugger_OpenCRTCDialog(HWND hwnd)
 	}
 	else
 	{
-		// window already shown - make it visible 
+		// window already shown - make it visible
 		SetWindowPos(hCRTCDialog, HWND_TOP, 0,0,0,0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
 		ShowWindow(hCRTCDialog,TRUE);
 	}
@@ -2701,15 +2712,15 @@ WNDPROC FloatEditOldProc = NULL;
 
 long FAR PASCAL HexEditProc(HWND hWnd, WORD wMessage,WORD wParam,LONG lParam)
 {
- 
+
     switch (wMessage)
      {
- 
+
           case WM_GETDLGCODE:
             return (DLGC_WANTALLKEYS |
                     CallWindowProc(FloatEditOldProc, hWnd, wMessage,
                                    wParam, lParam));
- 
+
           case WM_CHAR:
           //Process this message to avoid message beeps.
          if ((wParam == VK_RETURN) || (wParam == VK_TAB))
@@ -2717,20 +2728,20 @@ long FAR PASCAL HexEditProc(HWND hWnd, WORD wMessage,WORD wParam,LONG lParam)
             else
            return (CallWindowProc(FloatEditOldProc, hWnd,
                                      wMessage, wParam, lParam));
- 
+
        case WM_KEYDOWN:
             if ((wParam == VK_RETURN) || (wParam == VK_TAB)) {
               PostMessage (GetParent(hWnd), WM_NEXTDLGCTL, 0, 0L);
               return FALSE;
             }
- 
+
          return (CallWindowProc(FloatEditOldProc, hWnd, wMessage,
                                    wParam, lParam));
          break ;
- 
+
        default:
             break;
- 
+
      } /* end switch */
 
     return CallWindowProc(FloatEditOldProc,hWnd,wMessage,wParam,lParam);
@@ -2786,7 +2797,7 @@ BOOL CALLBACK  ASICDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lPara
 
     switch (iMsg)
     {
-        
+
         case WM_CREATE:
 			{
 				HWND hListView;
@@ -2896,7 +2907,7 @@ void	OpenConditionSetDialog(HWND hParent)
 {
 	HINSTANCE hInstance = (HINSTANCE)GetWindowLong(hParent,GWL_HINSTANCE);
 
-	DialogBox(hInstance, 
+	DialogBox(hInstance,
 			MAKEINTRESOURCE(IDD_DIALOG_DEBUG_CONDITION),
 			hParent,
 			ConditionSetDialogProc);
@@ -2907,7 +2918,7 @@ BOOL CALLBACK  DebugHooksConditionsDialogProc(HWND hwnd, UINT iMsg, WPARAM wPara
 
     switch (iMsg)
     {
-        
+
         case WM_CREATE:
             return TRUE;
 
@@ -2921,7 +2932,7 @@ BOOL CALLBACK  DebugHooksConditionsDialogProc(HWND hwnd, UINT iMsg, WPARAM wPara
 		}
 		break;
 
-		
+
 		case WM_CLOSE:
 			DestroyWindow(hwnd);
 			break;
@@ -2942,8 +2953,8 @@ HWND	OpenConditionListDialog(HWND hParent, TCHAR *DialogTitleText)
 
 	HINSTANCE hInstance = (HINSTANCE)GetWindowLong(hParent,GWL_HINSTANCE);
 
-	hDialog = CreateDialog (hInstance, 
-		MAKEINTRESOURCE(IDD_DIALOG_CONDITIONS), 0, 
+	hDialog = CreateDialog (hInstance,
+		MAKEINTRESOURCE(IDD_DIALOG_CONDITIONS), 0,
 		DebugHooksConditionsDialogProc);
 
 	if (hDialog!=NULL)
@@ -2954,14 +2965,14 @@ HWND	OpenConditionListDialog(HWND hParent, TCHAR *DialogTitleText)
 
 	return hDialog;
 }
-		
+
 
 BOOL CALLBACK  DebugHooksDialogProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
 
     switch (iMsg)
     {
-        
+
         case WM_CREATE:
             return TRUE;
 
@@ -2995,7 +3006,7 @@ BOOL CALLBACK  DebugHooksDialogProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM 
 						}
 					}
 					break;
-				
+
 
 					case IDC_CHECK_MEMORY_WRITE:
 					{
@@ -3096,7 +3107,7 @@ BOOL CALLBACK  DebugHooksDialogProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM 
 			}
 		}
 		break;
-		
+
 		case WM_CLOSE:
 			DestroyWindow(hwnd);
 			break;
@@ -3138,7 +3149,7 @@ POINT	TextCoordsToPixelCoords(int X, int Y)
 	PixelCoords.y = Y*RenderFontHeight;
 
 	return PixelCoords;
-} 
+}
 
 void	PrintString(int X, int Y, TCHAR *pString, int nMax)
 {
@@ -3155,7 +3166,7 @@ void	PrintString(int X, int Y, TCHAR *pString, int nMax)
 
 	PlotPoint = TextCoordsToPixelCoords(X,Y);
 
-	TextOut(RenderDC, PlotPoint.x, 
+	TextOut(RenderDC, PlotPoint.x,
 		PlotPoint.y, pString,Count);
 }
 
@@ -3168,7 +3179,7 @@ void	TextWindow_Ready(HWND hwnd, PAINTSTRUCT *pPaintStruct)
 
 	RenderDC = BeginPaint( hwnd, pPaintStruct);
 
-	GetWindowInfo(hwnd, &WindowInfo);
+	GetWindowInfoI(hwnd, &WindowInfo);
 
 
 	hFont = GetStockObject(ANSI_FIXED_FONT);
@@ -3193,10 +3204,10 @@ void	TextWindow_Ready(HWND hwnd, PAINTSTRUCT *pPaintStruct)
 		int X, Y;
 
 		RECT CursorRect;
-		
+
 		DebugItem__GetCursorPos(&X, &Y);
 
-		CursorRect.left = X*WindowInfo.FontWidth;	
+		CursorRect.left = X*WindowInfo.FontWidth;
 		CursorRect.top = Y*WindowInfo.FontHeight;
 		CursorRect.right = CursorRect.left+WindowInfo.FontWidth;
 		CursorRect.bottom = CursorRect.top + WindowInfo.FontHeight;
@@ -3239,7 +3250,7 @@ void	CPC_Info_Display()
 	{
 		X=0;
 		Y=0;
-		
+
 		_stprintf(DisplayString,_T("PSG"));
 
 		PrintString(X,Y, DisplayString,10);
@@ -3249,10 +3260,10 @@ void	CPC_Info_Display()
 			_stprintf(DisplayString,_T("%1x: %02x"),i, PSG_GetRegisterData(i));
 
 			PrintString(X, Y+2+i, DisplayString,10);
-		
+
 			DebugItem__AddNewItem(X+3,Y+2+i,2);
 
-		
+
 		}
 	}
 
@@ -3264,7 +3275,7 @@ void	CPC_Info_Display()
 		_stprintf(DisplayString,Messages[58]);
 
 		PrintString(X, Y, DisplayString,10);
-		
+
 		for (i=0; i<17; i++)
 		{
 			if (i!=16)
@@ -3334,25 +3345,25 @@ void	CPCPLUS_Info_Display()
 {
 	int X,Y;
 	int i;
-	
+
 	DebugItem__Finish();
 
 	DebugItem__Initialise();
 
 
-			
+
 
 	/* Dump DMA Registers */
 	{
 
-		
+
 		{
 
 			int dma_channel;
 
 			X = 0;
 			Y = 0;
-			
+
 			for (dma_channel=0; dma_channel<3; dma_channel++)
 			{
 
@@ -3368,7 +3379,7 @@ void	CPCPLUS_Info_Display()
 				PrintString(X, Y, DisplayString, 20);
 				DebugItem__AddNewItem(X+10,Y,2);
 				Y++;
-				Y++;			
+				Y++;
 			}
 		}
 	}
@@ -3380,10 +3391,10 @@ void	CPCPLUS_Info_Display()
 
 		_stprintf(DisplayString,Messages[61]);
 		PrintString(X, Y, DisplayString,20);
-		
+
 		for (i=0; i<16; i++)
 		{
-			_stprintf(DisplayString,_T("%02d: %01x%01x%01x  %02d: %01x%01x%01x"), 
+			_stprintf(DisplayString,_T("%02d: %01x%01x%01x  %02d: %01x%01x%01x"),
 				i, ASIC_GetRed(i), ASIC_GetGreen(i), ASIC_GetBlue(i),
 				(i+16), ASIC_GetRed(i+16),ASIC_GetGreen(i+16), ASIC_GetBlue(i+16));
 
@@ -3465,7 +3476,7 @@ void	CPCPLUS_Info_Display()
 			_stprintf(DisplayString,_T("Mag: %02x"),ASIC_GetSpriteMagnification(i));
 			PrintString(X+20,Y,DisplayString,10);
 			DebugItem__AddNewItem(X+5+20,Y,2);
-			Y++;		
+			Y++;
 		}
 	}
 }
@@ -3488,12 +3499,12 @@ void	CRTC_Info_Display()
 	{
 		X = 0;
 		Y = 0;
-		
+
 		for (i=0; i<18; i++)
 		{
 			_stprintf(DisplayString,_T("R%02d: %02x"), i, CRTC_GetRegisterData(i));
 			PrintString(X,Y+i, DisplayString,10);
-	
+
 			DebugItem__AddNewItem(X+5,Y+i,3);
 
 		}
@@ -3513,7 +3524,7 @@ void	CRTC_Info_Display()
 
 		Y++;
 
-		
+
 		_stprintf(DisplayString,_T("LC: %02x"), pCRTC_State->LineCounter);
 		PrintString(X,Y, DisplayString,10);
 		DebugItem__AddNewItem(X+4,Y,2);
@@ -3528,12 +3539,12 @@ void	CRTC_Info_Display()
 		PrintString(X,Y, DisplayString,10);
 		DebugItem__AddNewItem(X+10,Y,2);
 		Y++;
-	
+
 		_stprintf(DisplayString,_T("VS-WIDTH: %02x"), pCRTC_State->VerticalSyncWidth);
 		PrintString(X,Y, DisplayString,10);
 		DebugItem__AddNewItem(X+10,Y,2);
 		Y++;
-		
+
 		_stprintf(DisplayString,_T("HS-C: %02x"), pCRTC_State->HorizontalSyncCount);
 		PrintString(X,Y, DisplayString,10);
 		DebugItem__AddNewItem(X+6,Y,2);
@@ -3595,14 +3606,14 @@ long FAR PASCAL CPC_Info_WindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM
 
 		WINDOW_INFO WindowInfo;
 
-		GetWindowInfo(hwnd, &WindowInfo);
-		
-		xPos = LOWORD(lParam);  // horizontal position of cursor 
-		yPos = HIWORD(lParam);  // vertical position of cursor 
+		GetWindowInfoI(hwnd, &WindowInfo);
+
+		xPos = LOWORD(lParam);  // horizontal position of cursor
+		yPos = HIWORD(lParam);  // vertical position of cursor
 
 		CharX = xPos/WindowInfo.FontWidth;
 		CharY = yPos/WindowInfo.FontHeight;
-		
+
 		//MemDump_SelectByCharXY(pMemdumpWindow, CharX,CharY);
 
 		DebugItem__SetCursorFromXY(CharX, CharY);
@@ -3611,7 +3622,7 @@ long FAR PASCAL CPC_Info_WindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM
 		ForceRedraw(hwnd);
 	}
 	break;
-	
+
 //		DebugItem__SetCursorFromXY(int X, int Y)
 
 
@@ -3622,11 +3633,12 @@ long FAR PASCAL CPC_Info_WindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM
 		break;
 
     case WM_DESTROY:
+        hCPCInfo = NULL;
 		break;
    }
 
     return DefWindowProc(hwnd, iMsg, wParam, lParam);
-} 
+}
 
 long FAR PASCAL CPCPLUS_Info_WindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam )
 {
@@ -3659,14 +3671,14 @@ long FAR PASCAL CPCPLUS_Info_WindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LP
 
 		WINDOW_INFO WindowInfo;
 
-		GetWindowInfo(hwnd, &WindowInfo);
-		
-		xPos = LOWORD(lParam);  // horizontal position of cursor 
-		yPos = HIWORD(lParam);  // vertical position of cursor 
+		GetWindowInfoI(hwnd, &WindowInfo);
+
+		xPos = LOWORD(lParam);  // horizontal position of cursor
+		yPos = HIWORD(lParam);  // vertical position of cursor
 
 		CharX = xPos/WindowInfo.FontWidth;
 		CharY = yPos/WindowInfo.FontHeight;
-		
+
 		//MemDump_SelectByCharXY(pMemdumpWindow, CharX,CharY);
 
 		DebugItem__SetCursorFromXY(CharX, CharY);
@@ -3683,11 +3695,12 @@ long FAR PASCAL CPCPLUS_Info_WindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LP
 		break;
 
     case WM_DESTROY:
+		hCPCPLUSInfo = NULL;
 		break;
    }
 
     return DefWindowProc(hwnd, iMsg, wParam, lParam);
-} 
+}
 
 
 long FAR PASCAL CRTC_Info_WindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam )
@@ -3718,14 +3731,14 @@ long FAR PASCAL CRTC_Info_WindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARA
 
 		WINDOW_INFO WindowInfo;
 
-		GetWindowInfo(hwnd, &WindowInfo);
-		
-		xPos = LOWORD(lParam);  // horizontal position of cursor 
-		yPos = HIWORD(lParam);  // vertical position of cursor 
+		GetWindowInfoI(hwnd, &WindowInfo);
+
+		xPos = LOWORD(lParam);  // horizontal position of cursor
+		yPos = HIWORD(lParam);  // vertical position of cursor
 
 		CharX = xPos/WindowInfo.FontWidth;
 		CharY = yPos/WindowInfo.FontHeight;
-		
+
 		//MemDump_SelectByCharXY(pMemdumpWindow, CharX,CharY);
 
 		DebugItem__SetCursorFromXY(CharX, CharY);
@@ -3746,16 +3759,15 @@ long FAR PASCAL CRTC_Info_WindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARA
 		break;
 
     case WM_DESTROY:
+        hCRTCInfo = NULL;
 		break;
    }
 
     return DefWindowProc(hwnd, iMsg, wParam, lParam);
-} 
+}
 
 
 
-HWND hCPCInfo;
-#define CPCEMU_DEBUG_CPCINFO_CLASS "ARNOLD_DEBUG_CPCINFO_CLASS"
 
 void	Debugger_UpdateCPCInfo(void)
 {
@@ -3770,11 +3782,11 @@ void	Debugger_UpdateCPCInfo(void)
 void	Debugger_RegisterCPCInfoClass(HWND hParent)
 {
 	HINSTANCE hInstance = (HINSTANCE)GetWindowLong(hParent,GWL_HINSTANCE);
-	
+
 	WNDCLASSEX	DebugWindowClass;
 
 	DebugWindowClass.cbSize = sizeof(WNDCLASSEX);
-	DebugWindowClass.style = CS_HREDRAW | CS_VREDRAW;	// | CS_OWNDC; 
+	DebugWindowClass.style = CS_HREDRAW | CS_VREDRAW;	// | CS_OWNDC;
 	DebugWindowClass.lpfnWndProc = CPC_Info_WindowProc;
 	DebugWindowClass.cbClsExtra = 0;
 	DebugWindowClass.cbWndExtra = 0;
@@ -3804,7 +3816,7 @@ void Debugger_OpenCPCInfo(HWND hParent)
 			CPCEMU_DEBUG_CPCINFO_CLASS,
 			_T("CPC Info"),
 			WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-			CW_USEDEFAULT, 
+			CW_USEDEFAULT,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,
@@ -3823,8 +3835,6 @@ void Debugger_OpenCPCInfo(HWND hParent)
 	}
 }
 
-HWND hCPCPLUSInfo;
-#define CPCEMU_DEBUG_CPCPLUSINFO_CLASS "ARNOLD_DEBUG_CPCPLUSINFO_CLASS"
 
 
 void	Debugger_UpdateCPCPLUSInfo(void)
@@ -3839,11 +3849,11 @@ void	Debugger_UpdateCPCPLUSInfo(void)
 void	Debugger_RegisterCPCPLUSInfoClass(HWND hParent)
 {
 	HINSTANCE hInstance = (HINSTANCE)GetWindowLong(hParent,GWL_HINSTANCE);
-	
+
 	WNDCLASSEX	DebugWindowClass;
 
 	DebugWindowClass.cbSize = sizeof(WNDCLASSEX);
-	DebugWindowClass.style = CS_HREDRAW | CS_VREDRAW;	// | CS_OWNDC; 
+	DebugWindowClass.style = CS_HREDRAW | CS_VREDRAW;	// | CS_OWNDC;
 	DebugWindowClass.lpfnWndProc = CPCPLUS_Info_WindowProc;
 	DebugWindowClass.cbClsExtra = 0;
 	DebugWindowClass.cbWndExtra = 0;
@@ -3872,7 +3882,7 @@ void Debugger_OpenCPCPlusInfo(HWND hParent)
 			CPCEMU_DEBUG_CPCPLUSINFO_CLASS,
 			_T("CPC PLUS Info"),
 			WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-			CW_USEDEFAULT, 
+			CW_USEDEFAULT,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,
@@ -3893,8 +3903,6 @@ void Debugger_OpenCPCPlusInfo(HWND hParent)
 
 
 
-HWND hCRTCInfo;
-#define CPCEMU_DEBUG_CRTCINFO_CLASS "ARNOLD_DEBUG_CRTCINFO_CLASS"
 
 
 void	Debugger_UpdateCRTCInfo(void)
@@ -3908,11 +3916,11 @@ void	Debugger_UpdateCRTCInfo(void)
 void	Debugger_RegisterCRTCInfoClass(HWND hParent)
 {
 	HINSTANCE hInstance = (HINSTANCE)GetWindowLong(hParent,GWL_HINSTANCE);
-	
+
 	WNDCLASSEX	DebugWindowClass;
 
 	DebugWindowClass.cbSize = sizeof(WNDCLASSEX);
-	DebugWindowClass.style = CS_HREDRAW | CS_VREDRAW;	// | CS_OWNDC; 
+	DebugWindowClass.style = CS_HREDRAW | CS_VREDRAW;	// | CS_OWNDC;
 	DebugWindowClass.lpfnWndProc = CRTC_Info_WindowProc;
 	DebugWindowClass.cbClsExtra = 0;
 	DebugWindowClass.cbWndExtra = 0;
@@ -3942,7 +3950,7 @@ void Debugger_OpenCRTCInfo(HWND hParent)
 			CPCEMU_DEBUG_CRTCINFO_CLASS,
 			_T("CRTC Info"),
 			WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-			CW_USEDEFAULT, 
+			CW_USEDEFAULT,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,

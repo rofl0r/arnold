@@ -269,14 +269,15 @@
 #define ID_FILE_CASSETTE_CONTROLS       40179
 #define ID_FILE_RECENT                  40181
 #define ID_CONTROL_REALTIME             40182
-
+#define ID_FILE_LOADFILE                40183
+#define ID_FILE_SAVEFILE                40184
 // Next default values for new objects
-// 
+//
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        160
-#define _APS_NEXT_COMMAND_VALUE         40183
+#define _APS_NEXT_COMMAND_VALUE         40185
 #define _APS_NEXT_CONTROL_VALUE         1123
 #define _APS_NEXT_SYMED_VALUE           160
 #endif

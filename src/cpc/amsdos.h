@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -25,7 +25,7 @@
 /* BASIC parameters to describe an AMSDOS format. A CP/M based format */
 typedef struct
 {
-	int nFirstSectorId;				/* id of first sector. it is assumed all sectors 
+	int nFirstSectorId;				/* id of first sector. it is assumed all sectors
 									are numbered sequentially */
 	int nReservedTracks;			/* number of complete reserved tracks */
 	int nSectorsPerTrack;			/* number of sectors per track. It is assumed that
@@ -39,7 +39,7 @@ typedef struct
 	int nSide;						/* physical side */
 } AMSDOS_TRACK_SECTOR_SIDE;
 
-typedef struct 
+typedef struct
 {
 	unsigned char UserNumber;		/* user number */
 	unsigned char Filename[8];		/* name part of filename */
@@ -67,6 +67,7 @@ typedef struct
 	unsigned char LogicalLengthHigh;
 	unsigned char ExecutionAddressLow;
 	unsigned char ExecutionAddressHigh;
+	unsigned char Unused3[36];
 	unsigned char DataLengthLow;
 	unsigned char DataLengthMid;
 	unsigned char DataLengthHigh;

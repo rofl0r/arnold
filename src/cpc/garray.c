@@ -58,73 +58,73 @@ int PUB_colorscheme = ENUM_colorscheme_arnold;
 static const RGBCOLOUR HardwareColours[ENUM_colorscheme_enumcount][32] =
 {
 	{
-			{0x060,0x060,0x060,0},                     /* r1 g1 b1     White */
-			{0x060,0x060,0x060,0},                     /* -------- ** White ** */
-			{0x00,0x0ff,0x060,0},                    /* r0 g2 b1 Sea Green */
-			{0x0ff,0x0ff,0x060,0},                   /* r2 g2 b1 Pastel yellow */
-			{0x00,0x00,0x060,0},                     /* r0 g0 b1 Blue */
-			{0x0ff,0x00,0x060,0},                    /* r2 g0 b1 Purple */
-			{0x00,0x060,0x060,0},                     /* r0 g1 b1 Cyan */
-			{0x0ff,0x060,0x060,0},                    /* r2 g1 b1 Pink */
-			{0x0ff,0x00,0x060,0},                    /* -------- ** Purple ** */
-			{0x0ff,0x0ff,0x060,0},                   /* -------- ** Pastel yellow ** */
-			{0x0ff,0x0ff,0x00,0},                   /* r2 g2 b0 Bright Yellow */
-			{0x0ff,0x0ff,0x0ff,0},                  /* r2 g2 b2 Bright White */
-			{0x0ff,0x00,0x00,0},                    /* r2 g0 b0 Bright Red */
-			{0x0ff,0x00,0x0ff,0},                   /* r2 g0 b2 Bright Magenta */
-			{0x0ff,0x060,0x00,0},                    /* r2 g1 b0 Orange */
-			{0x0ff,0x060,0x0ff,0},                   /* r2 g1 b2 Pastel Magenta */
-			{0x00,0x00,0x060,0},                     /* -------- ** Blue ** */
-			{0x00,0x0ff,0x060,0},                    /* -------- ** Sea Green ** */
-			{0x00,0x0ff,0x00,0},                    /* r0 g2 b0 Bright green */
-			{0x00,0x0ff,0x0ff,0},                   /* r0 g2 b2 Bright Cyan */
-			{0x00,0x00,0x00,0},                     /* r0 g0 b0 Black */
-			{0x00,0x00,0x0ff,0},                    /* r0 g0 b2 Bright Blue */
-			{0x00,0x060,0x00,0},                     /* r0 g1 b0 Green */
-			{0x00,0x060,0x0ff,0},                    /* r0 g1 b2 Sky Blue */
-			{0x060,0x00,0x060,0},                     /* r1 g0 b1 Magenta */
-			{0x060,0x0ff,0x060,0},                    /* r1 g2 b1 Pastel green */
-			 {0x060,0x0ff,0x00,0},                    /* r1 g2 b0 Lime */
-			{0x060,0x0ff,0x0ff,0},                   /* r1 g2 b2 Pastel cyan */
-			{0x060,0x00,0x00,0},                     /* r1 g0 b0 Red */
-			{0x060,0x00,0x0ff,0},                    /* r1 g0 b2 Mauve */
-			{0x060,0x060,0x00,0},                     /* r1 g1 b0 Yellow */
-			{0x060,0x060,0x0ff,0}                             /* r1 g1 b2 Pastel blue */
+		{{{0x060,0x060,0x060,0}}},                     /* r1 g1 b1     White */
+		{{{0x060,0x060,0x060,0}}},                     /* -------- ** White ** */
+		{{{0x00,0x0ff,0x060,0}}},                    /* r0 g2 b1 Sea Green */
+		{{{0x0ff,0x0ff,0x060,0}}},                   /* r2 g2 b1 Pastel yellow */
+		{{{0x00,0x00,0x060,0}}},                     /* r0 g0 b1 Blue */
+		{{{0x0ff,0x00,0x060,0}}},                    /* r2 g0 b1 Purple */
+		{{{0x00,0x060,0x060,0}}},                     /* r0 g1 b1 Cyan */
+		{{{0x0ff,0x060,0x060,0}}},                    /* r2 g1 b1 Pink */
+		{{{0x0ff,0x00,0x060,0}}},                    /* -------- ** Purple ** */
+		{{{0x0ff,0x0ff,0x060,0}}},                   /* -------- ** Pastel yellow ** */
+		{{{0x0ff,0x0ff,0x00,0}}},                   /* r2 g2 b0 Bright Yellow */
+		{{{0x0ff,0x0ff,0x0ff,0}}},                  /* r2 g2 b2 Bright White */
+		{{{0x0ff,0x00,0x00,0}}},                    /* r2 g0 b0 Bright Red */
+		{{{0x0ff,0x00,0x0ff,0}}},                   /* r2 g0 b2 Bright Magenta */
+		{{{0x0ff,0x060,0x00,0}}},                    /* r2 g1 b0 Orange */
+		{{{0x0ff,0x060,0x0ff,0}}},                   /* r2 g1 b2 Pastel Magenta */
+		{{{0x00,0x00,0x060,0}}},                     /* -------- ** Blue ** */
+		{{{0x00,0x0ff,0x060,0}}},                    /* -------- ** Sea Green ** */
+		{{{0x00,0x0ff,0x00,0}}},                    /* r0 g2 b0 Bright green */
+		{{{0x00,0x0ff,0x0ff,0}}},                   /* r0 g2 b2 Bright Cyan */
+		{{{0x00,0x00,0x00,0}}},                     /* r0 g0 b0 Black */
+		{{{0x00,0x00,0x0ff,0}}},                    /* r0 g0 b2 Bright Blue */
+		{{{0x00,0x060,0x00,0}}},                     /* r0 g1 b0 Green */
+		{{{0x00,0x060,0x0ff,0}}},                    /* r0 g1 b2 Sky Blue */
+		{{{0x060,0x00,0x060,0}}},                     /* r1 g0 b1 Magenta */
+		{{{0x060,0x0ff,0x060,0}}},                    /* r1 g2 b1 Pastel green */
+		{{{0x060,0x0ff,0x00,0}}},                    /* r1 g2 b0 Lime */
+		{{{0x060,0x0ff,0x0ff,0}}},                   /* r1 g2 b2 Pastel cyan */
+		{{{0x060,0x00,0x00,0}}},                     /* r1 g0 b0 Red */
+		{{{0x060,0x00,0x0ff,0}}},                    /* r1 g0 b2 Mauve */
+		{{{0x060,0x060,0x00,0}}},                     /* r1 g1 b0 Yellow */
+		{{{0x060,0x060,0x0ff,0}}}                             /* r1 g1 b2 Pastel blue */
 	},
   /* TRK */
    {
-      {163, 163, 163, 0},                   /* r1 g1 b1     White */
-      {163, 163, 163, 0},                   /* -------- ** White ** */
-      {  0, 255,  96, 0},                   /* r0 g2 b1 Sea Green */
-      {239, 195,  79, 0},                   /* r2 g2 b1 Pastel yellow */
-      {  0,   0, 171, 0},                   /* r0 g0 b1 Blue */
-      {255,   0,  96, 0},                   /* r2 g0 b1 Purple */
-      {  0, 159, 199, 0},                   /* r0 g1 b1 Cyan */
-      {251, 151, 151, 0},                   /* r2 g1 b1 Pink */
-      {255,   0,  96, 0},                   /* -------- ** Purple ** */
-      {239, 195,  79, 0},                   /* -------- ** Pastel yellow ** */
-      {255, 255,   0, 0},                   /* r2 g2 b0 Bright Yellow */
-      {255, 255, 255, 0},                   /* r2 g2 b2 Bright White */
-      {251,   0,   0, 0},                   /* r2 g0 b0 Bright Red */
-      {255,   0, 255, 0},                   /* r2 g0 b2 Bright Magenta */
-      {239, 167,   0, 0},                   /* r2 g1 b0 Orange */
-      {235, 103, 235, 0},                   /* r2 g1 b2 Pastel Magenta */
-      {  0,   0,  96, 0},                   /* -------- ** Blue ** */
-      {  0, 255,  96, 0},                   /* -------- ** Sea Green ** */
-      {  0, 255,   0, 0},                   /* r0 g2 b0 Bright green */
-      {  0, 187, 251, 0},                   /* r0 g2 b2 Bright Cyan */
-      {  0,   0,   0, 0},                   /* r0 g0 b0 Black */
-      {  0,   0, 239, 0},                   /* r0 g0 b2 Bright Blue */
-      {  0, 153,   0, 0},                   /* r0 g1 b0 Green */
-      {  0, 153, 255, 0},                   /* r0 g1 b2 Sky Blue */
-      {191,   0, 191, 0},                   /* r1 g0 b1 Magenta */
-      { 96, 255,  96, 0},                   /* r1 g2 b1 Pastel green */
-      { 96, 255,   0, 0},                   /* r1 g2 b0 Lime */
-      {153, 255, 255, 0},                   /* r1 g2 b2 Pastel cyan */
-      {163,  19,  19, 0},                   /* r1 g0 b0 Red */
-      { 96,   0, 255, 0},                   /* r1 g0 b2 Mauve */
-      {191, 171,   0, 0},                   /* r1 g1 b0 Yellow */
-      { 96,  96, 255, 0}                    /* r1 g1 b2 Pastel blue */
+      {{{163, 163, 163, 0}}},                   /* r1 g1 b1     White */
+      {{{163, 163, 163, 0}}},                   /* -------- ** White ** */
+      {{{  0, 255,  96, 0}}},                   /* r0 g2 b1 Sea Green */
+      {{{239, 195,  79, 0}}},                   /* r2 g2 b1 Pastel yellow */
+      {{{  0,   0, 171, 0}}},                   /* r0 g0 b1 Blue */
+      {{{255,   0,  96, 0}}},                   /* r2 g0 b1 Purple */
+      {{{  0, 159, 199, 0}}},                   /* r0 g1 b1 Cyan */
+      {{{251, 151, 151, 0}}},                   /* r2 g1 b1 Pink */
+      {{{255,   0,  96, 0}}},                   /* -------- ** Purple ** */
+      {{{239, 195,  79, 0}}},                   /* -------- ** Pastel yellow ** */
+      {{{255, 255,   0, 0}}},                   /* r2 g2 b0 Bright Yellow */
+      {{{255, 255, 255, 0}}},                   /* r2 g2 b2 Bright White */
+      {{{251,   0,   0, 0}}},                   /* r2 g0 b0 Bright Red */
+      {{{255,   0, 255, 0}}},                   /* r2 g0 b2 Bright Magenta */
+      {{{239, 167,   0, 0}}},                   /* r2 g1 b0 Orange */
+      {{{235, 103, 235, 0}}},                   /* r2 g1 b2 Pastel Magenta */
+      {{{  0,   0,  96, 0}}},                   /* -------- ** Blue ** */
+      {{{  0, 255,  96, 0}}},                   /* -------- ** Sea Green ** */
+      {{{  0, 255,   0, 0}}},                   /* r0 g2 b0 Bright green */
+      {{{  0, 187, 251, 0}}},                   /* r0 g2 b2 Bright Cyan */
+      {{{  0,   0,   0, 0}}},                   /* r0 g0 b0 Black */
+      {{{  0,   0, 239, 0}}},                   /* r0 g0 b2 Bright Blue */
+      {{{  0, 153,   0, 0}}},                   /* r0 g1 b0 Green */
+      {{{  0, 153, 255, 0}}},                   /* r0 g1 b2 Sky Blue */
+      {{{191,   0, 191, 0}}},                   /* r1 g0 b1 Magenta */
+      {{{ 96, 255,  96, 0}}},                   /* r1 g2 b1 Pastel green */
+      {{{ 96, 255,   0, 0}}},                   /* r1 g2 b0 Lime */
+      {{{153, 255, 255, 0}}},                   /* r1 g2 b2 Pastel cyan */
+      {{{163,  19,  19, 0}}},                   /* r1 g0 b0 Red */
+      {{{ 96,   0, 255, 0}}},                   /* r1 g0 b2 Mauve */
+      {{{191, 171,   0, 0}}},                   /* r1 g1 b0 Yellow */
+      {{{ 96,  96, 255, 0}}}                    /* r1 g1 b2 Pastel blue */
    }
 };
 

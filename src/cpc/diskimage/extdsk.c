@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -38,7 +38,7 @@ int		ExtDsk_Validate(const unsigned char *pDiskImage, const unsigned long DiskIm
 	if (pDiskImage!=NULL)
 	{
 		EXTDSKHEADER *pHeader = (EXTDSKHEADER *)pDiskImage;
-		
+
 		if (memcmp(pHeader,"EXTENDED",8)==0)
 		{
 			/* has main header */
@@ -60,7 +60,7 @@ int		ExtDsk_Validate(const unsigned char *pDiskImage, const unsigned long DiskIm
 					TotalTracks = (pHeader->NumTracks * pHeader->NumSides);
 
 					CurrentSize = 0;
-					
+
 					for (i=0; i<TotalTracks; i++)
 					{
 						/* does track exist in image? */
@@ -68,12 +68,12 @@ int		ExtDsk_Validate(const unsigned char *pDiskImage, const unsigned long DiskIm
 						{
       						CurrentSize += (int)((pHeader->TrackSizeTable[i] & 0x0ff)<<8);
 						}
-					}       
-		
+					}
+
 					if (DiskImageSize>=(CurrentSize+sizeof(EXTDSKHEADER)))
 					{
 						/* correct size image */
-				
+
 						CurrentSize = 0;
 
 						for (i=0; i<TotalTracks; i++)
@@ -88,7 +88,7 @@ int		ExtDsk_Validate(const unsigned char *pDiskImage, const unsigned long DiskIm
 
 								thisTrackSize = 0;
 
-								pTrack = (EXTDSKTRACKHEADER *)((int)pHeader + CurrentSize + sizeof(EXTDSKTRACKHEADER));
+								pTrack = (EXTDSKTRACKHEADER *)((long)pHeader + CurrentSize + sizeof(EXTDSKTRACKHEADER));
 
 								/* check track header text is present */
 								if (memcmp(pTrack->TrackHeader,"Track-Info",10)!=0)
@@ -103,7 +103,7 @@ int		ExtDsk_Validate(const unsigned char *pDiskImage, const unsigned long DiskIm
 								}
 
 								thisTrackSize = (int)((pHeader->TrackSizeTable[i] & 0x0ff)<<8);
-							
+
 								if (calculatedTrackSize>thisTrackSize)
 									break;
 
@@ -114,7 +114,7 @@ int		ExtDsk_Validate(const unsigned char *pDiskImage, const unsigned long DiskIm
 
 						if (i==TotalTracks)
 							ValidImage = TRUE;
-		
+
 					}
 				}
 			}
@@ -128,9 +128,6 @@ int		ExtDsk_Validate(const unsigned char *pDiskImage, const unsigned long DiskIm
 
 static int      GetSectorSize(int N)
 {
-        if (N<8)
-			return (1<<N)<<7;	
-        else
-                return 0x0200;
+        return (1<<(N&0x07)<<7);
 }
 

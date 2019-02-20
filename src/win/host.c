@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -52,7 +52,7 @@ BOOL	Host_SetDisplay(int Type, int Width, int Height, int Depth)
 }
 
 
-BOOL	Host_LockGraphicsBuffer(void);	
+BOOL	Host_LockGraphicsBuffer(void);
 GRAPHICS_BUFFER_INFO	*Host_GetGraphicsBufferInfo(void);
 void	Host_UnlockGraphicsBuffer(void);
 void	Host_SetPaletteEntry(int, unsigned char, unsigned char, unsigned char);
@@ -77,11 +77,11 @@ GRAPHICS_BUFFER_COLOUR_FORMAT *Host_GetGraphicsBufferColourFormat()
 //		BufferInfo.pSurface = SurfaceDesc.lpSurface;
 
 		BufferColourFormat.BPP = ModeDetails.BPP;
-		
+
 		BufferColourFormat.Red.BPP = ModeDetails.RedBPP;
 		BufferColourFormat.Red.Mask = ModeDetails.RedMask;
 		BufferColourFormat.Red.Shift = ModeDetails.RedShift;
-		
+
 		BufferColourFormat.Green.BPP = ModeDetails.GreenBPP;
 		BufferColourFormat.Green.Mask = ModeDetails.GreenMask;
 		BufferColourFormat.Green.Shift = ModeDetails.GreenShift;
@@ -112,19 +112,19 @@ BOOL	Host_LockGraphicsBuffer(void)
 
 		BufferInfo.Height = SurfaceDesc.dwHeight;
 		BufferInfo.Width = SurfaceDesc.dwWidth;
-#ifdef _MSC_VER
+//#ifdef _MSC_VER
 		BufferInfo.Pitch = SurfaceDesc.lPitch;
-#else
-		BufferInfo.Pitch = SurfaceDesc.u1.lPitch;
-#endif
+//#else
+//		BufferInfo.Pitch = SurfaceDesc.u1.lPitch;
+//#endif
 		BufferInfo.pSurface = SurfaceDesc.lpSurface;
 
 		BufferColourFormat.BPP = ModeDetails.BPP;
-		
+
 		BufferColourFormat.Red.BPP = ModeDetails.RedBPP;
 		BufferColourFormat.Red.Mask = ModeDetails.RedMask;
 		BufferColourFormat.Red.Shift = ModeDetails.RedShift;
-		
+
 		BufferColourFormat.Green.BPP = ModeDetails.GreenBPP;
 		BufferColourFormat.Green.Mask = ModeDetails.GreenMask;
 		BufferColourFormat.Green.Shift = ModeDetails.GreenShift;
@@ -159,7 +159,7 @@ void	Host_SetPaletteEntry(int Index, unsigned char R, unsigned char G, unsigned 
 //void	Host_WriteDataToSoundBuffer(unsigned char *pData, unsigned long Length)
 //{
 //		DS_WriteBufferForSoundPlayback(pData,Length);
-//}		
+//}
 
 BOOL	Host_AudioPlaybackPossible(void)
 {
@@ -189,21 +189,13 @@ BOOL	Host_ProcessSystemEvents(void)
 
 static void	DoDriveLEDIndicator(int Drive, BOOL State)
 {
-	// if not active, don't set LED
-	if (!AppData.ApplicationIsActive)
-		return;
-	
-	// if not in focus, don't set LED
-	if (!AppData.ApplicationHasFocus)
-		return;
-
 	if (State)
 	{
-		ScrollLock_Set(TRUE);
+//		ScrollLock_Set(TRUE);
 	}
 	else
 	{
-		ScrollLock_Set(FALSE);
+//		ScrollLock_Set(FALSE);
 	}
 }
 
@@ -252,8 +244,8 @@ void	Host_Throttle(void)
 
 		PreviousTime = Time;
 	}
-	
-	
+
+
 //		#ifdef AY_OUTPUT
 //			/* if enabled, writes PSG registers to temp file */
 //			YMOutput_WriteRegs();
@@ -281,7 +273,7 @@ void	Host_Throttle(void)
 			DoKeyboard();
 		}
 	}
-//	else Sleep(2); /* YIELD TO WINDOWS - TROELS */ 
+//	else Sleep(2); /* YIELD TO WINDOWS - TROELS */
 }
 
 

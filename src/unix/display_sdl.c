@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -29,6 +29,7 @@
 
 SDL_Surface *screen;
 BOOL fullscreen = FALSE;	//FIXME
+BOOL toggleFullscreenLater = FALSE;
 int scale = 1;
 //int mode = SDL_SWSURFACE;
 int mode = SDL_HWSURFACE|SDL_DOUBLEBUF;
@@ -40,8 +41,9 @@ static INLINE void debug(char *s) {
 void sdl_InitialiseKeyboardMapping(int);
 void sdl_InitialiseJoysticks(void);
 
-void sdl_SetDisplay(int Width, int Height, int Depth, BOOL fullscreen) {
+void sdl_SetDisplay(int Width, int Height, int Depth, BOOL wantfullscreen) {
 
+	fullscreen = wantfullscreen;
 	fprintf(stderr, Messages[106],
 		Width, Height, Depth);
 	if ( fullscreen ) mode |= SDL_FULLSCREEN;
@@ -67,6 +69,17 @@ void sdl_SetDisplayFullscreen(int Width, int Height, int Depth) {
 	sdl_SetDisplay(Width, Height, Depth, TRUE);
 	SDL_ShowCursor(SDL_DISABLE);
 
+}
+
+void sdl_toggleDisplayFullscreen() {
+	fullscreen = !fullscreen;
+	if (fullscreen) {
+		sdl_SetDisplayFullscreen(screen->w,screen->h,
+				screen->format->BitsPerPixel);
+	} else {
+		sdl_SetDisplayWindowed(screen->w,screen->h,
+				screen->format->BitsPerPixel);
+	}
 }
 
 void sdl_SetDoubled( BOOL doubled ) {
@@ -629,6 +642,10 @@ int sdl_LockSpeed = TRUE;
 //#endif
 
 void sdl_Throttle(void) {
+	if (toggleFullscreenLater) {
+		toggleFullscreenLater = FALSE;
+		sdl_toggleDisplayFullscreen();
+	}
 	if (sdl_LockSpeed)
 	{
 		static Uint32 next_tick = 0;
@@ -636,7 +653,7 @@ void sdl_Throttle(void) {
 
 		if (!sound_throttle()) {
 			/* Wait for the next frame */
-			this_tick = SDL_GetTicks(); 
+			this_tick = SDL_GetTicks();
 			if ( this_tick < next_tick ) {
 				SDL_Delay(next_tick-this_tick);
 				next_tick = next_tick + (1000/FRAMES_PER_SEC);

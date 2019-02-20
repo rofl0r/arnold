@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -154,7 +154,7 @@ BOOL	GetStringValue(HKEY Key, TCHAR *pValueName, TCHAR **ppValueData)
 {
 	DWORD BufferSize;
 	DWORD Type;
-	
+
 	/* get size of data */
 	if (RegQueryValueEx(Key, pValueName, 0, &Type, NULL, &BufferSize)==ERROR_SUCCESS)
 	{
@@ -174,7 +174,7 @@ BOOL	GetStringValue(HKEY Key, TCHAR *pValueName, TCHAR **ppValueData)
 			}
 		}
 	}
-	
+
 	return FALSE;
 }
 /******************************************************************************************/
@@ -185,12 +185,12 @@ BOOL	GetJoystickName(int id,JOYCAPS *pJoystickCaps, char **ppName)
 	KeyStack keyStack;
 
 	KeyStack_Init(&keyStack);
-
+#if 0
 	/* windows 98: manufacturer id and product id are returned for joystick driver and not joystick! */
 	if ((pJoystickCaps->wMid == MM_MICROSOFT) && (pJoystickCaps->wPid == MM_PC_JOYSTICK))
 	{
 		if (KeyStack_ExecutePath(&keyStack, HKEY_LOCAL_MACHINE, KeyPathWin9x))
-		{				
+		{
 			TCHAR *SubKeyPath[3];
 
 			SubKeyPath[0] = pJoystickCaps->szRegKey;
@@ -201,7 +201,7 @@ BOOL	GetJoystickName(int id,JOYCAPS *pJoystickCaps, char **ppName)
 			{
 				TCHAR *pOEMName;
 				TCHAR ValueName[32];
-			
+
 				_stprintf(ValueName,_T("Joystick%dOEMName"),id+1);
 
 				if (GetStringValue(KeyStack_GetTopItem(&keyStack), ValueName, &pOEMName))
@@ -236,7 +236,7 @@ BOOL	GetJoystickName(int id,JOYCAPS *pJoystickCaps, char **ppName)
 		if (KeyStack_ExecutePath(&keyStack, HKEY_LOCAL_MACHINE, KeyPath))
 		{
 			if (KeyStack_OpenKey(&keyStack, KEY_READ,VID_PID_RegKeyName))
-			{			
+			{
 				/* get value */
 				if (GetStringValue(KeyStack_GetTopItem(&keyStack), _T("OEMName"), ppName))
 				{
@@ -247,7 +247,7 @@ BOOL	GetJoystickName(int id,JOYCAPS *pJoystickCaps, char **ppName)
 	}
 
 	KeyStack_Close(&keyStack);
-
+#endif
 	return bSuccess;
 }
 
@@ -276,7 +276,7 @@ void	JoystickConfiguration_SetupListView(HWND hListView)
 	{
 		int Count;
 		MMRESULT	hResult;
-		JOYCAPS JoystickCaps;		
+		JOYCAPS JoystickCaps;
 		char IDText[32];
 
 		Count = ListView_GetItemCount(hListView);
@@ -296,13 +296,13 @@ void	JoystickConfiguration_SetupListView(HWND hListView)
 			if (GetJoystickName(i,&JoystickCaps,&name))
 			{
 				MyListView_AddItem(hListView, name,1,Count,NULL);
-				
+
 				free(name);
 			}
 			else
 			{
 				char JoystickName[32];
-				
+
 				sprintf(JoystickName,"Joystick #%d",i);
 
 				MyListView_AddItem(hListView, name,1,Count,NULL);
@@ -325,14 +325,14 @@ BOOL CALLBACK  JoystickConfiguration_DialogProc(HWND hwnd, UINT iMsg, WPARAM wPa
 {
     switch (iMsg)
     {
-        
+
 		case WM_INITDIALOG:
 		{
 			HWND hList = GetDlgItem(hwnd, IDC_LIST_JOY);
 
 			if (hList)
 			{
-				ListView_SetExtendedListViewStyle(hList, LVS_EX_FULLROWSELECT|LVS_EX_GRIDLINES);
+		//		ListView_SetExtendedListViewStyle(hList, LVS_EX_FULLROWSELECT|LVS_EX_GRIDLINES);
 				JoystickConfiguration_SetupListView(hList);
 
 				{
@@ -341,7 +341,7 @@ BOOL CALLBACK  JoystickConfiguration_DialogProc(HWND hwnd, UINT iMsg, WPARAM wPa
 					State|=LVIS_SELECTED;
 					ListView_SetItemState(hList, joystickConfigs[0].realJoystickData.id, LVIS_SELECTED,State);
 				}
-			}	
+			}
 		}
 		return TRUE;
 
@@ -420,7 +420,7 @@ void	Joystick_Read(int id, JoyInfo *joy)
 
 //	if (JoystickEnabled)
 	{
-		JOYCAPS JoystickCaps;		
+		JOYCAPS JoystickCaps;
 
 		hResult = joyGetDevCaps(id, &JoystickCaps, sizeof(JoystickCaps));
 
@@ -444,7 +444,7 @@ void	Joystick_Read(int id, JoyInfo *joy)
 			joysticks[id].x.dead[1] = Xmid+2000;
 			joysticks[id].y.dead[0] = Ymid-2000;
 			joysticks[id].y.dead[1] = Ymid+2000;
-				
+
 			hResult = joyGetPosEx(id, &JoystickInfo);
 
 			if (hResult==JOYERR_NOERROR)
@@ -490,8 +490,8 @@ void	Joystick_Init()
 			{
 				XMid = (JoystickCaps.wXmax-JoystickCaps.wXmin)>>1;
 				YMid = (JoystickCaps.wYmax-JoystickCaps.wYmin)>>1;
-				XDead = 2000; 
-				YDead = 2000;				
+				XDead = 2000;
+				YDead = 2000;
 
 				JoystickEnabled = TRUE;
 			}

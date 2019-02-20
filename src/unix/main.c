@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -43,13 +43,19 @@
 /* FIXME: Move declarations to header file */
 extern void	Host_InitDriveLEDIndicator();
 extern void	Host_FreeDriveLEDIndicator();
+#ifdef HAVE_GTK
+extern GtkWidget *btn_double;
+#endif
+#ifdef HAVE_SDL
+extern BOOL toggleFullscreenLater;
+#endif
 
 /* Forward declarations */
 void init_main();
 //char *getLocalIfNull(char *s);
 
 
-/* 464 base system -> cassette only, 64k only */ 
+/* 464 base system -> cassette only, 64k only */
 void ConfigCPC464()
 {
 	CPC_SetOSRom(roms_cpc464.os.start);
@@ -102,13 +108,13 @@ void Config464Plus()
 	CPC_SetHardware(CPC_HW_CPCPLUS);
 	Cartridge_Insert(cartridge_cpcplus.start, cartridge_cpcplus.size);
 	Amstrad_DiscInterface_DeInstall();
-	Amstrad_RamExpansion_DeInstall();	
+	Amstrad_RamExpansion_DeInstall();
   CPC_Reset();
 }
 
 /* 6128+ base system-> disc, 128k only */
 void Config6128Plus()
-{	
+{
 	CPC_SetHardware(CPC_HW_CPCPLUS);
 	Cartridge_Insert(cartridge_cpcplus.start, cartridge_cpcplus.size);
 	Amstrad_DiscInterface_Install();
@@ -140,10 +146,10 @@ int main(int argc, char *argv[])
 
 	if (!CPCEmulation_CheckEndianness())
 	{
-		printf(Messages[72]);
+		printf("%s", Messages[72]);
 		exit(1);
 	}
-	
+
 //	/* check display */
 //	if (!XWindows_CheckDisplay())
 //	{
@@ -155,7 +161,7 @@ int main(int argc, char *argv[])
 	CPC_Initialise();
 
 	Multiface_Install();
-	
+
 	/* done before parsing command line args. Command line args
 	will take priority */
 	loadConfigFile(); //FIXME: disabled for debug
@@ -163,8 +169,8 @@ int main(int argc, char *argv[])
 	init_main(argc, argv);
 
 	CPC_Finish();
-	
-	Multiface_DeInstall();	
+
+	Multiface_DeInstall();
 
 	//printf("heello");
 
@@ -182,7 +188,7 @@ int main(int argc, char *argv[])
 		printf("Switches supported:\n");
 		printf("-drivea <string> = specify disk image to insert into drive A\n");
 		printf("-driveb <string> = specify disk image to insert into drive B\n");
-		printf("-cart <string> = specify CPC+ cartridge to insert\n");				
+		printf("-cart <string> = specify CPC+ cartridge to insert\n");
 		printf("-frameskip <integer> = specify frame skip (0-5)\n");
 		printf("-crtctype <integer> = specify crtc type (0,1,2,3,4)\n");
 		printf("-tape <string> = specify tape image\n");
@@ -190,6 +196,10 @@ int main(int argc, char *argv[])
 		printf("-snapshort <string> = specify snapshot to load\n");
 		printf("-kbdtype <integer> = specify keyboard type (0=QWERTY, 1=QWERTZ, 2=AZERTY)\n");
 		printf("-soundplugin <integer> = specify sound output plugin\n                         (0=NONE, 1=OSS, 2=ALSA, 3=ALSA_MMAP, 4=SDL)\n");
+#ifdef HAVE_SDL
+		printf("-doublesize double the size of the emulator screen\n");
+		printf("-fullscreen fullscreen mode\n");
+#endif
 		exit(0);
 	}
 
@@ -210,6 +220,10 @@ void init_main(int argc, char *argv[]) {
 		{"snapshot", 1, 0, 's'},
 		{"kbdtype", 1, 0, 'k'},
 		{"soundplugin", 1, 0, 'o'},
+#ifdef HAVE_SDL
+		{"doublesize", 0, 0, 'd'},
+		{"fullscreen", 0, 0, 'u'},
+#endif
 		{"help", 0, 0, 'h'},
 		{0, 0, 0, 0}
 	};
@@ -225,6 +239,10 @@ void init_main(int argc, char *argv[]) {
 	char *snapshot = NULL;
 	char *kbdtype = NULL;
 	char *soundplugin = NULL;
+#ifdef HAVE_SDL
+	BOOL doubled = FALSE;
+	BOOL fullscreen = FALSE;
+#endif
 	do {
 		int this_option_optind = optind ? optind : 1;
 		int option_index = 0;
@@ -248,6 +266,14 @@ void init_main(int argc, char *argv[]) {
 			case 'c':
 				cart = optarg;
 				break;
+#ifdef HAVE_SDL
+			case 'd':
+				doubled = TRUE;
+				break;
+			case 'u':
+				fullscreen = TRUE;
+				break;
+#endif
 			case 'f':
 				frameskip = optarg;
 				break;
@@ -270,7 +296,7 @@ void init_main(int argc, char *argv[]) {
 		}
 	} while (c != -1);
 	printf("tape: %s\n", tape);
-  
+
 	CPCEmulation_InitialiseDefaultSetup();
 
 	ConfigCPC6128();
@@ -319,7 +345,7 @@ void init_main(int argc, char *argv[]) {
 			switch (cpc)
 			{
 						case 0:
-						{	
+						{
 				ConfigCPC464();
 				}
 				break;
@@ -356,7 +382,7 @@ void init_main(int argc, char *argv[]) {
 
 				default:
 				{
-				ConfigCPC6128();				
+				ConfigCPC6128();
 }
 				break;
 
@@ -398,15 +424,24 @@ void init_main(int argc, char *argv[]) {
 
 		Render_SetDisplayWindowed();
 
-
 #ifdef HAVE_SDL
+		if (doubled) {
+#ifdef HAVE_GTK
+			gtk_toggle_button_set_active( GTK_TOGGLE_BUTTON (btn_double), TRUE );
+#else
+			sdl_SetDoubled(doubled);
+#endif
+		}
+		if (fullscreen) {
+			toggleFullscreenLater = TRUE;
+		}
 		if (kbd != -1) sdl_InitialiseKeyboardMapping(kbd);
 #endif
-		printf(Messages[76]);
+		printf("%s", Messages[76]);
 
 		CPC_SetAudioActive(TRUE);
 
-		printf(Messages[77]);
+		printf("%s", Messages[77]);
 
 		/* Enter GTK+ event loop when GTK+ is compiled in. Use own main loop
 		 * otherwise. */

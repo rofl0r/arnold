@@ -1,0 +1,38 @@
+jan 2009
+--------
+- arnold started up with something that looked like a cpc6128 but was cassette based.
+now fixed. arnold starts with a real cpc6128 configuration.
+- started to implement a new "load file into ram" option. Not finished yet but I was going to use
+this to run some tests with arnold.
+
+December 2008
+-------------
+- it was not possible to insert an expansion rom (now fixed). clicking on load button would not do anything.
+- lots of dissassembly errors fixed. Some instructions were wrong, some were not formatted correctly. Some
+were inconsistent. 
+- If Arnold failed to auto-start a disc it would not tell you.
+- If Arnold failed to auto-start a disc it would leave  autotype on and would print garbage.  Cpc would hang.
+- If Arnold failed to auto-start a disc it would leave autotype on, reset did not stop it. Cpc would be hung after reset.
+- Failed to autostart discs where directory had graphics and the only file to run was hidden.
+- Can now load 256k and 512k snapshots. 
+- Much more tolerant to bad snapshots (bad length).
+- Can now autostart disc/tape on cpc+. 
+- compressed memory blocks in snapshot v3 are now supported (snapshots written by winape should now load)
+- disc image filename blocks in snapshot v3 specification are now supported (snapshots written by winape should now load)
+- scroll lock led no longer reflects drive led. it was not useful because it only reflected the state of the internal drive anyway.
+
+
+
+November 2008
+-------------
+
+Fixes:
+- Ukonx tracker now loads.
+- Last Ninja 2 Remix (protected disc image) can now be inserted without Arnold crashing
+- Natural Bug Killer demo now runs
+
+
+- Inserting some disc images would cause Arnold to crash.
+- Fixed bug with CPC+ snapshot loading/saving. Some snapshots identify themselves for CPC
+old generation, but if a CPC+ special block is found it is assumed CPC+ is used.
+- Fixed a bug in the fdc emulation meaning Natural Bug Killers would hang after intro part.

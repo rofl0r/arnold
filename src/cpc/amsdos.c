@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -26,6 +26,10 @@
 #include <string.h>
 #include "device.h"
 #include "diskimage/diskimg.h"
+
+#ifdef _WIN32
+#define stricmp _stricmp
+#endif
 
 static AMSDOS_FORMAT AmsdosFormat_SYSTEM={0x041,2,9};
 static AMSDOS_FORMAT AmsdosFormat_DATA={0x0c1,0,9};
@@ -136,7 +140,7 @@ BOOL	AMSDOS_IsValidFilenameCharacter(char ch)
 and which, if present on the disc, AMSDOS can actually load.
 
 Some discs have filenames with control characters. These are used to create
-a picture when the disc is catalogued. These can't be typed and will not be valid 
+a picture when the disc is catalogued. These can't be typed and will not be valid
 to run. */
 static BOOL	AMSDOS_CheckValidFilename(const amsdos_directory_entry *entry)
 {
@@ -160,7 +164,7 @@ static BOOL	AMSDOS_CheckValidFilename(const amsdos_directory_entry *entry)
 	if (nPos==1)
 		return FALSE;
 
-	if (nPos!=8) 
+	if (nPos!=8)
 	{
 		/* assumption is we have seen a space character, so check
 		the remaining characters are also spaces. i.e. the filename
@@ -250,7 +254,7 @@ static BOOL	AMSDOS_CheckValidLength(const amsdos_directory_entry *entry)
 
 		if (nBlock!=0)
 			nValidBlocks++;
-	
+
 		/* a block value of zero is used to terminate the block list */
 		if (nBlock==0)
 			break;
@@ -359,12 +363,9 @@ BOOL	AMSDOS_DoesDirectoryEntryQualifyForAutorun(const amsdos_directory_entry *en
 	if (entry->Extent!=0)
 		return FALSE;
 
-	/* file must be visible in directory listing */
+	/* file does not need to be visible in directory to be runnable, especially
+	where directory graphics are used */
 
-	/* bit 7 of Extension[0] is set if file is read-only */
-	/* bit 7 of Extension[1] is set if file is system (hidden from directory listing) */
-	if ((entry->Extension[1]&0x080)!=0)
-		return FALSE;
 
 	/* check valid length (doesn't look at header) */
 	if (!AMSDOS_CheckValidLength(entry))
@@ -471,7 +472,7 @@ BOOL AMSDOS_DoesFileQualifyForAutorun(const AMSDOS_FORMAT *pFormat, const amsdos
 		return FALSE;
 
 	/* has a header? */
-	
+
 	/* it is possible to run BASIC programs written as ASCII, but we'll ignore these
 	for now as these are unlikely */
 	if (!AMSDOS_HasAmsdosHeader((const unsigned char *)pBuffer))
@@ -511,7 +512,7 @@ BOOL AMSDOS_DoesFileQualifyForAutorun(const AMSDOS_FORMAT *pFormat, const amsdos
 
 				/* get execution address */
 				nExecutionAddress = ((pHeader->ExecutionAddressLow&0x0ff) | ((pHeader->ExecutionAddressHigh&0x0ff)<<8));
-				
+
 				/* get load address */
 				nLoadAddress = ((pHeader->LocationLow&0x0ff) | ((pHeader->LocationHigh & 0x0ff)<<8));
 
@@ -596,7 +597,7 @@ int AMSDOS_GetFilenamePriority(const char *pFilename)
 		return 6;
 	if (strncmp(pFilename,"MENU",nFilenameLength)==0)
 		return 1;
-	
+
 	return 0;
 }
 
@@ -634,14 +635,14 @@ int AMSDOS_ProcessFiles(const AMSDOS_FORMAT *pFormat,unsigned char *pBuffer, cha
 
 	/* process entries */
 	entry = (amsdos_directory_entry *)pDirectory;
-	
+
 	for (i=0; i<nEntries; i++)
 	{
 		/* check directory entry is ok */
 		if (AMSDOS_DoesDirectoryEntryQualifyForAutorun(entry))
 		{
 			if (AMSDOS_DoesFileQualifyForAutorun(pFormat, entry,pBuffer))
-			{	
+			{
 				ValidEntries[nValidEntries].nEntry = i;
 				nValidEntries++;
 			}
@@ -649,6 +650,12 @@ int AMSDOS_ProcessFiles(const AMSDOS_FORMAT *pFormat,unsigned char *pBuffer, cha
 		entry++;
 	}
 
+
+	if (nValidEntries==0)
+	{
+		/* can't find a file to run, so tell the user */
+		return AUTORUN_NO_FILES_QUALIFY;
+	}
 
 
 	if (nValidEntries==1)
@@ -666,13 +673,18 @@ int AMSDOS_ProcessFiles(const AMSDOS_FORMAT *pFormat,unsigned char *pBuffer, cha
 		{
 			int nPriority = 1;
 			char Filename[13];
-	
+
 			entry = ((amsdos_directory_entry *)pDirectory)+ValidEntries[i].nEntry;
 
 			AMSDOS_GetFilenameFromEntry(entry, Filename);
 
-			nPriority = AMSDOS_GetPrefixPriority(Filename);
+			nPriority += AMSDOS_GetPrefixPriority(Filename);
 			nPriority += (AMSDOS_GetFilenamePriority(Filename)*3);
+
+			/* prefer visible over hidden? */
+			if ((entry->Filename[9]&0x080)==0)
+				nPriority+=10;
+
 			ValidEntries[i].nPriority = nPriority;
 		}
 
@@ -683,7 +695,7 @@ int AMSDOS_ProcessFiles(const AMSDOS_FORMAT *pFormat,unsigned char *pBuffer, cha
 		if there is then we can't autorun the disc :( */
 		if (ValidEntries[0].nPriority==ValidEntries[1].nPriority)
 			return AUTORUN_TOO_MANY_POSSIBILITIES;
-	
+
 		nValidEntry = ValidEntries[0].nEntry;
 	}
 
@@ -693,11 +705,11 @@ int AMSDOS_ProcessFiles(const AMSDOS_FORMAT *pFormat,unsigned char *pBuffer, cha
 		entry = ((amsdos_directory_entry *)pDirectory)+nValidEntry;
 
 		AMSDOS_GetFilenameFromEntry(entry, Filename);
-		
-		/* this file can be autorun */	
+
+		/* this file can be autorun */
 		sprintf(AutorunCommand,"RUN\"%s\n",Filename);
-	
-		return TRUE;
+
+		return AUTORUN_OK;
 	}
 
 
@@ -734,7 +746,7 @@ BOOL AMSDOS_HasDirectory(int nDrive, const AMSDOS_FORMAT *pFormat)
 */
 
 
-BOOL AMSDOS_GenerateAutorunCommand(unsigned char *pBuffer, char *AutorunCommand)
+int AMSDOS_GenerateAutorunCommand(unsigned char *pBuffer, char *AutorunCommand)
 {
 	BOOL Sector41Exists = FALSE;
 	BOOL SectorC1Exists = FALSE;
@@ -781,8 +793,7 @@ BOOL AMSDOS_GenerateAutorunCommand(unsigned char *pBuffer, char *AutorunCommand)
 		if (HasDirectory41)
 		{
 			/* try to process directory */
-			if (AMSDOS_ProcessFiles(&AmsdosFormat_SYSTEM,pBuffer, AutorunCommand))
-				return TRUE;
+			return AMSDOS_ProcessFiles(&AmsdosFormat_SYSTEM,pBuffer, AutorunCommand);
 		}
 
 		/* either doesn't have a directory, or failed to find a runnable file in directory
@@ -790,8 +801,8 @@ BOOL AMSDOS_GenerateAutorunCommand(unsigned char *pBuffer, char *AutorunCommand)
 
 		if (AMSDOS_IsBootable(nDrive, pBuffer))
 		{
-			strcpy(AutorunCommand,"|CPM\n");
-			return TRUE;
+			strncpy(AutorunCommand,"|CPM\n",5);
+			return AUTORUN_OK;
 		}
 	}
 	else if ((Sector41Exists) && (SectorC1Exists)/* && (!Sector01Exists)*/)
@@ -805,15 +816,12 @@ BOOL AMSDOS_GenerateAutorunCommand(unsigned char *pBuffer, char *AutorunCommand)
 		if (HasDirectoryC1)
 		{
 			/* try to process directory */
-			int nStatus = AMSDOS_ProcessFiles(&AmsdosFormat_DATA,pBuffer, AutorunCommand);
-
-			if (nStatus==AUTORUN_OK)
-				return AUTORUN_OK;
+			return AMSDOS_ProcessFiles(&AmsdosFormat_DATA,pBuffer, AutorunCommand);
 		}
 
 		if (AMSDOS_IsBootable(nDrive, pBuffer))
 		{
-			strcpy(AutorunCommand,"|CPM\n");
+			strncpy(AutorunCommand,"|CPM\n",5);
 			return AUTORUN_OK;
 		}
 	}

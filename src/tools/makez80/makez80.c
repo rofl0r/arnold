@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -21,10 +21,18 @@
 /* This file will generate z80.c */
 #include <stdio.h>
 #include <stdlib.h>
+const char *Z80_INC_REFRESH = "\
+        R.R+=%d;\r\n \
+";
 
 typedef unsigned short Z80_WORD;
 typedef unsigned char  Z80_BYTE;
 typedef int BOOL;
+extern int	Z80_GetOpcodeCountForInstruction(int Addr);
+int	Diss_Index_Get8BitRegCount(unsigned char OpcodeIndex);
+static BOOL Diss_Index_IsRegIndex(unsigned char RegIndex);
+static BOOL	Diss_Index_IsReg8Bit(unsigned char RegIndex);
+
 
 #ifndef TRUE
 #define TRUE (1==1)
@@ -33,6 +41,10 @@ typedef int BOOL;
 #ifndef FALSE
 #define FALSE (1==0)
 #endif
+
+const char *Z80_ADD_PC = "\
+		R.PC.W.l+=%d; \
+";
 
 unsigned char Memory[256];
 
@@ -47,11 +59,1972 @@ int InterruptAddr;
 void	DoPrefixIgnore(FILE *fh)
 {
 	fprintf(fh,"R.Flags &= ~Z80_CHECK_INTERRUPT_FLAG;\r\n");
-	fprintf(fh,"ADD_PC(1);\r\n");
-	fprintf(fh,"INC_REFRESH(1);\r\n");
+	fprintf(fh,Z80_ADD_PC,1);
+	fprintf(fh,Z80_INC_REFRESH,1);
 	fprintf(fh,"Cycles = 1;\r\n");
 //	Z80_UpdateCycles(1)
 }
+
+
+/* overflow caused, when both are + or -, and result is different. */
+#define SET_OVERFLOW_FLAG_A_ADD(Reg, Result) \
+        Z80_FLAGS_REG &= (0x0ff^Z80_PARITY_FLAG);           \
+        Z80_FLAGS_REG |= (((R.AF.B.h^Reg^0x080)&(Reg^Result)&0x080)>>(7-Z80_PARITY_FLAG_BIT))
+
+#define SET_OVERFLOW_FLAG_A_SUB(Reg, Result) \
+        Z80_FLAGS_REG &= (0x0ff^Z80_PARITY_FLAG);                   \
+        Z80_FLAGS_REG |= (((Reg^R.AF.B.h)&(Reg^Result)&0x080)>>(7-Z80_PARITY_FLAG_BIT))
+
+#define SET_HALFCARRY(Reg, Result)              \
+        Z80_FLAGS_REG &= (0x0ff^Z80_HALFCARRY_FLAG);        \
+        Z80_FLAGS_REG |= ((Reg^R.AF.B.h^Result) & Z80_HALFCARRY_FLAG)
+
+/*
+#define SET_OVERFLOW_INC(Register, Reg,Result) \
+        Z80_FLAGS_REG &= (0x0ff^Z80_PARITY_FLAG);           \
+        Z80_FLAGS_REG |= (((Register^Reg^0x080)&(Reg^Result)&0x080)>>5)
+*/
+
+/*#define SET_OVERFLOW_DEC(Register,Reg, Result) \
+        Z80_FLAGS_REG &= (0x0ff^Z80_PARITY_FLAG);                   \
+        Z80_FLAGS_REG |= (((Register^Reg)&(Reg^Result)&0x080)>>5)
+*/
+
+/* halfcarry carry out of bit 11 */
+#define SET_HALFCARRY_HL_ADD(Reg, Result)       \
+        Z80_FLAGS_REG &= (0x0ff^Z80_HALFCARRY_FLAG);        \
+        Z80_FLAGS_REG |= ((R.HL.W & 0x08000)>>(8+4))
+
+
+#define SET_OVERFLOW_FLAG_HL_ADD(Reg, Result) \
+        Z80_FLAGS_REG &= (0x0ff^Z80_PARITY_FLAG);           \
+        Z80_FLAGS_REG |= (((Reg^R.HL.W^0x08000)&(Reg^Result)&0x08000)>>(15-Z80_PARITY_FLAG_BIT))
+
+#define SET_OVERFLOW_FLAG_HL_SUB(Reg, Result) \
+        Z80_FLAGS_REG &= (0x0ff^Z80_PARITY_FLAG);           \
+        Z80_FLAGS_REG |= (((Reg^R.HL.W)&(Reg^Result)&0x8000)>>(15-Z80_PARITY_FLAG_BIT))
+
+
+#if 0
+#define SET_ZERO_FLAG(Register)         \
+{                                                                       \
+Z80_FLAGS_REG = Z80_FLAGS_REG & (0x0ff^Z80_ZERO_FLAG);          \
+                                                                \
+if (Register==0)                \
+{                                                               \
+        Z80_FLAGS_REG |= Z80_ZERO_FLAG;             \
+}                                                               \
+}
+#endif
+
+#define SET_ZERO_FLAG(Register) \
+{                                                                               \
+        Z80_FLAGS_REG = Z80_FLAGS_REG & (0x0ff^(Z80_ZERO_FLAG | Z80_SIGN_FLAG)); \
+        Z80_FLAGS_REG = Z80_FLAGS_REG | (ZeroSignTable[Register & 0x0ff] & Z80_ZERO_FLAG); \
+}
+
+
+#define SET_ZERO_FLAG16(Register)               \
+{                                                               \
+Z80_FLAGS_REG &= (0x0ff^Z80_ZERO_FLAG);     \
+                                                                \
+        if ((Register & 0x0ffff)==0)            \
+        {                                                               \
+                Z80_FLAGS_REG |= Z80_ZERO_FLAG;             \
+        }                                                               \
+}
+#define SET_UNDOC_BITS() \
+{ \
+Z80_FLAGS_REG = Z80_FLAGS_REG & ((1<<5)|(1<<3)); \
+Z80_FLAGS_REG = Z80_FLAGS_REG|(Z80.Memptr.B.h&((1<<5)|(1<<3))); \
+}
+
+#define SET_SIGN_FLAG(Register)         \
+{                                                                       \
+Z80_FLAGS_REG = Z80_FLAGS_REG & (0x0ff^Z80_SIGN_FLAG);          \
+Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x080);     \
+}
+
+#define SET_SIGN_FLAG16(Register)       \
+{                                                                       \
+Z80_FLAGS_REG = Z80_FLAGS_REG & (0x0ff^Z80_SIGN_FLAG);          \
+Z80_FLAGS_REG = Z80_FLAGS_REG | ((Register & 0x08000)>>8); \
+}
+
+#define SET_CARRY_FLAG_ADD(Result)              \
+{                                                                       \
+Z80_FLAGS_REG = Z80_FLAGS_REG & (0x0ff^Z80_CARRY_FLAG); \
+Z80_FLAGS_REG = Z80_FLAGS_REG | ((Result>>8) & 0x01); \
+}
+
+#define SET_CARRY_FLAG_ADD16(Result)    \
+{                                                                       \
+Z80_FLAGS_REG = Z80_FLAGS_REG & (0x0ff^Z80_CARRY_FLAG); \
+Z80_FLAGS_REG = Z80_FLAGS_REG | ((Result>>16) & 0x01); \
+}
+
+#define SET_CARRY_FLAG_SUB(Result)      \
+{                                                                               \
+Z80_FLAGS_REG = Z80_FLAGS_REG & (0x0ff^Z80_CARRY_FLAG); \
+Z80_FLAGS_REG = Z80_FLAGS_REG | ((Result>>8) & 0x01); \
+}
+
+#define SET_CARRY_FLAG_SUB16(Result)    \
+{                                                                               \
+Z80_FLAGS_REG = Z80_FLAGS_REG & (0x0ff^Z80_CARRY_FLAG); \
+Z80_FLAGS_REG = Z80_FLAGS_REG | ((Result>>16) & 0x01); \
+}
+
+
+/* set zero and sign flag */
+#define SET_ZERO_SIGN(Register)                 \
+{                                                                               \
+        Z80_FLAGS_REG = Z80_FLAGS_REG & (0x0ff^(Z80_ZERO_FLAG | Z80_SIGN_FLAG)); \
+        Z80_FLAGS_REG = Z80_FLAGS_REG | ZeroSignTable[Register & 0x0ff]; \
+}
+
+/* set zero, sign and parity flag */
+#define SET_ZERO_SIGN_PARITY(Register)  \
+{                                                                               \
+        Z80_FLAGS_REG = Z80_FLAGS_REG & (0x0ff^(Z80_ZERO_FLAG | Z80_SIGN_FLAG | Z80_PARITY_FLAG)); \
+        Z80_FLAGS_REG = Z80_FLAGS_REG | ZeroSignParityTable[Register & 0x0ff]; \
+}
+
+
+#define SET_PARITY_FLAG(Register)               \
+{                                                                               \
+        Z80_FLAGS_REG &= (0x0ff^Z80_PARITY_FLAG); /*(UNUSED1_FLAG | UNUSED2_FLAG | CARRY_FLAG | ZERO_FLAG | SIGN_FLAG | SUBTRACT_FLAG | HALFCARRY_FLAG);*/          \
+        Z80_FLAGS_REG |= ParityTable[Register & 0x0ff];     \
+}
+
+
+
+
+
+
+
+/*------------------*/
+/* RES */
+
+#define RES(AndMask,Register) \
+        Register = Register & (~AndMask); \
+
+#define RES_REG(AndMask, Register) \
+{                                                                       \
+        RES(AndMask, Register);                 \
+                                                                        \
+}
+
+#define RES_HL(AndMask)                 \
+{                                                               \
+        /*Z80_BYTE Data;        */                      \
+                                                                \
+        R.TempByte = Z80_RD_BYTE(R.HL.W);       \
+                                                                \
+        RES(AndMask, R.TempByte);                       \
+                                                                \
+        Z80_WR_BYTE(R.HL.W, R.TempByte); \
+}
+
+#define RES_INDEX(AndMask,IndexReg)     \
+{                                                               \
+        /*Z80_BYTE Data;*/                              \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+                                                                \
+        R.TempByte = RD_BYTE_INDEX();   \
+                                                                \
+        RES(AndMask, R.TempByte);                       \
+                                                                \
+        WR_BYTE_INDEX(R.TempByte);     \
+}
+
+
+
+/* SET */
+
+#define SET(OrMask, Register) \
+        Register = Register | OrMask;   \
+
+#define SET_REG(OrMask, Register) \
+{                                                                \
+        SET(OrMask, Register)           \
+                                                                \
+}
+
+#define SET_HL(OrMask)                  \
+{                                                               \
+        /*Z80_BYTE Data;*/                              \
+                                                                \
+        R.TempByte = Z80_RD_BYTE(R.HL.W); \
+                                                                \
+        SET(OrMask, R.TempByte);                        \
+                                                                \
+        Z80_WR_BYTE(R.HL.W, R.TempByte);  \
+}
+
+
+#define SET_INDEX(OrMask, IndexReg)     \
+{                                                               \
+        /*Z80_BYTE      Data;*/                         \
+                                                                \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
+                                                                \
+        SET(OrMask, R.TempByte);                        \
+                                                                \
+        WR_BYTE_INDEX(R.TempByte);     \
+}
+
+
+
+/*------------------*/
+#define SHIFTING_FLAGS(Register)        \
+        SET_ZERO_SIGN_PARITY(Register)  \
+        Z80_FLAGS_REG &= Z80_SIGN_FLAG | Z80_ZERO_FLAG | Z80_PARITY_FLAG | Z80_CARRY_FLAG
+
+
+#define SET_CARRY_LEFT_SHIFT(Register)          \
+Z80_FLAGS_REG = Z80_FLAGS_REG & (0x0ff^Z80_CARRY_FLAG); \
+Z80_FLAGS_REG = Z80_FLAGS_REG | ((Register>>7) & 0x01)
+
+
+
+#define SET_CARRY_RIGHT_SHIFT(Register)         \
+Z80_FLAGS_REG = Z80_FLAGS_REG & (0x0ff^Z80_CARRY_FLAG); \
+Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
+
+
+
+
+#define RL(Register)                            \
+{                                                                       \
+        Z80_BYTE Carry;                                 \
+                                                                        \
+        Carry = (Z80_FLAGS_REG & (Z80_BYTE)Z80_CARRY_FLAG); \
+                                                                        \
+        SET_CARRY_LEFT_SHIFT(Register); \
+                                                                        \
+        Register=Register<<1;                   \
+                                                                        \
+        Register=Register | Carry;                              \
+}
+
+#define RL_WITH_FLAGS(Register)         \
+{                                                                       \
+        RL(Register);                                   \
+                                                                        \
+        SHIFTING_FLAGS(Register);               \
+}
+
+#define RL_REG(Register)                        \
+{                                                                       \
+        RL_WITH_FLAGS(Register);                \
+}
+
+#define RL_HL()								\
+{											\
+	/*Z80_BYTE      Data;*/				\
+											\
+        R.TempByte = Z80_RD_BYTE(R.HL.W);	\
+											\
+        RL_WITH_FLAGS(R.TempByte);			\
+											\
+        Z80_WR_BYTE(R.HL.W,R.TempByte);		\
+}
+
+
+#define RL_INDEX(IndexReg)                      \
+{                                                                       \
+        /*Z80_BYTE Data;        */                              \
+                                                                        \
+ 		SETUP_INDEXED_ADDRESS(IndexReg); \
+       R.TempByte = RD_BYTE_INDEX();   \
+                                                                        \
+        RL_WITH_FLAGS(R.TempByte);                                              \
+                                                                        \
+        WR_BYTE_INDEX(R.TempByte);             \
+}                                                                       \
+
+
+#define RR(Register)                            \
+{                                                                       \
+        Z80_BYTE Carry;                                         \
+                                                                        \
+        Carry = Z80_FLAGS_REG & Z80_CARRY_FLAG;     \
+                                                                        \
+        SET_CARRY_RIGHT_SHIFT(Register);                        \
+                                                                        \
+        Register=Register>>1;                   \
+                                                                        \
+        Register=Register | (Carry<<7); \
+                                                                        \
+}
+
+#define RR_WITH_FLAGS(Register)         \
+{                                                                       \
+        RR(Register);                                   \
+                                                                        \
+        SHIFTING_FLAGS(Register);               \
+}
+
+#define RR_REG(Register)                        \
+{                                                                       \
+        RR_WITH_FLAGS(Register);                \
+}
+
+#define RR_HL()									\
+{												\
+        /*Z80_BYTE      Data;	*/				\
+												\
+        R.TempByte = Z80_RD_BYTE(R.HL.W);		\
+												\
+        RR_WITH_FLAGS(R.TempByte);				\
+												\
+        Z80_WR_BYTE(R.HL.W,R.TempByte);			\
+}
+
+
+#define RR_INDEX(IndexReg)                      \
+{                                                                       \
+        /*Z80_BYTE Data;*/                                      \
+                                                                        \
+ 		SETUP_INDEXED_ADDRESS(IndexReg); \
+       R.TempByte = RD_BYTE_INDEX();   \
+                                                                        \
+        RR_WITH_FLAGS(R.TempByte);                                              \
+                                                                        \
+        WR_BYTE_INDEX(R.TempByte);             \
+}                                                                       \
+
+/* rol doesn't set sign or zero! */
+
+
+
+#define RLC(Register)                           \
+{                                                                       \
+        Z80_BYTE        OrByte;                         \
+                                                                        \
+        OrByte = (Register>>7) & 0x01;  \
+                                                                        \
+        SET_CARRY_LEFT_SHIFT(Register);                 \
+                                                                        \
+        Register=Register<<1;                   \
+        Register=Register | OrByte;                             \
+}
+
+#define RLC_WITH_FLAGS(Register)        \
+{                                                                       \
+        RLC(Register);                                  \
+                                                                        \
+        SHIFTING_FLAGS(Register);               \
+}
+
+#define RLC_REG(Register)                       \
+{                                                                       \
+        RLC_WITH_FLAGS(Register);       \
+}
+
+#define RLC_HL()						\
+{											\
+        R.TempByte = Z80_RD_BYTE(R.HL.W);	\
+											\
+        RLC_WITH_FLAGS(R.TempByte);			\
+											\
+        Z80_WR_BYTE(R.HL.W,R.TempByte);		\
+}
+
+
+#define RLC_INDEX(IndexReg)                     \
+{                                                                       \
+        /*Z80_BYTE      Data;   */                              \
+                                                                        \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
+                                                                        \
+        RLC_WITH_FLAGS(R.TempByte);                     \
+                                                                        \
+        WR_BYTE_INDEX(R.TempByte);             \
+}                                                                       \
+
+#define RRC(Register)                           \
+{                                                                       \
+        Z80_BYTE        OrByte;                                 \
+                                                                        \
+        OrByte = Register & 0x001;              \
+                                                                        \
+        SET_CARRY_RIGHT_SHIFT(Register);                        \
+                                                                        \
+        Register=Register>>1;                   \
+                                                                        \
+        Register=Register | (OrByte<<7);                                \
+}
+
+#define RRC_WITH_FLAGS(Register)        \
+{                                                                       \
+        RRC(Register);                                  \
+                                                                        \
+        SHIFTING_FLAGS(Register);               \
+}
+
+#define RRC_REG(Register)                       \
+{                                                                       \
+        RRC_WITH_FLAGS(Register);       \
+}
+
+#define  RRC_HL()			\
+{							\
+        R.TempByte = Z80_RD_BYTE(R.HL.W);	\
+											\
+        RRC_WITH_FLAGS(R.TempByte);			\
+											\
+        Z80_WR_BYTE(R.HL.W,R.TempByte);		\
+}
+
+
+#define RRC_INDEX(IndexReg)                     \
+{                                                                       \
+        /*Z80_BYTE      Data;   */                      \
+                                                                        \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
+                                                                        \
+        RRC_WITH_FLAGS(R.TempByte);                     \
+                                                                        \
+        WR_BYTE_INDEX(R.TempByte);             \
+}                                                                       \
+
+#define SLA(Register)							\
+{												\
+	Z80_BYTE	Reg;							\
+	Z80_BYTE	Flags;							\
+	Reg = Register;								\
+	Flags = ((Reg>>7) & 0x01);	/* carry */				\
+	Reg = (Reg<<1);								\
+	Flags = Flags | ZeroSignParityTable[Reg];	/* sign, zero, parity, f5, f3 */ \
+	Register = Reg;								\
+	Z80_FLAGS_REG = Flags;							\
+}
+
+
+
+
+#define SLA_WITH_FLAGS(Register)        \
+{                                                                       \
+        SLA(Register);                                  \
+}
+
+#define SLA_REG(Register)                       \
+{                                                                       \
+        SLA_WITH_FLAGS(Register);               \
+}
+
+#define SLA_HL()								\
+{												\
+        R.TempByte = Z80_RD_BYTE(R.HL.W);		\
+        SLA_WITH_FLAGS(R.TempByte);				\
+        Z80_WR_BYTE(R.HL.W,R.TempByte);			\
+}
+
+
+#define SLA_INDEX(IndexReg)                     \
+{                                                                       \
+        /*Z80_BYTE      Data;   */                      \
+                                                                        \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
+                                                                        \
+        SLA_WITH_FLAGS(R.TempByte);                     \
+                                                                        \
+        WR_BYTE_INDEX(R.TempByte);     \
+}                                                                       \
+
+
+#define SRA(Register)							\
+{												\
+	Z80_BYTE	Reg;							\
+	Z80_BYTE	Flags;							\
+	Z80_BYTE	OrByte;							\
+	Reg = Register;								\
+	Flags = Reg & 0x01;	/* carry */				\
+	OrByte = Reg & 0x080;						\
+	Reg = (Reg>>1) | OrByte;					\
+	Flags = Flags | ZeroSignParityTable[Reg];	/* sign, zero, parity, f5, f3 */ \
+	Register = Reg;								\
+	Z80_FLAGS_REG = Flags;							\
+}
+
+
+
+#define SRA_WITH_FLAGS(Register)        \
+{                                                                       \
+        SRA(Register);                                  \
+}
+
+#define SRA_REG(Register)                       \
+{                                                                       \
+        SRA_WITH_FLAGS(Register);               \
+}
+
+#define SRA_HL()							\
+{											\
+        R.TempByte = Z80_RD_BYTE(R.HL.W);	\
+        SRA_WITH_FLAGS(R.TempByte);			\
+        Z80_WR_BYTE(R.HL.W,R.TempByte);		\
+}
+
+#define SRA_INDEX(Index)                \
+{                                                                       \
+        /*Z80_BYTE      Data;*/                                 \
+                                                                        \
+		SETUP_INDEXED_ADDRESS(Index); \
+        R.TempByte = RD_BYTE_INDEX();      \
+                                                                        \
+        SRA_WITH_FLAGS(R.TempByte);                                             \
+                                                                        \
+        WR_BYTE_INDEX(R.TempByte);                \
+}                                                                       \
+
+
+
+
+#define SRL(Register)                           \
+{												\
+	Z80_BYTE	Reg;							\
+	Z80_BYTE	Flags;							\
+	Reg = Register;								\
+	Flags = Reg & 0x001; /* carry */			\
+	Reg = Reg>>1;								\
+	Flags = Flags | ZeroSignParityTable[Reg];	/* sign, zero, parity, f5, f3 */	\
+	Register = Reg;								\
+	Z80_FLAGS_REG = Flags;							\
+}
+
+#define SRL_WITH_FLAGS(Register)        \
+{                                                                       \
+        SRL(Register);                                  \
+                                                                        \
+}
+
+#define SRL_REG(Register)                       \
+{                                                                       \
+        SRL_WITH_FLAGS(Register);               \
+}
+
+#define SRL_HL()								\
+{												\
+        R.TempByte = Z80_RD_BYTE(R.HL.W);		\
+        SRL_WITH_FLAGS(R.TempByte);				\
+        Z80_WR_BYTE(R.HL.W,R.TempByte);			\
+}
+
+#define SRL_INDEX(Index)                        \
+{                                                                       \
+        /*Z80_BYTE      Data;*/                         \
+                                                                        \
+		SETUP_INDEXED_ADDRESS(Index); \
+        R.TempByte = RD_BYTE_INDEX();      \
+                                                                        \
+        SRL_WITH_FLAGS(R.TempByte);                     \
+                                                                        \
+        WR_BYTE_INDEX(R.TempByte);                \
+}                                                                       \
+
+
+#define SLL(Register)							\
+{												\
+	Z80_BYTE	Reg;							\
+	Z80_BYTE	Flags;							\
+	Reg = Register;								\
+	Flags = (Reg>>7) & 0x01;	/* carry */				\
+	Reg = ((Reg<<1) | 1);								\
+	Flags = Flags | ZeroSignParityTable[Reg];	/* sign, zero, parity, f5, f3 */ \
+	Register = Reg;								\
+	Z80_FLAGS_REG = Flags;							\
+}
+
+
+
+
+#define SLL_WITH_FLAGS(Register)        \
+{                                                                       \
+        SLL(Register);                                  \
+}
+
+#define SLL_REG(Register)                       \
+{                                                                       \
+        SLL_WITH_FLAGS(Register);               \
+}
+
+#define SLL_HL()							\
+{											\
+        R.TempByte = Z80_RD_BYTE(R.HL.W);	\
+        SLL_WITH_FLAGS(R.TempByte);			\
+        Z80_WR_BYTE(R.HL.W,R.TempByte);		\
+}
+
+#define SLL_INDEX(IndexReg)                     \
+{                                                                       \
+        /*Z80_BYTE      Data;   */                      \
+                                                                        \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
+                                                                        \
+        SLL_WITH_FLAGS(R.TempByte);                     \
+                                                                        \
+        WR_BYTE_INDEX(R.TempByte);     \
+}                                                                       \
+
+/*-----------------*/
+
+#define A_SHIFTING_FLAGS \
+        Z80_FLAGS_REG = Z80_FLAGS_REG & (Z80_SIGN_FLAG | Z80_ZERO_FLAG | Z80_PARITY_FLAG | Z80_CARRY_FLAG)
+
+/*---------------*/
+
+#define SET_LOGIC_FLAGS                         \
+        SET_ZERO_SIGN_PARITY(R.AF.B.h); \
+        Z80_FLAGS_REG = Z80_FLAGS_REG & (Z80_ZERO_FLAG | Z80_PARITY_FLAG | Z80_SIGN_FLAG)
+
+
+#define AND_A_X(Register)					\
+{											\
+	Z80_BYTE	Flags;						\
+											\
+	R.AF.B.h = R.AF.B.h & Register;			\
+	Flags = ZeroSignParityTable[R.AF.B.h];	\
+	Flags = Flags | Z80_HALFCARRY_FLAG;		\
+	Z80_FLAGS_REG = Flags;						\
+}
+
+
+#define AND_A_R(Register)                       \
+{                                                                       \
+        AND_A_X(Register);                              \
+}
+
+
+#define AND_A_INDEX(Index)              \
+{                                                               \
+        /*Z80_BYTE      Data;*/                         \
+                                                                \
+                                                                \
+ 		SETUP_INDEXED_ADDRESS(Index); \
+       R.TempByte = RD_BYTE_INDEX(Index);      \
+                                                                                \
+        AND_A_X(R.TempByte);                                    \
+}
+
+
+
+
+
+#define XOR_A_X(Register)					\
+{											\
+	Z80_BYTE	Flags;						\
+											\
+	R.AF.B.h = R.AF.B.h ^ Register;			\
+	Flags = ZeroSignParityTable[R.AF.B.h];	\
+	Z80_FLAGS_REG = Flags;						\
+}
+
+
+#define XOR_A_R(Register)                       \
+{                                                                       \
+        XOR_A_X(Register);                              \
+}
+
+
+#define XOR_A_INDEX(Index)              \
+{                                                               \
+        /*Z80_BYTE      Data;*/                         \
+                                                                \
+		SETUP_INDEXED_ADDRESS(Index); \
+        R.TempByte = RD_BYTE_INDEX(Index);      \
+                                                                        \
+        XOR_A_X(R.TempByte);                                    \
+}
+
+
+
+#define OR_A_X(Register)					\
+{											\
+	Z80_BYTE	Flags;						\
+											\
+	R.AF.B.h = R.AF.B.h | Register;			\
+	Flags = ZeroSignParityTable[R.AF.B.h];	\
+	Z80_FLAGS_REG = Flags;						\
+}
+
+
+#define OR_A_R(Register)                        \
+{                                                                       \
+        OR_A_X(Register);                               \
+}
+
+
+
+#define OR_A_INDEX(Index)               \
+{                                                               \
+        /*Z80_BYTE      Data;*/                         \
+                                                                \
+		SETUP_INDEXED_ADDRESS(Index); \
+        R.TempByte = RD_BYTE_INDEX(Index);      \
+                                                                        \
+        OR_A_X(R.TempByte);                                     \
+}
+
+/*--------------*/
+
+/* INC */
+#define INC_X(Register)                                                         \
+{                                                                                                       \
+        Z80_BYTE Flags;						\
+		Flags = Z80_FLAGS_REG;					\
+		Flags  = Flags & Z80_CARRY_FLAG;	 \
+        if ((Z80_BYTE)(Register & 0x0f)==(Z80_BYTE)0x0f)                                        \
+        {                                                                                               \
+                Flags |= Z80_HALFCARRY_FLAG;                        \
+        }                                                                                               \
+                                                                                                        \
+        if ((Z80_BYTE)Register==(Z80_BYTE)0x07f)                                        \
+        {                                                                                               \
+                Flags |= Z80_OVERFLOW_FLAG;                         \
+        }                                                                                               \
+        Register++;                                                                                     \
+		Flags |= ZeroSignTable[Register];								\
+		Flags |= Register & (Z80_UNUSED_FLAG1 | Z80_UNUSED_FLAG2);		\
+		Z80_FLAGS_REG = Flags;												\
+        \
+}
+
+
+
+#define INC_R(Register)                         \
+{                                                                       \
+        INC_X(Register);                                \
+                                                                        \
+}
+
+#define INC_HL_()		\
+{											\
+        R.TempByte = Z80_RD_BYTE(R.HL.W);	\
+        INC_X(R.TempByte);					\
+        Z80_WR_BYTE(R.HL.W,R.TempByte);		\
+}
+
+#define _INC_INDEX_(Index)                      \
+{                                                                       \
+        /*Z80_BYTE      Data;*/                         \
+                                                                        \
+ 		SETUP_INDEXED_ADDRESS(Index); \
+       R.TempByte = RD_BYTE_INDEX();      \
+                                                                        \
+        INC_X(R.TempByte);                                      \
+                                                                        \
+        WR_BYTE_INDEX(R.TempByte);                \
+}
+
+
+/* INC */
+#define DEC_X(Register)                                                         \
+{                                                                                                       \
+        Z80_BYTE Flags;						\
+		Flags = Z80_FLAGS_REG;					\
+		Flags  = Flags & Z80_CARRY_FLAG;	 \
+		Flags = Flags | Z80_SUBTRACT_FLAG;	\
+        if ((Z80_BYTE)(Register & 0x0f)==0)                                        \
+        {                                                                                               \
+                Flags |= Z80_HALFCARRY_FLAG;                        \
+        }                                                                                               \
+                                                                                                        \
+        if ((Z80_BYTE)Register==(Z80_BYTE)0x080)                                        \
+        {                                                                                               \
+                Flags |= Z80_OVERFLOW_FLAG;                         \
+        }                                                                                               \
+        Register--;                                                                                     \
+		Flags |= ZeroSignTable[Register];								\
+		Flags |= Register & (Z80_UNUSED_FLAG1 | Z80_UNUSED_FLAG2);		\
+		Z80_FLAGS_REG = Flags;												\
+        \
+}
+
+#if 0
+/* DEC */
+#define DEC_X(Register)                                                                 \
+{       Z80_BYTE		Flags;                                                                                                        \
+        register Z80_BYTE		Reg;                                                                                                        \
+		Reg=Register;	\
+		Flags = Z80_FLAGS_REG;	\
+        Flags = Flags & ~(Z80_HALFCARRY_FLAG | Z80_OVERFLOW_FLAG);             \
+        if ((Z80_BYTE)Reg==(Z80_BYTE)0x080)                                                                \
+        {                                                                                                       \
+                Flags |= Z80_OVERFLOW_FLAG;                                 \
+        }                                                                                                       \
+        if ((Z80_BYTE)(Reg & 0x0f)==(Z80_BYTE)0x00)                                                \
+        {                                                                                                       \
+                Flags|= Z80_HALFCARRY_FLAG;                                \
+        }                                                                                                       \
+                                                                                                                \
+		Flags |= Z80_SUBTRACT_FLAG;	\
+		Z80_FLAGS_REG = Flags;			\
+		Register = Reg-1;	\
+        SET_ZERO_SIGN(Register);                                                        \
+}
+#endif
+
+#define DEC_R(Register)                         \
+{                                                                       \
+        DEC_X(Register);                                \
+                                                                        \
+}
+
+#define DEC_HL_()				\
+{												\
+        R.TempByte = Z80_RD_BYTE(R.HL.W);		\
+        DEC_X(R.TempByte);						\
+        Z80_WR_BYTE(R.HL.W,R.TempByte);			\
+}
+
+
+#define _DEC_INDEX_(Index)                      \
+{                                                                       \
+        /*Z80_BYTE      Data;*/                                 \
+                                                                        \
+		SETUP_INDEXED_ADDRESS(Index); \
+        R.TempByte = RD_BYTE_INDEX();      \
+                                                                        \
+        DEC_X(R.TempByte);                                      \
+                                                                        \
+        WR_BYTE_INDEX(R.TempByte);                \
+}
+
+/*-----------------*/
+
+
+
+
+
+
+
+/*------------*/
+/* Macros */
+
+
+#define ADD_A_X(Register2)      \
+{                                                                       \
+        Z80_WORD        Result=0;                                       \
+                                                                        \
+        Result = (Z80_WORD)R.AF.B.h + (Z80_WORD)Register2;\
+                                                                        \
+        SET_OVERFLOW_FLAG_A_ADD(Register2,Result); \
+        SET_CARRY_FLAG_ADD(Result);                     \
+        SET_HALFCARRY(Register2, Result);       \
+        R.AF.B.h = (Z80_BYTE)Result;            \
+                                                                        \
+        SET_ZERO_SIGN(R.AF.B.h);                \
+                                                                        \
+        Z80_FLAGS_REG = Z80_FLAGS_REG & (~Z80_SUBTRACT_FLAG); \
+}
+
+#define ADD_A_R(Register)                       \
+{                                                                       \
+        ADD_A_X(Register);                              \
+}
+
+#if 0
+#define ADD_A_INDEX8(Register)          \
+{                                                                       \
+        ADD_A_X(Register);                              \
+                                                                        \
+        R.PC.W+=2;                                              \
+}
+#endif
+
+
+
+#define ADC_A_X(Register)                       \
+{                                                                       \
+        Z80_WORD        Result=0;                                       \
+                                                                        \
+        Result = (Z80_WORD)R.AF.B.h + (Z80_WORD)Register + (Z80_WORD)(Z80_FLAGS_REG & Z80_CARRY_FLAG);      \
+                                                                        \
+        SET_OVERFLOW_FLAG_A_ADD(Register,Result); \
+        SET_CARRY_FLAG_ADD(Result);                     \
+        SET_HALFCARRY(Register, Result);        \
+                                                                        \
+        R.AF.B.h = (Z80_BYTE)Result;            \
+                                                                        \
+        SET_ZERO_SIGN(R.AF.B.h);                \
+                                                                        \
+        Z80_FLAGS_REG = Z80_FLAGS_REG & (~Z80_SUBTRACT_FLAG); \
+}
+
+#define ADC_A_R(Register)                       \
+{                                                                       \
+        ADC_A_X(Register);                              \
+}
+
+#if 0
+#define ADC_A_INDEX8(Register)          \
+{                                                                       \
+        ADC_A_X(Register);                      \
+                                                                        \
+        R.PC.W+=2;                                              \
+}
+#endif
+
+#define SUB_A_X(Register)                       \
+{                                                                       \
+        Z80_WORD        Result=0;                                       \
+                                                                        \
+        Result = (Z80_WORD)R.AF.B.h - (Z80_WORD)Register;       \
+                                                                        \
+        SET_OVERFLOW_FLAG_A_SUB(Register,Result); \
+        SET_CARRY_FLAG_SUB(Result);                     \
+        SET_HALFCARRY(Register, Result);        \
+                                                                        \
+        R.AF.B.h = (Z80_BYTE)Result;            \
+                                                                        \
+        SET_ZERO_SIGN(R.AF.B.h);                \
+                                                                        \
+        Z80_FLAGS_REG = Z80_FLAGS_REG | Z80_SUBTRACT_FLAG;              \
+}
+
+#define SUB_A_R(Register)                       \
+{                                                                       \
+        SUB_A_X(Register);                              \
+}
+
+#if 0
+#define SUB_A_INDEX8(Register)          \
+{                                                                       \
+        SUB_A_X(Register);                              \
+                                                                        \
+        R.PC.W+=2;                                              \
+}
+#endif
+
+#define CP_A_X(Register)                        \
+{                                                                       \
+        Z80_WORD        Result=0;                                       \
+                                                                        \
+        Result = (Z80_WORD)R.AF.B.h - (Z80_WORD)Register;       \
+                                                                        \
+        SET_OVERFLOW_FLAG_A_SUB(Register,Result); \
+        SET_CARRY_FLAG_SUB(Result);                     \
+        SET_HALFCARRY(Register, Result);        \
+                                                                        \
+        SET_ZERO_SIGN(Result);                  \
+                                                                        \
+        Z80_FLAGS_REG = Z80_FLAGS_REG | Z80_SUBTRACT_FLAG;              \
+}
+
+#define CP_A_R(Register)                        \
+{                                                                       \
+        CP_A_X(Register);                               \
+}
+
+#if 0
+#define CP_A_INDEX8(Register)           \
+{                                                                       \
+        CP_A_X(Register);                               \
+                                                                        \
+        R.PC.W+=2;                                              \
+}
+#endif
+
+#define SBC_A_X(Register)                       \
+{                                                                       \
+        Z80_WORD                Result=0;                                       \
+                                                                        \
+        Result = (Z80_WORD)R.AF.B.h - (Z80_WORD)Register - (Z80_WORD)(Z80_FLAGS_REG & Z80_CARRY_FLAG);      \
+                                                                        \
+        SET_OVERFLOW_FLAG_A_SUB(Register,Result);  \
+        SET_CARRY_FLAG_SUB(Result);                     \
+        SET_HALFCARRY(Register, Result);        \
+                                                                        \
+        R.AF.B.h = (Z80_BYTE)Result;            \
+                                                                        \
+        SET_ZERO_SIGN(R.AF.B.h);                \
+                                                                        \
+        Z80_FLAGS_REG = Z80_FLAGS_REG | Z80_SUBTRACT_FLAG;              \
+}
+
+#define SBC_A_R(Register)                       \
+{                                                                       \
+        SBC_A_X(Register);                              \
+}
+
+#if 0
+#define SBC_A_INDEX8(Register)          \
+{                                                                       \
+        SBC_A_X(Register);                              \
+                                                                        \
+        R.PC.W+=2;                                              \
+}
+#endif
+
+
+/* BIT n,r */
+const char *Z80_BIT = " \r\n\
+{\r\n\                                                                       \r\n\
+	Z80_BYTE	Flags;					\r\n\
+	const Z80_BYTE	Mask = (1<<BitIndex);				\r\n\
+	Flags = Z80_FLAGS_REG & Z80_CARRY_FLAG;	/* CF not changed, NF set to zero */ \r\n\
+	Flags |= Z80_HALFCARRY_FLAG;			/* HF set */ \r\n\
+\r\n\
+	R.TempByte = %s & Mask;		/* perform AND operation */ \r\n\
+	/* handle SF,YF,XF */ \r\n\
+	/* there will be 1 in the place of the bit if it is set */ \r\n\
+	/* if bit 7 was tested there will be a 1 there, but not in 5 or 3 */ \r\n\
+	/* if bit 5 was tested there will be a 1 there, but not in 7 or 3 */ \r\n\
+	/* if bit 3 was tested there will be a 1 there, but not in 7 or 5 */ \r\n\
+	Flags |= Result & (Z80_SIGN_FLAG | Z80_UNUSED_FLAG1 | Z80_UNUSED_FLAG2);	\r\n\
+	Result = (~Result) & Mask; /* if bit is 1, then ZF is reset */ \r\n\
+	Flags |= ((Result>>BitIndex)<<Z80_ZERO_FLAG_BIT); /* ZF */ \r\n\
+	Flags |= ((Result>>BitIndex)<<Z80_PARITY_FLAG_BIT); /* PF is a copy of ZF */ \r\n\
+	Z80_FLAGS_REG = Flags; \r\n\
+}\r\n";
+
+/* BIT n,(HL), BIT n,(IX+d)*/
+const Z80_BIT_MP = "\r\n\
+{\r\n\
+	Z80_BYTE	Flags;						\r\n\
+	const Z80_BYTE	Mask = (1<<%d);				\r\n\
+	Flags = Z80_FLAGS_REG & Z80_CARRY_FLAG;	/* CF not changed, NF set to zero */ \r\n\
+	Flags |= Z80_HALFCARRY_FLAG;			/* HF set */ \r\n\
+	R.TempByte = (~R.TempByte) & Mask;		/* perform AND operation, but swap bit result for ZF */ \r\n\
+	Flags |= R.MemPtr.B.h & ((1<<5) | (1<<3)); \r\n\
+	Flags |= ((R.TempByte>>%d)<<Z80_ZERO_FLAG_BIT); /* ZF */ \r\n\
+	Flags |= ((R.TempByte>>%d)<<Z80_PARITY_FLAG_BIT); /* PF is a copy of ZF */ \r\n\
+	Z80_FLAGS_REG = Flags; \r\n\
+}\r\n";
+
+
+const char *ADD_RR_rr = "\
+        Z80_LONG                Result=0;                               \
+                                                                        \
+        Result = (Z80_LONG)Register1 + (Z80_LONG)Register2;             \
+                                                                        \
+        SET_CARRY_FLAG_ADD16(Result);           \
+                                                                        \
+        Register1 = (Z80_WORD)Result;           \
+                                                                        \
+        Z80_FLAGS_REG = Z80_FLAGS_REG & (Z80_CARRY_FLAG | Z80_ZERO_FLAG | Z80_PARITY_FLAG | Z80_SIGN_FLAG); \
+";
+
+
+const char *ADC_HL_rr = "\
+        Z80_LONG                Result=0;                                       \
+                                                                        \
+        Result = (Z80_LONG)R.HL.W + (Z80_LONG)Register + (Z80_LONG)(Z80_FLAGS_REG & Z80_CARRY_FLAG);                \
+                                                                        \
+        SET_OVERFLOW_FLAG_HL_ADD(Register,Result); \
+        SET_CARRY_FLAG_ADD16(Result);           \
+        /*SET_HALFCARRY_HL_ADD(Register, Result);*/     \
+                                                                        \
+        R.HL.W = (Z80_WORD)Result;              \
+                                                                        \
+        SET_SIGN_FLAG16(R.HL.W);                \
+        SET_ZERO_FLAG16(R.HL.W);                \
+                                                                        \
+        Z80_FLAGS_REG = Z80_FLAGS_REG & (Z80_CARRY_FLAG | Z80_ZERO_FLAG | Z80_PARITY_FLAG | Z80_SIGN_FLAG); \
+";
+
+
+const char * SBC_HL_rr = "\
+        Z80_LONG                Result=0;                                       \
+                                                                        \
+        Result = (Z80_LONG)R.HL.W - (Z80_LONG)Register - (Z80_LONG)(Z80_FLAGS_REG & Z80_CARRY_FLAG);                \
+                                                                        \
+        SET_OVERFLOW_FLAG_HL_SUB(Register,Result); \
+        SET_CARRY_FLAG_SUB16(Result);                   \
+        /*SET_HALFCARRY_HL_ADD(Register, Result);*/     \
+                                                                        \
+        R.HL.W = (Z80_WORD)Result;              \
+                                                                        \
+        SET_SIGN_FLAG16(R.HL.W);                \
+        SET_ZERO_FLAG16(R.HL.W);                \
+                                                                        \
+        Z80_FLAGS_REG = Z80_FLAGS_REG & (Z80_CARRY_FLAG | Z80_ZERO_FLAG | Z80_PARITY_FLAG | Z80_SIGN_FLAG); \
+        Z80_FLAGS_REG = Z80_FLAGS_REG | Z80_SUBTRACT_FLAG;              \
+";
+
+/* do a sla of index and copy into reg specified */
+#define INDEX_CB_SLA_REG(IndexReg, Reg)         \
+{                                                                       \
+        /*Z80_BYTE      Data;*/                         \
+                                                                        \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
+                                                                        \
+        SLA_WITH_FLAGS(R.TempByte);                     \
+                                                                        \
+        WR_BYTE_INDEX(R.TempByte);     \
+                                                                        \
+        Reg = R.TempByte;                                               \
+}
+
+/* do a sra of index and copy into reg specified */
+#define INDEX_CB_SRA_REG(IndexReg, Reg)         \
+{                                                                       \
+        /*Z80_BYTE      Data;*/                         \
+                                                                        \
+ 		SETUP_INDEXED_ADDRESS(IndexReg); \
+       R.TempByte = RD_BYTE_INDEX();   \
+                                                                        \
+        SRA_WITH_FLAGS(R.TempByte);                     \
+                                                                        \
+        WR_BYTE_INDEX(R.TempByte);     \
+                                                                        \
+        Reg = R.TempByte;                                               \
+}
+
+/* do a sll of index and copy into reg specified */
+#define INDEX_CB_SLL_REG(IndexReg, Reg)         \
+{                                                                       \
+        /*Z80_BYTE      Data;*/                         \
+                                                                        \
+ 		SETUP_INDEXED_ADDRESS(IndexReg); \
+       R.TempByte =  RD_BYTE_INDEX();  \
+                                                                        \
+        SLL_WITH_FLAGS(R.TempByte);                     \
+                                                                        \
+        WR_BYTE_INDEX(R.TempByte);     \
+                                                                        \
+        Reg = R.TempByte;                                               \
+}
+
+/* do a srl of index and copy into reg specified */
+#define INDEX_CB_SRL_REG(IndexReg, Reg)         \
+{                                                                       \
+        /*Z80_BYTE      Data;   */                      \
+                                                                        \
+ 		SETUP_INDEXED_ADDRESS(IndexReg); \
+       R.TempByte = RD_BYTE_INDEX();   \
+                                                                        \
+        SRL_WITH_FLAGS(R.TempByte);                     \
+                                                                        \
+        WR_BYTE_INDEX(R.TempByte);     \
+                                                                        \
+        Reg = R.TempByte;                                               \
+}
+
+#define INDEX_CB_RLC_REG(IndexReg, Reg)         \
+{                                                                       \
+        /*Z80_BYTE      Data;   */                      \
+                                                                        \
+ 		SETUP_INDEXED_ADDRESS(IndexReg); \
+       R.TempByte = RD_BYTE_INDEX();   \
+                                                                        \
+        RLC_WITH_FLAGS(R.TempByte);                     \
+                                                                        \
+        WR_BYTE_INDEX(R.TempByte);     \
+                                                                        \
+        Reg = R.TempByte;                                               \
+}
+
+#define INDEX_CB_RRC_REG(IndexReg, Reg)         \
+{                                                                       \
+        /*Z80_BYTE      Data;*/                         \
+                                                                        \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
+                                                                        \
+        RRC_WITH_FLAGS(R.TempByte);                     \
+                                                                        \
+        WR_BYTE_INDEX(R.TempByte);     \
+                                                                        \
+        Reg = R.TempByte;                                               \
+}
+
+
+#define INDEX_CB_RR_REG(IndexReg, Reg)          \
+{                                                                       \
+        /*Z80_BYTE      Data;*/                         \
+                                                                        \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
+                                                                        \
+        RR_WITH_FLAGS(R.TempByte);                      \
+                                                                        \
+        WR_BYTE_INDEX(R.TempByte);     \
+                                                                        \
+        Reg = R.TempByte;                                               \
+                                                                        \
+}
+
+
+#define INDEX_CB_RL_REG(IndexReg, Reg)          \
+{                                                                       \
+        /*Z80_BYTE      Data;*/                         \
+                                                                        \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
+                                                                        \
+        RL_WITH_FLAGS(R.TempByte);                      \
+                                                                        \
+        WR_BYTE_INDEX(R.TempByte);     \
+                                                                        \
+        Reg = R.TempByte;                                               \
+                                                                        \
+}
+
+#define INDEX_CB_SET_REG(OrMask, IndexReg, Reg) \
+{                                                               \
+        /*Z80_BYTE      Data;*/                         \
+                                                                \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
+                                                                \
+        SET(OrMask, R.TempByte);                        \
+                                                                \
+        WR_BYTE_INDEX(R.TempByte);     \
+                                                               \
+        Reg = R.TempByte;                                               \
+}
+
+#define INDEX_CB_RES_REG(AndMask,IndexReg, Reg) \
+{                                                               \
+        /*Z80_BYTE Data;*/                              \
+                                                                \
+		SETUP_INDEXED_ADDRESS(IndexReg); \
+        R.TempByte = RD_BYTE_INDEX();   \
+                                                                \
+        RES(AndMask, R.TempByte);                       \
+                                                                \
+        WR_BYTE_INDEX(R.TempByte);     \
+        Reg = R.TempByte;                                               \
+}
+
+#define PrefixIgnore()		\
+	R.Flags &= ~Z80_CHECK_INTERRUPT_FLAG;		\
+	R.PC.W.l++;	/*R.PC.W++;*/									\
+	R.R++; \
+	Z80_UpdateCycles(1)
+
+
+/*---------------------------------------------------------*/
+/* read a byte */
+
+#define Z80_RD_BYTE(Addr)	Z80_RD_MEM(Addr)
+
+/*---------------------------------------------------------*/
+/* write a byte */
+
+#define Z80_WR_BYTE(Addr,Data)	Z80_WR_MEM(Addr,Data)
+
+/*---------------------------------------------------------*/
+/* read a word from memory */
+#define Z80_RD_WORD(Addr) 	(Z80_WORD)((Z80_WORD)Z80_RD_BYTE(Addr) | (((Z80_WORD)Z80_RD_BYTE((Z80_WORD)(Addr+1)))<<8))
+
+
+#define Z80_WR_WORD(Addr,Data)	\
+{													\
+	/* write low byte */							\
+        Z80_WR_BYTE(Addr,(Z80_BYTE)Data);			\
+													\
+        /* write high byte */						\
+        Z80_WR_BYTE((Z80_WORD)(Addr+1),(Z80_BYTE)(Data>>8));	\
+}
+
+
+/*---------------------------------------------------------*/
+/* pop a word from the stack */
+
+
+
+/*---------------------------------------------------------*/
+/* put a word on the stack */
+
+
+#define PUSH(Data)						\
+{										\
+        R.SP.W-=2;						\
+										\
+        Z80_WR_WORD(R.SP.W,Data);		\
+}
+
+
+
+
+#define HALT()			    R.Flags |=Z80_EXECUTING_HALT_FLAG
+
+
+/* swap two words */
+#define SWAP(Reg1,Reg2) \
+{                                               \
+        Z80_WORD        tempR;  \
+                                                \
+        tempR = Reg1;           \
+        Reg1 = Reg2;            \
+        Reg2 = tempR;           \
+}
+
+
+const char *Z80_LD_R_INDEX = " \
+		SETUP_INDEXED_ADDRESS(%s);	\r\n\
+		%s = Z80_RD_BYTE(R.MemPtr.W);   \r\n\
+";
+
+const char *Z80_LD_INDEX_R = " \
+		SETUP_INDEXED_ADDRESS(%s);	\r\n\
+		Z80_WR_BYTE(R.MemPtr.W, %s); \r\n\
+";
+
+
+const char *Z80_LD_INDEX_n = " \
+        SETUP_INDEXED_ADDRESS(%s); \r\n\
+        R.TempByte = Z80_RD_OPCODE_BYTE(3);	\r\n\
+        WR_BYTE_INDEX(R.TempByte);                                \r\n\
+";
+
+
+const char *Z80_IN = " \
+		R.MemPtr.W = R.BC.W; \r\n\
+		%s = Z80_DoIn(R.MemPtr.W);            \r\n\
+		++R.MemPtr.W; \r\n\
+		{											\r\n\
+			Z80_BYTE	Flags;						\r\n\
+			Flags = Z80_FLAGS_REG;						\r\n\
+			Flags = Flags & Z80_CARRY_FLAG;			\r\n\
+			Flags = ZeroSignParityTable[%s];	\r\n\
+			Z80_FLAGS_REG = Flags;						\r\n\
+		}											\r\n\
+	Cycles = 4; \r\n\
+";
+
+
+const char *Z80_SET_IM = " \
+        R.IM = %d; \r\n\
+";
+
+const char *Z80_DI = "\r\n\
+        R.IFF1 = R.IFF2 = 0; \r\n\
+        R.Flags &=~Z80_CHECK_INTERRUPT_FLAG;	\r\n\
+";
+
+
+const char *Z80_EI = "\r\n\
+        R.IFF1 = R.IFF2 = 1; \r\n\
+        R.Flags &=~Z80_CHECK_INTERRUPT_FLAG; \r\n\
+";
+
+const char *Z80_LD_A_nnnn = "\r\n\
+	/* get memory address to read from */ \r\n\
+	R.MemPtr.W = Z80_RD_OPCODE_WORD(1); \r\n\
+ \r\n\
+	/* read byte */ \r\n\
+	R.AF.B.h = Z80_RD_BYTE(R.MemPtr.W); \r\n\
+ \r\n\
+	/* increment memptr */ \r\n\
+	++R.MemPtr.W; \r\n\
+";
+
+
+const char *Z80_LD_A_nnnn_IM0 = "\r\n\
+	/* get memory address to read from */ \r\n\
+	R.MemPtr.W = Z80_RD_WORD_IM0(); \r\n\
+ \r\n\
+	/* read byte */ \r\n\
+	R.AF.B.h = Z80_RD_BYTE(R.MemPtr.W); \r\n\
+ \r\n\
+	/* increment memptr */ \r\n\
+	++R.MemPtr.W; \r\n\
+";
+
+const char *Z80_LD_nnnn_A = "\r\n\
+	/* get memory address to read from and store in memptr */ \r\n\
+	R.MemPtr.W = Z80_RD_OPCODE_WORD(1); \r\n\
+	/* write byte */ \r\n\
+	Z80_WR_BYTE(R.MemPtr.W, R.AF.B.h); \r\n\
+	/* increment memory pointer */ \r\n\
+	R.MemPtr.B.l++; \r\n\
+	/* and store a in upper byte */ \r\n\
+	R.MemPtr.B.h = R.AF.B.h; \r\n\
+";
+
+const char *Z80_LD_nnnn_A_IM0 = "\r\n\
+	/* get memory address to read from and store in memptr */ \r\n\
+	R.MemPtr.W = Z80_RD_WORD_IM0(); \r\n\
+	/* write byte */ \r\n\
+	Z80_WR_BYTE(R.MemPtr.W, R.AF.B.h); \r\n\
+	/* increment memory pointer */ \r\n\
+	R.MemPtr.B.l++; \r\n\
+	/* and store a in upper byte */ \r\n\
+	R.MemPtr.B.h = R.AF.B.h; \r\n\
+";
+
+const char *Z80_LD_HL_nn = " \
+	R.MemPtr.W = Z80_RD_OPCODE_WORD(1);\r\n \
+	R.HL.W = Z80_RD_WORD(R.MemPtr.W);\r\n \
+	++R.MemPtr.W;\r\n \
+";
+
+const char *Z80_LD_HL_nn_IM0 = " \
+   R.MemPtr.W = Z80_RD_WORD_IM0();\r\n \
+	R.HL.W = Z80_RD_WORD(R.MemPtr.W);\r\n \
+	++R.MemPtr.W;\r\n\
+";
+
+
+const char *Z80_LD_nn_HL = " \
+	R.MemPtr.W = Z80_RD_OPCODE_WORD(1);\r\n \
+	Z80_WR_WORD(R.MemPtr.W, R.HL.W);\r\n \
+	++R.MemPtr.W;\r\n\
+";
+
+const char *Z80_LD_nn_HL_IM0 = " \
+   R.MemPtr.W = Z80_RD_WORD_IM0();\r\n \
+	Z80_WR_WORD(R.MemPtr.W, R.HL.W);\r\n \
+	++R.MemPtr.W;\r\n\
+";
+
+
+
+const char *Z80_LD_INDEXRR_nnnn = " \r\n\
+        R.MemPtr.W = Z80_RD_OPCODE_WORD(2);	\r\n\
+        %s = Z80_RD_WORD(R.MemPtr.W);              \r\n\
+		++R.MemPtr.W;	\r\n\
+";
+
+const char *Z80_LD_nnnn_INDEXRR = " \r\n\
+        R.MemPtr.W = Z80_RD_OPCODE_WORD(2);	      \r\n\
+		Z80_WR_WORD(R.MemPtr.W,%s);    \r\n\
+		++R.MemPtr.W;	\r\n\
+";
+
+const char *Z80_LD_RI_n = " \r\n\
+        %s = Z80_RD_OPCODE_BYTE(2); \r\n\
+";
+
+
+const char *Z80_OUT = " \r\n\
+		R.MemPtr.W = R.BC.W; \r\n\
+		Z80_DoOut(R.MemPtr.W,%s);                     \r\n\
+        ++R.MemPtr.W;                                       \r\n\
+		Cycles = 4;\r\n\
+";
+
+const char *Z80_LD_R_HL = " \r\n\
+        %s = Z80_RD_BYTE(R.HL.W); \r\n\
+";
+
+const char *Z80_LD_HL_R = " \r\n\
+        Z80_WR_BYTE(R.HL.W,%s); \r\n\
+";
+
+const char *Z80_LD_A_RR = " \r\n\
+    R.AF.B.h = Z80_RD_BYTE(%s); \r\n\
+	R.MemPtr.W = %s+1; \r\n\
+";
+
+const char *Z80_LD_RR_A = " \r\n\
+    Z80_WR_BYTE(%s,R.AF.B.h); \r\n\
+	R.MemPtr.B.l = (%s+1) & 0x0ff; \r\n\
+	R.MemPtr.B.h = R.AF.B.h; \r\n\
+";
+
+const char *Z80_LD_SP_rp = "\r\n\
+    R.SP.W=%s; \r\n\
+";
+
+const char *Z80_JP_rp = "\r\n\
+    R.PC.W.l=%s; \r\n\
+";
+
+const char *Z80_RST = "	\r\n\
+/* push return address on stack */	\r\n\
+PUSH((Z80_WORD)(R.PC.W.l+1));			\r\n\
+/* set memptr to address */	\r\n\
+R.MemPtr.W = 0x%04x;	\r\n\
+/* set program counter to memptr */ \r\n\
+R.PC.W.l = R.MemPtr.W; \r\n\
+";
+
+const char *Z80_LD_R_R = " \r\n\
+		%s = %s; \r\n\
+";
+
+
+const char *Z80_LD_RR_nn = " \r\n\
+        %s = Z80_RD_OPCODE_WORD(1); \r\n\
+";
+
+const char *Z80_LD_INDEXRR_nn = " \r\n\
+        %s = Z80_RD_OPCODE_WORD(2); \r\n\
+";
+
+
+const char *Z80_LD_RR_nnnn = " \r\n\
+        /* read destination address into memptr */ \r\n\
+        R.MemPtr.W = Z80_RD_OPCODE_WORD(2);	\r\n\
+        /* read register from address */ \r\n\
+        %s = Z80_RD_WORD(R.MemPtr.W);   \r\n\
+		++R.MemPtr.W; \r\n\
+";
+
+const char *Z80_LD_nnnn_RR = " \r\n\
+        /* read destination address into memptr */ \r\n\
+        R.MemPtr.W = Z80_RD_OPCODE_WORD(2);	\r\n\
+        /* write register to address */ \r\n\
+        Z80_WR_WORD(R.MemPtr.W, %s);    \r\n\
+        ++R.MemPtr.W; \r\n\
+";
+
+const char *Z80_LD_I_A=" \r\n\
+	R.I = R.AF.B.h;        \r\n\
+";
+
+
+/* increment register pair */
+const char *Z80_INC_rp=" \r\n\
+    ++%s;                \r\n\
+";
+
+/* decrement register pair */
+const char *Z80_DEC_rp=" \r\n\
+	--%s;                \r\n\
+";
+
+
+/* EX (SP), HL */
+const char *Z80_EX_SP_rr=" \r\n\
+        R.MemPtr.W = Z80_RD_WORD(R.SP.W); \r\n\
+        Z80_WR_WORD(R.SP.W, %s);    \r\n\
+        %s = R.MemPtr.W; \r\n\
+";
+
+
+const char *Z80_LD_A_I = "\r\n\
+        R.AF.B.h = R.I;	\r\n\
+		{				\r\n\
+			Z80_BYTE	Flags;	\r\n\
+ \r\n\
+			/* HF, NF = 0, CF not changed */ \r\n\
+			Flags = Z80_FLAGS_REG;	\r\n\
+			Flags &= Z80_CARRY_FLAG;	/* keep CF, zeroise everything else */ \r\n\
+			Flags |= ((R.IFF2 & 0x01)<<Z80_PARITY_FLAG_BIT);	/* IFF2 into PV */ \r\n\
+			Flags |= ZeroSignTable2[R.AF.B.h];	/* SF, ZF */ \r\n\
+			Flags |= R.MemPtr.B.h & ((1<<5)|(1<<3)); /* Bits 5,3 from MemPtr */ \r\n\
+			Z80_FLAGS_REG = Flags;	\r\n\
+		}	\r\n\
+";
+
+/*---------------------------------------------------------*/
+/* LD A,R */
+
+const char *Z80_LD_R_A = " \r\n\
+    /* store bit 7 */ \r\n\
+    R.RBit7 = R.AF.B.h & 0x080; \r\n\
+ \r\n\
+    /* store refresh register */ \r\n\
+    R.R = R.AF.B.h & 0x07f; \r\n\
+	/* no flags changed */ \r\n\
+";
+
+
+const char *Z80_LD_A_R = "\r\n\
+        R.AF.B.h = Z80_GET_R;	\r\n\
+							\r\n\
+		{					\r\n\
+			Z80_BYTE	Flags;	\r\n\
+								\r\n\
+			/* HF, NF = 0, CF not changed */ \r\n\
+			Flags = Z80_FLAGS_REG;	\r\n\
+			Flags &= Z80_CARRY_FLAG;	/* keep CF, zeroise everything else */ \r\n\
+			Flags |= ((R.IFF2 & 0x01)<<Z80_PARITY_FLAG_BIT);	/* IFF2 into PV */ \r\n\
+			Flags |= ZeroSignTable2[R.AF.B.h];	/* SF, ZF */ \r\n\
+			Flags |= R.MemPtr.B.h & ((1<<5)|(1<<3)); /* Bits 5,3 from MemPtr */ \r\n\
+			Z80_FLAGS_REG = Flags;	\r\n\
+		}					\r\n\
+";
+
+/*---------------------------------------------------------*/
+/* CPL */
+
+const char *Z80_CPL = "				\r\n\
+	Z80_BYTE Flags;			\r\n\
+        /* complement */	\r\n\
+        R.AF.B.h = (Z80_BYTE)(~R.AF.B.h);	\r\n\
+											\r\n\
+		Flags = Z80_FLAGS_REG;					\r\n\
+		Flags = Flags & (Z80_SIGN_FLAG | Z80_ZERO_FLAG | Z80_PARITY_FLAG | Z80_CARRY_FLAG);	\r\n\
+		Flags |= R.AF.B.h & (Z80_UNUSED_FLAG1 | Z80_UNUSED_FLAG2);	\r\n\
+		Flags |= Z80_SUBTRACT_FLAG | Z80_HALFCARRY_FLAG;			\r\n\
+        Z80_FLAGS_REG = Flags;											\r\n\
+";
+
+
+/*---------------------------------------------------------------------------*/
+/* SCF */
+const char *Z80_SCF = "	\r\n\
+	Z80_BYTE	Flags;			\r\n\
+								\r\n\
+	Flags = Z80_FLAGS_REG;			\r\n\
+								\r\n\
+	Flags = Flags & (Z80_ZERO_FLAG | Z80_PARITY_FLAG | Z80_SIGN_FLAG);	\r\n\
+    Flags = Flags | Z80_CARRY_FLAG;										\r\n\
+	Flags |= R.AF.B.h & (Z80_UNUSED_FLAG1 | Z80_UNUSED_FLAG2);			\r\n\
+																		\r\n\
+	Z80_FLAGS_REG = Flags;													\r\n\
+";
+
+/*---------------------------------------------------------------------------*/
+/* CCF */
+const char *Z80_CCF = "	\r\n\
+	Z80_BYTE Flags;				\r\n\
+								\r\n\
+	Flags = Z80_FLAGS_REG;			\r\n\
+    Flags &= (Z80_CARRY_FLAG | Z80_ZERO_FLAG | Z80_PARITY_FLAG | Z80_SIGN_FLAG);	\r\n\
+	Flags |= ((Flags & Z80_CARRY_FLAG)<<Z80_HALFCARRY_FLAG_BIT);					\r\n\
+	Flags |= R.AF.B.h & (Z80_UNUSED_FLAG1 | Z80_UNUSED_FLAG2);						\r\n\
+    Z80_FLAGS_REG = Flags ^ Z80_CARRY_FLAG;												\r\n\
+";
+
+
+const char *Z80_RRD = " \r\n\
+        R.TempByte = Z80_RD_BYTE(R.HL.W); \r\n\
+        Z80_WR_BYTE(R.HL.W, (Z80_BYTE)(((R.TempByte>>4) | (R.AF.B.h<<4)))); \r\n\
+        R.AF.B.h = (R.AF.B.h & 0x0f0) | (R.TempByte & 0x0f); \r\n\
+		R.MemPtr.W = R.HL.W+1; \r\n\
+		{ \r\n\
+			Z80_BYTE	Flags; \r\n\
+\r\n\
+			Flags = Z80_FLAGS_REG; \r\n\
+			Flags &= Z80_CARRY_FLAG; \r\n\
+			Flags |= ZeroSignParityTable[R.AF.B.h]; \r\n\
+			Z80_FLAGS_REG = Flags; \r\n\
+		} \r\n\
+";
+
+const char *Z80_RLD = " \r\n\
+	R.TempByte = Z80_RD_BYTE(R.HL.W); \r\n\
+    Z80_WR_BYTE(R.HL.W,(Z80_BYTE)((R.TempByte<<4)|(R.AF.B.h & 0x0f))); \r\n\
+    R.AF.B.h = (R.AF.B.h & 0x0f0) | (R.TempByte>>4); \r\n\
+	R.MemPtr.W = R.HL.W+1; \r\n\
+	{ \r\n\
+		Z80_BYTE	Flags; \r\n\
+\r\n\
+		Flags = Z80_FLAGS_REG;\r\n\
+		Flags &= Z80_CARRY_FLAG;\r\n\
+		Flags |= ZeroSignParityTable[R.AF.B.h];\r\n\
+		Z80_FLAGS_REG = Flags;\r\n\
+	}\r\n\
+";
+
+
+const char *Z80_RETN = "\
+   R.IFF1 = R.IFF2; \r\n\
+   /* update memptr */ \r\n\
+   R.MemPtr.W = POP(); \r\n\
+   R.PC.W.l = R.MemPtr.W; \r\n\
+   /* flags not changed */ \r\n\
+";
+
+const char *Z80_RETI = "\
+    R.IFF1 = R.IFF2; \r\n\
+    Z80_Reti(); \r\n\
+	 /* update memptr */ \r\n\
+    R.MemPtr.W = POP(); \r\n\
+	R.PC.W.l = R.MemPtr.W; \r\n\
+	/* flags not changed */ \r\n\
+";
+
+
+const char *Z80_OUT_n_A = "\
+    /* A in upper byte of port, Data in lower byte of port */ \r\n\
+    R.MemPtr.B.l = Z80_RD_OPCODE_BYTE(1); \r\n\
+	R.MemPtr.B.h = R.AF.B.h; \r\n\
+	/* perform out */ \r\n\
+    Z80_DoOut(R.MemPtr.W, R.AF.B.h); \r\n\
+	/* update mem ptr */ \r\n\
+	R.MemPtr.B.l++; \r\n\
+	R.MemPtr.B.h = R.AF.B.h; \r\n\
+	/* no flags changed */ \r\n\
+	Cycles = 3;\r\n\
+";
+
+const char *Z80_IN_A_n = " \r\n\
+    /* A in upper byte of port, Data in lower byte of port */\r\n\
+	R.MemPtr.B.l = Z80_RD_OPCODE_BYTE(1);\r\n\
+	R.MemPtr.B.h = R.AF.B.h;\r\n\
+    /* a in upper byte of port, data in lower byte of port */\r\n\
+    R.AF.B.h = Z80_DoIn(R.MemPtr.W);\r\n\
+	/* update mem ptr */\r\n\
+	R.MemPtr.W++;\r\n\
+	/* no flags changed */\r\n\
+	Cycles = 3;\r\n\
+";
+
+
+const char *Z80_NEG = "\r\n\
+	Z80_BYTE	Flags;	\r\n\
+	Z80_BYTE	AReg; \r\n\
+						\r\n\
+	AReg = R.AF.B.h;		\r\n\
+    Flags = Z80_SUBTRACT_FLAG;	\r\n\
+													\r\n\
+    if (AReg == 0x080)									\r\n\
+    {												\r\n\
+          Flags |= Z80_PARITY_FLAG;					\r\n\
+    }												\r\n\
+													\r\n\
+    if (AReg != 0x000)									\r\n\
+    {												\r\n\
+        Flags |= Z80_CARRY_FLAG;					\r\n\
+    }												\r\n\
+													\r\n\
+	if ((AReg & 0x0f)!=0)								\r\n\
+	{												\r\n\
+		Flags |= Z80_HALFCARRY_FLAG;				\r\n\
+	}												\r\n\
+													\r\n\
+    R.AF.B.h = -AReg;							\r\n\
+													\r\n\
+	Flags |= ZeroSignTable[R.AF.B.h];				\r\n\
+	Flags |= R.AF.B.h & (Z80_UNUSED_FLAG1 | Z80_UNUSED_FLAG2);	\r\n\
+	Z80_FLAGS_REG = Flags;								\r\n\
+";
+
+int	Z80_Index_GetOpcodeCountForInstruction(int DisAddr)
+{
+	unsigned char Opcode;
+
+	/* DD prefix - IX */
+	Opcode = Z80_RD_MEM(DisAddr);
+	DisAddr++;
+
+	switch (Opcode)
+	{
+		case 0x0dd:
+		case 0x0fd:
+		case 0x0ed:
+			return 1;
+
+		case 0x0cb:
+			return 4;
+
+		default:
+		{
+			switch (Opcode & 0x0c0)
+			{
+				case 0x000:
+				{
+					switch (Opcode & 0x07)
+					{
+						case 1:
+						{
+							if ((Opcode & 0x08)!=0)
+							{
+								/* 00ss1001 - ADD HL,ss */
+								return 2;
+							}
+							else
+							{
+								/* 00dd0001 - LD dd,nn */
+								if (Diss_Index_IsRegIndex((Opcode>>4) & 0x03))
+								{
+									return 4;
+								}
+							}
+						}
+						break;
+
+						case 2:
+						{
+							/* 00100010 - LD (nnnn),HL */
+							/* 00101010 - LD HL,(nn) */
+
+							switch ((Opcode>>4) & 0x03)
+							{
+								case 2:
+									return 4;
+
+								default:
+									break;
+							}
+
+						}
+						break;
+
+						case 3:
+						{
+							if (Diss_Index_IsRegIndex((Opcode>>4) & 0x03))
+								return 2;
+						}
+						break;
+
+						case 4:
+						case 5:
+						{
+							/* 00rrr100 - INC r */
+							/* 00rrr101 - DEC r */
+							unsigned char OpcodeIndex;
+
+							OpcodeIndex = ((Opcode>>3) & 0x07);
+
+							if (Diss_Index_IsReg8Bit(OpcodeIndex))
+								return Diss_Index_Get8BitRegCount(OpcodeIndex) + 1;
+						}
+						break;
+
+						case 6:
+						{
+							/* LD r,n - 00rrr110 */
+							unsigned char OpcodeIndex;
+
+							OpcodeIndex = (Opcode>>3) & 0x07;
+
+							if (Diss_Index_IsReg8Bit(OpcodeIndex))
+								return Diss_Index_Get8BitRegCount(OpcodeIndex) + 2;
+						}
+						break;
+
+						default:
+							break;
+					}
+				}
+				break;
+
+				case 0x040:
+				{
+					/* 01xxxxxx */
+					/* HALT, LD r,R */
+
+					if (Opcode!=0x076)
+					{
+						/* 01rrrRRR - LD r,R */
+
+						unsigned char Reg1, Reg2;
+
+						Reg1 = (Opcode>>3) & 0x07;
+						Reg2 = Opcode & 0x07;
+
+						if (Diss_Index_IsReg8Bit(Reg1) ||
+							Diss_Index_IsReg8Bit(Reg2))
+						{
+							/* Reg1 or Reg2 is Indexed */
+							unsigned char Length1, Length2;
+
+							/* get longest length and return that */
+							Length1 = Diss_Index_Get8BitRegCount(Reg1);
+							Length2 = Diss_Index_Get8BitRegCount(Reg2);
+
+							if (Length1<Length2)
+							{
+								return Length2 + 1;
+							}
+
+							return Length1 + 1;
+						}
+					}
+				}
+				break;
+
+				case 0x080:
+				{
+					/* 10xxxxxx */
+					/* 10000rrr - ADD */
+					/* 10001rrr - ADC */
+					/* 10010rrr - SUB */
+					/* 10011rrr - SBC */
+					/* 10100rrr - AND */
+					/* 10101rrr - XOR */
+					/* 10110rrr - OR */
+					/* 10111rrr - CP */
+
+					unsigned char OpcodeIndex;
+
+					OpcodeIndex = (Opcode & 0x07);
+
+					if (Diss_Index_IsReg8Bit(OpcodeIndex))
+						return Diss_Index_Get8BitRegCount(OpcodeIndex) + 1;
+				}
+				break;
+
+				case 0x0c0:
+				{
+					/* 11xxxxxx */
+
+
+					switch (Opcode & 0x07)
+					{
+						case 1:
+						{
+							if ((Opcode & (1<<3))==0)
+							{
+								/* 11qq0001 - POP qq */
+								if (Diss_Index_IsRegIndex((Opcode>>4) & 0x03))
+									return 2;
+							}
+							else
+							{
+								/* 11001001 - RET */
+								/* 11011001 - EXX */
+								/* 11101001 - JP (HL) */
+								/* 11111001 - LD SP,HL */
+
+								if ((Opcode==0x0f9) || (Opcode==0x0e9))
+									return 2;
+
+							}
+						}
+						break;
+
+						case 3:
+						{
+							/* 11001011 - CB prefix */
+							if ((Opcode & (3<<4))==(1<<4))
+							{
+
+							}
+							else if (Opcode == 0x0c3)
+							{
+							}
+							else
+							{
+								/* 11100011 - EX (SP).HL */
+								/* 11101011 - EX DE,HL */
+
+								/* 11110011 - DI */
+								/* 11111011 - EI */
+
+								if (Opcode==0x0e3)
+									return 2;
+
+							}
+
+						}
+						break;
+
+
+						case 5:
+						{
+							/* 11qq0101 - PUSH qq */
+							if ((Opcode & (1<<3))==0)
+							{
+								/* 11qq0101 - PUSH qq */
+								if (Diss_Index_IsRegIndex((Opcode>>4) & 0x03))
+									return 2;
+							}
+						}
+						break;
+
+						default:
+							break;
+					}
+				}
+				break;
+			}
+		}
+		break;
+	}
+
+	/* default is 1, which is the Index prefix */
+	return 1;
+}
+
 
 /* returns the R register increment for instruction at DisAddr */
 int	Z80_GetRIncrementForInstruction(Z80_WORD DisAddr)
@@ -80,7 +2053,7 @@ int	Z80_GetRIncrementForInstruction(Z80_WORD DisAddr)
 				case 0x0fd:
 				case 0x0ed:
 					return 1;
-			
+
 				break;
 			}
 		}
@@ -125,609 +2098,12 @@ static BOOL Diss_Index_IsRegIndex(unsigned char RegIndex)
 	return FALSE;
 }
 
-
-int	Z80_Index_GetOpcodeCountForInstruction(int DisAddr)
-{
-	unsigned char Opcode;
-
-	/* DD prefix - IX */
-	Opcode = Z80_RD_MEM(DisAddr);
-	DisAddr++;
-
-	switch (Opcode)
-	{
-		case 0x0dd:
-		case 0x0fd:
-		case 0x0ed:
-			return 1;
-		
-		case 0x0cb:
-			return 4;
-		
-		default:
-		{
-			switch (Opcode & 0x0c0)
-			{
-				case 0x000:
-				{
-					switch (Opcode & 0x07)
-					{
-						case 1:
-						{
-							if ((Opcode & 0x08)!=0)
-							{
-								/* 00ss1001 - ADD HL,ss */
-								return 2;
-							}
-							else
-							{
-								/* 00dd0001 - LD dd,nn */
-								if (Diss_Index_IsRegIndex((Opcode>>4) & 0x03))
-								{
-									return 4;
-								}
-							}
-						}
-						break;
-
-						case 2:
-						{
-							/* 00100010 - LD (nnnn),HL */
-							/* 00101010 - LD HL,(nn) */
-				
-							switch ((Opcode>>4) & 0x03)
-							{
-								case 2:
-									return 4;
-
-								default:
-									break;
-							}
-
-						}
-						break;
-
-						case 3:
-						{
-							if (Diss_Index_IsRegIndex((Opcode>>4) & 0x03))
-								return 2;
-						}
-						break;
-
-						case 4:
-						case 5:
-						{
-							/* 00rrr100 - INC r */
-							/* 00rrr101 - DEC r */
-							unsigned char OpcodeIndex;
-
-							OpcodeIndex = ((Opcode>>3) & 0x07);
-
-							if (Diss_Index_IsReg8Bit(OpcodeIndex))
-								return Diss_Index_Get8BitRegCount(OpcodeIndex) + 1;
-						}
-						break;
-
-						case 6:
-						{
-							/* LD r,n - 00rrr110 */
-							unsigned char OpcodeIndex;
-							
-							OpcodeIndex = (Opcode>>3) & 0x07;
-
-							if (Diss_Index_IsReg8Bit(OpcodeIndex))
-								return Diss_Index_Get8BitRegCount(OpcodeIndex) + 2;
-						}
-						break;
-
-						default:
-							break;
-					}
-				}
-				break;
-
-				case 0x040:
-				{
-					/* 01xxxxxx */
-					/* HALT, LD r,R */
-
-					if (Opcode!=0x076)
-					{
-						/* 01rrrRRR - LD r,R */
-
-						unsigned char Reg1, Reg2;
-						
-						Reg1 = (Opcode>>3) & 0x07;
-						Reg2 = Opcode & 0x07;
-
-						if (Diss_Index_IsReg8Bit(Reg1) ||
-							Diss_Index_IsReg8Bit(Reg2))
-						{
-							/* Reg1 or Reg2 is Indexed */
-							unsigned char Length1, Length2;
-
-							/* get longest length and return that */
-							Length1 = Diss_Index_Get8BitRegCount(Reg1);
-							Length2 = Diss_Index_Get8BitRegCount(Reg2);
-
-							if (Length1<Length2)
-							{
-								return Length2 + 1;
-							}
-							
-							return Length1 + 1;
-						}
-					}
-				}
-				break;
-
-				case 0x080:
-				{
-					/* 10xxxxxx */
-					/* 10000rrr - ADD */
-					/* 10001rrr - ADC */
-					/* 10010rrr - SUB */
-					/* 10011rrr - SBC */
-					/* 10100rrr - AND */
-					/* 10101rrr - XOR */
-					/* 10110rrr - OR */
-					/* 10111rrr - CP */
-					
-					unsigned char OpcodeIndex;
-
-					OpcodeIndex = (Opcode & 0x07);
-
-					if (Diss_Index_IsReg8Bit(OpcodeIndex))
-						return Diss_Index_Get8BitRegCount(OpcodeIndex) + 1;
-				}
-				break;
-
-				case 0x0c0:
-				{
-					/* 11xxxxxx */
-			
-			
-					switch (Opcode & 0x07)
-					{
-						case 1:
-						{
-							if ((Opcode & (1<<3))==0)
-							{
-								/* 11qq0001 - POP qq */
-								if (Diss_Index_IsRegIndex((Opcode>>4) & 0x03))
-									return 2;
-							}
-							else
-							{	
-								/* 11001001 - RET */
-								/* 11011001 - EXX */
-								/* 11101001 - JP (HL) */
-								/* 11111001 - LD SP,HL */
-
-								if ((Opcode==0x0f9) || (Opcode==0x0e9))
-									return 2;
-
-//								sprintf(OutputString,
-//									MiscMneumonics3[((Opcode>>4) & 0x03)]);
-							}
-						}
-						break;
-				
-						case 3:
-						{
-							/* 11001011 - CB prefix */
-							if ((Opcode & (3<<4))==(1<<4))
-							{
-//								unsigned char PortByte;
-//
-//								PortByte = Z80_RD_MEM(DisAddr);
-//
-//								/* 11011011 - IN A,(n) */
-//								/* 11010011 - OUT (n),A */
-//
-//								if ((Opcode & (1<<4))!=0)
-//								{
-//									/* 11011011 - IN A,(n) */
-//								
-//									sprintf(OutputString,"IN A,(#%02x)",
-//										PortByte);
-//								}
-//								else
-//								{
-//									/* 11010011 - OUT (n),A */
-//									sprintf(OutputString,"OUT (#%02x),A",
-//										PortByte);
-//								}
-		
-							}	
-							else if (Opcode == 0x0c3) 
-							{
-//								/* 11000011 - JP nn */
-//								sprintf(OutputString,"JP #%04x",
-//									Diss_GetWord(DisAddr));
-							}
-							else
-							{
-								/* 11100011 - EX (SP).HL */
-								/* 11101011 - EX DE,HL */
-							
-								/* 11110011 - DI */
-								/* 11111011 - EI */
-
-								if (Opcode==0x0e3)
-									return 2;
-
-//								sprintf(OutputString,"%s",
-//									MiscMneumonics9[(((Opcode>>3) & 0x07)-4)]);
-							}
-
-						}
-						break;
-
-
-						case 5:
-						{
-							/* 11qq0101 - PUSH qq */
-							if ((Opcode & (1<<3))==0)
-							{
-								/* 11qq0101 - PUSH qq */
-								if (Diss_Index_IsRegIndex((Opcode>>4) & 0x03))
-									return 2;
-							}
-						}
-						break;
-
-						default:
-							break;
-					}
-				}
-				break;
-			}
-		}
-		break;
-	}
-
-	/* default is 1, which is the Index prefix */
-	return 1;
-}
-
-
-int	Z80_GetOpcodeCountForInstruction(int Addr)
-{
-	unsigned char Opcode;
-	Z80_WORD		DisAddr = Addr;
-
-	Opcode = Z80_RD_MEM(DisAddr);
-	DisAddr++;
-
-	switch (Opcode)
-	{
-		case 0x0cb:
-			/* 00000rrr - RLC */
-			/* 00001rrr - RRC */
-			/* 00010rrr - RL */
-			/* 00011rrr - RR */
-			/* 00100rrr - SLA */
-			/* 00101rrr - SRA */
-			/* 00110rrr - SLL */
-			/* 00111rrr - SRL */
-			/* 01bbbrrr - BIT */
-			/* 10bbbrrr - RES */
-			/* 11bbbrrr - SET */
-			return 2;
-
-		case 0x0ed:
-		{
-			/* ED prefix */
-			Opcode = Z80_RD_MEM(DisAddr);
-			DisAddr++;
-		
-			if ((Opcode & 0x0c0)==0x040)
-			{
-				switch (Opcode & 0x07)
-				{
-					case 0:
-					case 1:
-					case 2:
-						/* IN r,(C) - 01rrr000 */
-						/* OUT (C),r - 01rrr001 */
-						/* ADC HL,ss - 01ss1010 */
-						/* SBC HL,ss - 01ss0010 */
-						return 2;
-				
-					case 3:
-						/* LD dd,(nn) - 01dd1011 */
-						/* LD (nn),dd - 01dd0011 */
-						return 4;
-
-					case 4:
-					case 5:
-					case 6:
-					case 7:
-						/* NEG - 01xxx100 */
-						/* RETI - 01xx1010 */
-						/* RETN - 01xx0010 */
-						/* IM 0 - 01x00110 */
-						/* IM ? - 01x01110 */
-						/* IM 1 - 01x10110 */
-						/* IM 2 - 01x11110 */
-						return 2;
-				}
-
-			}
-			else if ((Opcode & 0x0e4)==0x0a0)
-			{
-
-				switch (Opcode & 0x03)
-				{
-					case 0:
-					case 1:
-					case 2:
-					case 3:
-						/* 10100000 - LDI */
-						/* 10101000 - LDD */
-						/* 10110000 - LDIR */
-						/* 10111000 - LDDR */
-						/* 10100001 - CPI */
-						/* 10111001 - CPDR */
-						/* 10110001 - CPIR */
-						/* 10101001 - CPD */
-						/* 10100010 - INI */
-						/* 10110010 - INIR */
-						/* 10101010 - IND */
-						/* 10111010 - INDR */
-						/* 10100011 - OUTI */
-						/* 10110011 - OTIR */
-						/* 10101011 - outd */
-						/* 10111011 - otdr */
-						return 2;
-				}
-			}
-			else
-			{
-				return 2;
-			}
-		}
-		break;
-
-		case 0x0dd:
-		case 0x0fd:
-			return Z80_Index_GetOpcodeCountForInstruction(DisAddr);
-
-		default:
-		{
-			switch (Opcode & 0x0c0)
-			{
-				case 0x000:
-				{
-					switch (Opcode & 0x07)
-					{
-						case 0:
-						{
-							if ((Opcode & 0x020)!=0)
-							{
-								/* 001cc000 - JR cc */
-								return 2;
-							}
-							else
-							{
-						
-								if ((Opcode & 0x010)!=0)
-								{
-									/* 00010000 - DJNZ */
-									/* 00011000 - JR */
-									return 2;
-								}
-								else
-								{
-									return 1;
-								}
-							}
-							
-						}
-						break;
-
-						case 1:
-						{
-							if ((Opcode & 0x08)!=0)
-							{
-								/* 00ss1001 - ADD HL,ss */
-								return 1;
-							}
-
-							/* 00dd0001 - LD dd,nn */
-							return 3;
-						}
-
-						case 2:
-						{
-							switch ((Opcode>>4) & 0x03)
-							{
-								case 0:
-								case 1:
-									/* 00000010 - LD (BC),A */
-									/* 00001010 - LD A,(BC) */
-									/* 00010010 - LD (DE),A */
-									/* 00011010 - LD A,(DE) */
-									return 1;
-
-								case 2:
-								case 3:
-									/* 00100010 - LD (nnnn),HL */
-									/* 00101010 - LD HL,(nn) */
-									/* 00110010 - LD (nnnn),A */
-									/* 00111010 - LD A,(nnnn) */
-									return 3;
-							}
-
-						}
-						break;
-
-						case 3:
-						case 4:
-						case 5:
-							/* 00ss0011 - INC ss */
-							/* 00ss1011 - DEC ss */
-							/* 00rrr100 - INC r */
-							/* 00rrr101 - DEC r */
-							return 1;
-
-						case 6:
-							/* LD r,n - 00rrr110 */
-							return 2;
-
-						case 7:
-							/* 00000111 - RLCA */
-							/* 00001111 - RRCA */
-							/* 00010111 - RLA */
-							/* 00011111 - RRA */
-							/* 00100111 - DAA */
-							/* 00101111 - CPL */
-							/* 00110111 - SCF */
-							/* 00111111 - CCF */
-							return 1;
-					}
-				}
-				break;
-
-				case 0x040:
-					/* 01xxxxxx */
-					/* 01110110 - HALT*/
-					/* 01rrrRRR - LD r,R */
-					return 1;
-
-				case 0x080:
-					/* 10xxxxxx */
-					/* 10000rrr - ADD */
-					/* 10001rrr - ADC */
-					/* 10010rrr - SUB */
-					/* 10011rrr - SBC */
-					/* 10100rrr - AND */
-					/* 10101rrr - XOR */
-					/* 10110rrr - OR */
-					/* 10111rrr - CP */
-					return 1;
-
-				case 0x0c0:
-				{
-					/* 11xxxxxx */
-
-					/* 11110011 - DI */
-					/* 11111011 - EI */
-					/* 11101011 - EX DE,HL */
-					/* 11011011 - IN A,(n) */
-					/* 11010011 - OUT (n),A */
-					/* 11000011 - JP */
-					/* 11100011 - EX (SP).HL */
-
-			
-					switch (Opcode & 0x07)
-					{
-
-						case 0:
-							/* 11 ccc 000 - RET cc */
-							return 1;
-
-						case 1:
-						{
-							if ((Opcode & (1<<3))==0)
-							{
-								/* 11qq0001 - POP qq */
-								return 1;
-							}
-							else
-							{	
-								/* 11001001 - RET */
-								/* 11011001 - EXX */
-								/* 11101001 - JP (HL) */
-								/* 11111001 - LD SP,HL */
-
-								return 1;
-							}
-						}
-						break;
-				
-						case 2:
-						case 4:
-							/* 11 ccc 010 - JP cc,nnnn */
-							/* 11 ccc 100 - CALL cc,nnnn */
-							return 3;
-
-						case 3:
-						{
-							if ((Opcode & (3<<4))==(1<<4))
-							{
-								/* 11011011 - IN A,(n) */
-								/* 11010011 - OUT (n),A */
-								return 2;
-							}
-							else if (Opcode == 0x0c3)
-							{	
-								return 3;
-							}
-							else
-							{
-								return 1;
-							}
-						}
-						break;					
-
-						case 5:
-						{
-							if ((Opcode & (1<<3))==0)
-							{
-								/* 11qq0101 - PUSH qq */
-								return 1;
-							}
-							else
-							{
-								/* 11001101 - CALL nn */
-								/* 11011101 - DD */
-								/* 11101101 - ED */
-								/* 11111101 - FD */
-								return 3;
-							}
-						}
-						break;
-
-						case 6:
-							/* 11000110 - ADD n */
-							/* 11001110 - ADC n */
-							/* 11010110 - SUB n */
-							/* 11011110 - SBC n */
-							/* 10100110 - AND */
-							/* 10101110 - XOR */
-							/* 10110110 - OR */
-							/* 10111110 - CP */
-							return 2;
-
-						case 7:
-							/* 11ttt111 - RST */
-							return 1;
-					}
-
-				}
-				break;
-			}
-		}
-		break;
-	}
-
-	return 0;
-}
-
-
-
-
-
-
-
 /* true if Opcode is a instruction prefix */
 BOOL	Z80_IsPrefix(Z80_BYTE	Opcode)
 {
 	if  (
-		(Opcode==0x0dd) || 
-		(Opcode==0x0fd) || 
+		(Opcode==0x0dd) ||
+		(Opcode==0x0fd) ||
 		(Opcode==0x0ed) ||
 		(Opcode==0x0cb)
 		)
@@ -777,7 +2153,7 @@ void	DoOpcode(FILE *fh,BOOL IsPrefix)
 		doNopCycle = TRUE;
 
 		if (
-			(Memory[0]==0x0cb) || 
+			(Memory[0]==0x0cb) ||
 			(Memory[0]==0x0ed) ||
 			(
 				((Memory[0]==0x0dd) || (Memory[0]==0x0fd)) && (Memory[1]==0x0cb)
@@ -799,7 +2175,7 @@ void	DoOpcode(FILE *fh,BOOL IsPrefix)
 
 		// JP (HL), or JP (IX)
 		if (
-			(Memory[0]==0x0e9) || 
+			(Memory[0]==0x0e9) ||
 			( ((Memory[0]==0x0fd) || (Memory[0]==0x0dd)) && (Memory[1]==0x0e9))
 			)
 
@@ -809,7 +2185,7 @@ void	DoOpcode(FILE *fh,BOOL IsPrefix)
 
 		// RETI, RETN
 		if (
-			(Memory[0]==0x0ed) && 
+			(Memory[0]==0x0ed) &&
 			(
 			((Memory[1]&0x0cf)==0x04d) ||
 			((Memory[1]&0x0cf)==0x045)
@@ -900,7 +2276,7 @@ void	DoOpcode(FILE *fh,BOOL IsPrefix)
 		{
 			bIncrementPC = FALSE;
 		}
-		
+
 		if (((Memory[0]==0x0dd) || (Memory[0]==0x0fd)) && (Memory[1]==0x0cb))
 		{
 			bIncrementPC = FALSE;
@@ -911,7 +2287,7 @@ void	DoOpcode(FILE *fh,BOOL IsPrefix)
 		{
 			/* correct; prooved by tests */
 			bIncrementPC = FALSE;
-			
+
 			/* not sure */
 			bIncrementR = FALSE;
 			bCheckInterrupt = FALSE;
@@ -926,7 +2302,7 @@ void	DoOpcode(FILE *fh,BOOL IsPrefix)
 			R_Increment = Z80_GetRIncrementForInstruction(0);
 
 			/* write macro name with correct increment */
-			fprintf(fh,"INC_REFRESH(%d);\r\n",R_Increment);
+			fprintf(fh,Z80_INC_REFRESH,R_Increment);
 		}
 
 
@@ -938,10 +2314,10 @@ void	DoOpcode(FILE *fh,BOOL IsPrefix)
 
 			OpcodeCount = Z80_GetOpcodeCountForInstruction(0);
 
-			fprintf(fh,"ADD_PC(%d);\r\n",OpcodeCount);
+			fprintf(fh,Z80_ADD_PC,OpcodeCount);
 		}
 
-		
+
 			if (Memory[0]==0x0ed)
 			{
 				if ((Memory[1] & 0x0c6)==0x040)
@@ -979,7 +2355,7 @@ void	DoOpcode(FILE *fh,BOOL IsPrefix)
 					//fprintf(fh,"Z80_UpdateCycles(%d);\r\n", NOP_Count);
 					fprintf(fh,"Cycles = %d;\r\n",NOP_Count);
 				}
-			}	
+			}
 	}
 }
 
@@ -987,7 +2363,7 @@ void	DoOpcode(FILE *fh,BOOL IsPrefix)
 void	StartFunction(unsigned char *FunctionName, FILE *fh,BOOL Local)
 {
 	fprintf(fh,"/***************************************************************************/\r\n");
-	
+
 	if (Local)
 	{
 		fprintf(fh,"INLINE static ");
@@ -1068,7 +2444,7 @@ void	IndexOnlyPrefix(FILE *fh)
 	int i, Opcode;
 
 		StartSwitch(fh,1);
-	
+
 
 		NumProcessed = 0;
 		for (i=0; i<256; i++)
@@ -1087,7 +2463,7 @@ void	IndexOnlyPrefix(FILE *fh)
 			if ((OpcodeCount==1))
 			{
 				OpcodeProcessed[i] = TRUE;
-			
+
 				BeginCaseNoBracket(fh,i);
 				NumProcessed++;
 			}
@@ -1107,7 +2483,7 @@ void	IndexOnlyPrefix(FILE *fh)
 			if (OpcodeProcessed[Opcode]==FALSE)
 			{
 				BeginCase(fh,Opcode);
-	
+
 				if (Opcode==0x0cb)
 				{
 					if (Memory[0]==0x0dd)
@@ -1123,7 +2499,7 @@ void	IndexOnlyPrefix(FILE *fh)
 				else
 				{
 					DoOpcode(fh,TRUE);
-				}	
+				}
 				EndCase(fh);
 			}
 
@@ -1138,13 +2514,13 @@ int	main(int argc, char *argv[])
 	int i;
 	FILE *fh;
 
-	fh = fopen("cpc/z80/z80.c","wb");
+	fh = fopen("c:\\z80code.c","wb");
 
 	if (fh!=NULL)
 	{
 
 		int Opcode;
-	
+
 		InterruptMode = FALSE;
 		fprintf(fh,"/*\n");
 		fprintf(fh," *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001\n");
@@ -1184,7 +2560,7 @@ int	main(int argc, char *argv[])
 		Memory[1] = 0x0cb;
 
 		StartSwitch(fh,3);
-					
+
 		for (Opcode = 0; Opcode<256; Opcode++)
 		{
 			Memory[3] = Opcode;
@@ -1198,8 +2574,8 @@ int	main(int argc, char *argv[])
 		EndSwitch(fh);
 
 		/* write macro name with correct increment */
-		fprintf(fh,"INC_REFRESH(2);\r\n");
-		fprintf(fh,"ADD_PC(4);\r\n");
+		fprintf(fh,Z80_INC_REFRESH,2);
+		fprintf(fh,Z80_ADD_PC,4);
 		fprintf(fh,"R.Flags |= Z80_CHECK_INTERRUPT_FLAG;\r\n");
 
 		EndFunction(fh);
@@ -1209,7 +2585,7 @@ int	main(int argc, char *argv[])
 		/* FD prefix opcodes */
 		StartFunction("Z80_FD_ExecuteInstruction",fh,TRUE);
 		Memory[0] = 0x0fd;
-		
+
 		IndexOnlyPrefix(fh);
 
 		/*********************/
@@ -1217,9 +2593,9 @@ int	main(int argc, char *argv[])
 		StartFunction("Z80_DD_CB_ExecuteInstruction",fh,TRUE);
 		Memory[0] = 0x0dd;
 		Memory[1] = 0x0cb;
-	
+
 		StartSwitch(fh,3);
-					
+
 		for (Opcode = 0; Opcode<256; Opcode++)
 		{
 			Memory[3] = Opcode;
@@ -1232,8 +2608,8 @@ int	main(int argc, char *argv[])
 		}
 		EndSwitch(fh);
 		/* write macro name with correct increment */
-		fprintf(fh,"INC_REFRESH(2);\r\n");
-		fprintf(fh,"ADD_PC(4);\r\n");
+		fprintf(fh,Z80_INC_REFRESH,2);
+		fprintf(fh,Z80_ADD_PC,4);
 		fprintf(fh,"R.Flags |= Z80_CHECK_INTERRUPT_FLAG;\r\n");
 		EndFunction(fh);
 
@@ -1241,7 +2617,7 @@ int	main(int argc, char *argv[])
 		/* DD prefix opcodes */
 		StartFunction("Z80_DD_ExecuteInstruction",fh,TRUE);
 		Memory[0] = 0x0dd;
-	
+
 		IndexOnlyPrefix(fh);
 
 		/*********************/
@@ -1250,10 +2626,10 @@ int	main(int argc, char *argv[])
 		Memory[0] = 0x0ed;
 
 		/* write macro name with correct increment */
-		fprintf(fh,"INC_REFRESH(2);\r\n");
-		
+		fprintf(fh,Z80_INC_REFRESH,2);
+
 		StartSwitch(fh,1);
-		
+
 
 		NumProcessed = 0;
 		for (i=0; i<256; i++)
@@ -1274,7 +2650,7 @@ int	main(int argc, char *argv[])
 			else
 			{
 				OpcodeProcessed[i] = TRUE;
-			
+
 				BeginCaseNoBracket(fh,i);
 				NumProcessed++;
 			}
@@ -1312,7 +2688,7 @@ int	main(int argc, char *argv[])
 		Memory[0] = 0x0cb;
 
 		StartSwitch(fh,1);
-					
+
 		for (Opcode = 0; Opcode<256; Opcode++)
 		{
 			Memory[1] = Opcode;
@@ -1327,8 +2703,8 @@ int	main(int argc, char *argv[])
 		EndSwitch(fh);
 
 		/* write macro name with correct increment */
-		fprintf(fh,"INC_REFRESH(2);\r\n");
-		fprintf(fh,"ADD_PC(2);\r\n");
+		fprintf(fh,Z80_INC_REFRESH,2);
+		fprintf(fh,Z80_ADD_PC,2);
 		fprintf(fh,"R.Flags |= Z80_CHECK_INTERRUPT_FLAG;\r\n");
 
 		EndFunction(fh);
@@ -1342,9 +2718,9 @@ int	main(int argc, char *argv[])
 		for (Opcode=0; Opcode<256; Opcode++)
 		{
 			Memory[0] = Opcode;
-			
+
 			BeginCase(fh,Opcode);
-				
+
 			if (Z80_IsPrefix(Opcode))
 			{
 				if (Opcode==0x0cb)
@@ -1424,7 +2800,7 @@ int	main(int argc, char *argv[])
 						Memory[0] = i;
 						InterruptAddr = (i<<8) | i;
 						DoOpcode(fh,FALSE);
-						EndCase(fh);	
+						EndCase(fh);
 				}
 			}
 
@@ -1442,796 +2818,6 @@ int	main(int argc, char *argv[])
 
 
 
-static int	Z80_Index_GetNopCountForInstruction(Z80_WORD DisAddr,Z80_BYTE Flags)
-{
-	unsigned char Opcode;
-
-	/* DD prefix - IX */
-	Opcode = Z80_RD_MEM(DisAddr);
-	DisAddr++;
-
-	switch (Opcode)
-	{
-		case 0x0dd:
-		case 0x0fd:
-		case 0x0ed:
-		{
-			return 1;
-		}
-		
-		case 0x0cb:
-		{
-			signed char Offset;
-
-			/* CB prefix */
-
-			/* signed offset from IX */
-			Offset = Z80_RD_MEM(DisAddr);
-			DisAddr++;
-
-			/* opcode */
-			Opcode = Z80_RD_MEM(DisAddr);
-
-			if ((Opcode & 0x0c0)==0x00)
-			{
-				/* 00000rrr - RLC */
-				/* 00001rrr - RRC */
-				/* 00010rrr - RL */
-				/* 00011rrr - RR */
-				/* 00100rrr - SLA */
-				/* 00101rrr - SRA */
-				/* 00110rrr - SLL */
-				/* 00111rrr - SRL */
-
-				return 7;
-			}
-			else
-			{
-				/* 01bbbrrr - BIT */
-				/* 10bbbrrr - RES */
-				/* 11bbbrrr - SET */
-				
-				if ((Opcode & 0x0c0)==0x040)
-				{
-					return 6;
-				}
-
-				return 7;
-			}
-		}
-		break;
-
-
-		default:
-		{
-			switch (Opcode & 0x0c0)
-			{
-				case 0x000:
-				{
-					switch (Opcode & 0x07)
-					{
-						case 1:
-						{
-							if ((Opcode & 0x08)!=0)
-							{
-								/* 00ss1001 - ADD HL,ss */
-								return 4;
-							}
-							else
-							{
-								/* 00dd0001 - LD dd,nn */
-								return 4;
-							}
-				
-						}
-						break;
-
-						case 2:
-						{
-							switch ((Opcode>>4) & 0x03)
-							{
-								case 2:
-								{
-									/* 00100010 - LD (nnnn),HL */
-									/* 00101010 - LD HL,(nn) */
-									return 6;
-								}
-								break;
-
-								default:
-									break;
-							}
-
-
-						}
-						break;
-
-						case 3:
-							/* 00ss0011 - INC ss */
-							/* 00ss1011 - DEC ss */
-							return 3;
-						
-						case 4:
-						case 5:
-						{
-							/* 00rrr100 - INC r */
-							/* 00rrr101 - DEC r */
-							if (((Opcode>>3) & 0x07)==6)
-								return 6;
-							
-							return 2;
-		
-						}
-
-						case 6:
-						{
-							/* LD r,n - 00rrr110 */
-							if (((Opcode>>3) & 0x07)==6)
-								return 6;
-
-							return 3;
-						}
-						break;
-
-						default:
-							break;
-					}
-				}
-				break;
-
-				case 0x040:
-				{
-					/* 01xxxxxx */
-					/* HALT, LD r,R */
-					unsigned char Reg1,Reg2;
-					/* will not get here if defb &dd:HALT is encountered! */
-					/* 01rrrRRR - LD r,R */
-									
-					Reg1 = (Opcode>>3) & 0x07;
-					Reg2 = Opcode & 0x07; 
-
-					if ((Reg1==6) || (Reg2==6))
-					{
-						return 5;
-					}
-					
-					return 2;
-				}
-				break;
-
-				case 0x080:
-				{
-					/* 10xxxxxx */
-					/* 10000rrr - ADD */
-					/* 10001rrr - ADC */
-					/* 10010rrr - SUB */
-					/* 10011rrr - SBC */
-					/* 10100rrr - AND */
-					/* 10101rrr - XOR */
-					/* 10110rrr - OR */
-					/* 10111rrr - CP */
-				
-					if ((Opcode & 0x07)==6)
-						return 5;
-
-					return 2;
-				}
-
-				case 0x0c0:
-				{
-					/* 11xxxxxx */
-			
-			
-					switch (Opcode & 0x07)
-					{
-						case 1:
-						{
-							if ((Opcode & (1<<3))==0)
-							{
-								/* 11qq0001 - POP qq */
-								return 4;
-
-							}
-							else
-							{	
-								/* 11001001 - RET */
-								/* 11011001 - EXX */
-								/* 11101001 - JP (HL) */
-								/* 11111001 - LD SP,HL */
-
-								if (Opcode==0x0e9)
-									return 2;
-
-								if (Opcode==0x0f9)
-									return 3;
-							}
-						}
-						break;
-				
-						case 3:
-						{
-							/* 11001011 - CB prefix */
-							if ((Opcode & (3<<4))==(1<<4))
-							{
-								/* 11011011 - IN A,(n) */
-								/* 11010011 - OUT (n),A */
-		
-							}	
-							else if (Opcode == 0x0c3) 
-							{
-								/* 11000011 - JP nn */
-							}
-							else
-							{
-								/* 11100011 - EX (SP).HL */
-								/* 11101011 - EX DE,HL */
-							
-								/* 11110011 - DI */
-								/* 11111011 - EI */
-
-								if (Opcode==0x0e3)
-									return 7;
-							}
-
-						}
-						break;
-
-						case 5:
-						{
-							/* 11qq0101 - PUSH qq */
-							if ((Opcode & (1<<3))==0)
-							{
-								return 5;
-							}
-						}
-						break;
-
-
-						default:
-							break;
-					}
-
-				}
-				break;
-			}
-		}
-		break;
-	}
-
-	return -1;
-}
-
-/* returns NOP count for whole instruction - values may be different
-depending on flags! */
-int		Z80_GetNopCountForInstruction(Z80_WORD Addr, Z80_BYTE Flags)
-{
-	unsigned char Opcode;
-	Z80_WORD		DisAddr = Addr;
-	
-	Opcode = Z80_RD_MEM(DisAddr);
-	DisAddr++;
-
-	switch (Opcode)
-	{
-		case 0x0cb:
-		{
-			/* CB prefix */
-			Opcode = Z80_RD_MEM(DisAddr);
-
-			if ((Opcode & 0x0c0)==0x00)
-			{
-				/* 00000rrr - RLC */
-				/* 00001rrr - RRC */
-				/* 00010rrr - RL */
-				/* 00011rrr - RR */
-				/* 00100rrr - SLA */
-				/* 00101rrr - SRA */
-				/* 00110rrr - SLL */
-				/* 00111rrr - SRL */
-				
-				/* (HL)? */
-				if ((Opcode & 0x07)==6)
-					return 4;
-
-				return 2;
-			}
-			else
-			{
-				/* 01bbbrrr - BIT */
-				/* 10bbbrrr - RES */
-				/* 11bbbrrr - SET */
-				
-				
-				/* (HL)? */
-				if ((Opcode & 0x07)==6)
-				{
-					/* BIT? */
-					if ((Opcode & 0x0c0)==0x040)
-						return 3;
-
-					/* RES/SET */
-					return 4;
-				}
-
-				return 2;
-			}
-		}
-		break;
-
-		case 0x0fd:
-		case 0x0dd:
-			return Z80_Index_GetNopCountForInstruction(DisAddr,Flags);
-		
-		case 0x0ed:
-		{
-			/* ED prefix */
-			Opcode = Z80_RD_MEM(DisAddr);
-			DisAddr++;
-		
-			if ((Opcode & 0x0c0)==0x040)
-			{
-				switch (Opcode & 0x07)
-				{
-					case 0:
-					case 1:
-						/* IN r,(C) - 01rrr000 */
-						/* OUT (C),r - 01rrr001 */
-						return 4;
-
-					case 2:
-						/* ADC HL,ss - 01ss1010 */
-						/* SBC HL,ss - 01ss0010 */
-						return 4;
-
-					case 3:
-						/* LD dd,(nn) - 01dd1011 */
-						/* LD (nn),dd - 01dd0011 */
-						return 6;
-
-					case 4:
-						/* NEG - 01xxx100 */
-						return 2;
-
-					case 5:
-						/* RETI - 01xx1010 */
-						/* RETN - 01xx0010 */
-						return 4;
-						
-					case 6:
-						/* IM 0 - 01x00110 */
-						/* IM ? - 01x01110 */
-						/* IM 1 - 01x10110 */
-						/* IM 2 - 01x11110 */
-						return 2;
-
-					case 7:
-					{
-						if ((Opcode & 0x020)==0)
-						{
-							/* 01000111 - LD I,A */
-							/* 01001111 - LD R,A */
-							/* 01010111 - LD A,I */
-							/* 01011111 - LD A,R */
-							return 3;
-						}
-						
-						if ((Opcode & 0x010)==0)
-						{
-							/* 01101111 - RLD */
-							/* 01100111 - RRD */
-							return 5;
-						}
-
-						/* 01110111 - ED NOP */
-						/* 01111111 - ED NOP */
-
-						return 2;
-					}
-
-
-				}
-
-			}
-			else if ((Opcode & 0x0e4)==0x0a0)
-			{
-
-				switch (Opcode & 0x03)
-				{
-					case 0:
-					{
-						/* 10100000 - LDI */
-						/* 10101000 - LDD */
-						/* 10110000 - LDIR */
-						/* 10111000 - LDDR */
-
-						// correct?
-						if ((Opcode==0x0a0) || (Opcode==0x0a8))
-							return 5;
-
-					}
-					break;
-					
-					case 1:
-					{
-						/* 10100001 - CPI */
-						/* 10111001 - CPDR */
-						/* 10110001 - CPIR */
-						/* 10101001 - CPD */
-
-						// correct?
-						if ((Opcode==0x0a1) || (Opcode==0x0a9))
-							return 5;
-
-
-					}
-					break;
-
-					case 2:
-					{
-						/* 10100010 - INI */
-						/* 10110010 - INIR */
-						/* 10101010 - IND */
-						/* 10111010 - INDR */
-
-						// correct?
-						if ((Opcode==0x0a2) || (Opcode==0x0aa))
-							return 5;
-					}
-					break;
-
-					case 3:
-					{
-						/* 10100011 - OUTI */
-						/* 10110011 - OTIR */
-						/* 10101011 - outd */
-						/* 10111011 - otdr */
-
-						// correct?
-						if ((Opcode==0x0a3) || (Opcode==0x0ab))
-							return 5;
-					}
-					break;
-
-				}
-			}
-			else
-				/* ED-NOP */
-				return 2;
-		}
-		break;
-
-		default:
-		{
-			switch (Opcode & 0x0c0)
-			{
-				case 0x000:
-				{
-					switch (Opcode & 0x07)
-					{
-						case 0:
-						{
-							if ((Opcode & 0x020)!=0)
-							{
-								/* 001cc000 - JR cc */
-
-							
-							}
-							else
-							{
-								if ((Opcode & 0x010)!=0)
-								{
-									/* 00010000 - DJNZ */
-									/* 00011000 - JR */
-									
-									unsigned char *Instruction;
-
-									if (Opcode==0x010)
-									{
-										Instruction = "DJNZ";
-									}
-									else
-									{
-										return 3;
-									}
-
-								}
-								else
-								{
-									/* 00000000 - NOP */
-									/* 00001000 - EX AF,AF */
-									return 1;
-								}
-
-							}
-						}
-						break;
-
-						case 1:
-						{
-							if ((Opcode & 0x08)!=0)
-							{
-								/* 00ss1001 - ADD HL,ss */
-								return 3;
-							}
-
-							/* 00dd0001 - LD dd,nn */
-							return 3;
-						}
-						break;
-
-						case 2:
-						{
-							switch ((Opcode>>4) & 0x03)
-							{
-								case 0:
-									/* 00000010 - LD (BC),A */
-									/* 00001010 - LD A,(BC) */
-									return 2;
-
-								case 1:
-									/* 00010010 - LD (DE),A */
-									/* 00011010 - LD A,(DE) */
-									return 2;
-
-								case 2:
-									/* 00100010 - LD (nnnn),HL */
-									/* 00101010 - LD HL,(nn) */
-									return 5;
-
-								case 3:
-									return 4;
-							}
-
-						}
-						break;
-
-						case 3:
-							/* 00ss0011 - INC ss */
-							/* 00ss1011 - DEC ss */
-							return 2;
-
-
-						case 4:
-						case 5:
-							/* 00rrr100 - INC r */
-							/* 00rrr101 - DEC r */
-							if (((Opcode>>3) & 0x07)==6)
-								return 3;
-
-							return 1;
-							
-						case 6:
-							/* LD r,n - 00rrr110 */
-							return 2;
-
-						case 7:
-							/* 00000111 - RLCA */
-							/* 00001111 - RRCA */
-							/* 00010111 - RLA */
-							/* 00011111 - RRA */
-							/* 00100111 - DAA */
-							/* 00101111 - CPL */
-							/* 00110111 - SCF */
-							/* 00111111 - CCF */
-								return 1;
-					}
-				}
-				break;
-
-				case 0x040:
-				{
-					/* 01xxxxxx */
-					/* HALT, LD r,R */
-
-					/* 01rrrRRR - LD r,R */
-
-
-					if (Opcode == 0x076)
-					{
-						return 1;
-					}
-					else
-					{
-						unsigned char Reg1,Reg2;
-
-						Reg1 = ((Opcode>>3) & 0x07);
-						Reg2 = (Opcode & 0x07);
-
-						if ((Reg1==6) || (Reg2==6))
-						{
-							return 2;
-						}
-						
-						return 1;
-					}
-				}
-				break;
-
-				case 0x080:
-				{
-					/* 10xxxxxx */
-					/* 10000rrr - ADD */
-					/* 10001rrr - ADC */
-					/* 10010rrr - SUB */
-					/* 10011rrr - SBC */
-					/* 10100rrr - AND */
-					/* 10101rrr - XOR */
-					/* 10110rrr - OR */
-					/* 10111rrr - CP */
-
-					if ((Opcode & 0x07)==6)
-						return 2;
-
-					return 1;
-				}
-				break;
-
-				case 0x0c0:
-				{
-					/* 11xxxxxx */
-			
-			
-					switch (Opcode & 0x07)
-					{
-
-						case 0:
-						{
-							/* 11 ccc 000 - RET cc */
-#if 0
-							sprintf(OutputString,"RET %s",
-								ConditionCodes[((Opcode>>3) & 0x07)]);
-#endif
-
-						}
-						break;
-
-						case 1:
-						{
-							if ((Opcode & (1<<3))==0)
-							{
-								/* 11qq0001 - POP qq */
-								return 3;
-							}
-							else
-							{	
-								/* 11001001 - RET */
-								/* 11011001 - EXX */
-								/* 11101001 - JP (HL) */
-								/* 11111001 - LD SP,HL */
-
-								switch (Opcode)
-								{
-									case 0x0c9:
-										return 3;
-
-									case 0x0d9:
-										return 1;
-									
-									case 0x0e9:
-										return 1;
-
-									case 0x0f9:
-										return 2;
-
-									default:
-										break;
-								}
-							}
-						}
-						break;
-				
-						case 2:
-							/* 11 ccc 010 - JP cc,nnnn */
-							return 3;
-
-						case 3:
-						{
-							/* 11001011 - CB prefix */
-							if ((Opcode & (3<<4))==(1<<4))
-							{
-								/* 11011011 - IN A,(n) */
-								/* 11010011 - OUT (n),A */
-								return 3;
-							}	
-							else if (Opcode == 0x0c3) 
-							{
-								/* 11000011 - JP nn */
-								return 3;
-							}
-							else
-							{
-								/* 11100011 - EX (SP).HL */
-								/* 11101011 - EX DE,HL */
-							
-								/* 11110011 - DI */
-								/* 11111011 - EI */
-
-								switch (Opcode)
-								{
-									case 0x0e3:
-										return 6;
-									case 0x0eb:
-										return 1;
-									case 0x0f3:
-										return 1;
-									case 0x0fb:
-										return 1;
-								
-									default:
-										break;
-								}
-
-							}
-
-						}
-						break;
-
-						case 4:
-						{
-							/* 11 ccc 100 - CALL cc,nnnn */
-#if 0
-							sprintf(OutputString,"CALL %s,#%04x",
-								ConditionCodes[((Opcode>>3) & 0x07)],
-								Diss_GetWord(DisAddr));
-#endif
-						}
-						break;
-
-
-						case 5:
-						{
-							/* 11qq0101 - PUSH qq */
-							if ((Opcode & (1<<3))==0)
-							{
-								/* 11qq0101 - PUSH qq */
-								return 4;
-
-							}
-							else
-							{
-								/* 11001101 - CALL nn */
-								/* 11011101 - DD */
-								/* 11101101 - ED */
-								/* 11111101 - FD */
-
-								switch (Opcode)
-								{
-									case 0x0cd:
-										return 5;
-
-									default:
-										break;
-								}
-							}
-						}
-						break;
-
-						case 6:
-							/* 11000110 - ADD n */
-							/* 11001110 - ADC n */
-							/* 11010110 - SUB n */
-							/* 11011110 - SBC n */
-							/* 10100110 - AND */
-							/* 10101110 - XOR */
-							/* 10110110 - OR */
-							/* 10111110 - CP */
-							return 2;
-
-						case 7:
-							/* 11ttt111 - RST */
-							return 4;						
-					}
-
-				}
-				break;
-			}
-		}
-		break;
-	}
-
-	return -1;
-}
-
 
 static char *RegA[]=
 {
@@ -2245,6 +2831,18 @@ static char *RegA[]=
 	"R.AF.B.h"
 };
 
+static char *RegASmall[]=
+{
+	"B",
+	"C",
+	"D",
+	"E",
+	"H",
+	"L",
+	"",
+	"A"
+};
+
 
 const unsigned char *RegB[]=
 {
@@ -2253,6 +2851,15 @@ const unsigned char *RegB[]=
 	"R.HL.W",
 	"R.SP.W"
 };
+
+const unsigned char *RegBSmall[]=
+{
+	"BC",
+	"DE",
+	"HL",
+	"SP"
+};
+
 
 const unsigned char *RegC[]=
 {
@@ -2283,7 +2890,7 @@ static void	Z80_Index_GenerateCode(int DisAddr, unsigned char IndexCh,FILE *fh)
 
 		case 0x0cb:
 		{
-			signed char Offset;
+		//	signed char Offset;
 
 			/* CB prefix */
 
@@ -2427,7 +3034,12 @@ static void	Z80_Index_GenerateCode(int DisAddr, unsigned char IndexCh,FILE *fh)
 				{
 					case 0x040:
 					{
-						fprintf(fh,"BIT_INDEX(%d,R.I%c.W);\r\n",BitIndex, IndexCh);
+						char sReg[128];
+						fprintf(fh,"/* BIT %d,(I%c+d) */\r\n", BitIndex, IndexCh);
+						sprintf(sReg,"R.I%c.W",IndexCh);
+						fprintf(fh,"SETUP_INDEXED_ADDRESS(%s);\r\n",sReg);
+						fprintf(fh,"R.TempByte = Z80_RD_MEM(R.MemPtr.W);\r\n");
+						fprintf(fh,Z80_BIT_MP,BitIndex, BitIndex, BitIndex);
 					}
 					break;
 
@@ -2512,13 +3124,14 @@ static void	Z80_Index_GenerateCode(int DisAddr, unsigned char IndexCh,FILE *fh)
 							}
 							else
 							{
+
 								/* 00dd0001 - LD dd,nn */
-								fprintf(fh,"LD_INDEXRR_nn(R.I%c.W);\r\n",IndexCh);
-					//			sprintf(OutputString,"LD %s,#%04x",
-					//				RegB[((Opcode>>4) & 0x03)],
-					//				Diss_GetWord(DisAddr));
+								char sReg1[128];
+								fprintf(fh,"/* LD I%c,nnnn */\r\n",IndexCh);
+								sprintf(sReg1,"R.I%c.W",IndexCh);
+								fprintf(fh,Z80_LD_INDEXRR_nn, sReg1);
 							}
-				
+
 						}
 						break;
 
@@ -2530,19 +3143,19 @@ static void	Z80_Index_GenerateCode(int DisAddr, unsigned char IndexCh,FILE *fh)
 								{
 									/* 00100010 - LD (nnnn),HL */
 									/* 00101010 - LD HL,(nn) */
-				
+
+									char sReg[128];
+									sprintf(sReg,"R.I%c.W",IndexCh);
 									if ((Opcode & (1<<3))==0)
 									{
-										fprintf(fh,"LD_nnnn_INDEXRR(R.I%c.W);\r\n",IndexCh);
-					//					sprintf(OutputString,"LD (#%04x),HL",
-					//						Diss_GetWord(DisAddr));
-	
+										fprintf(fh,"/* LD (nnnn),I%c */\r\n",IndexCh);
+										fprintf(fh,Z80_LD_nnnn_INDEXRR, sReg);
+
 									}
 									else
 									{
-										fprintf(fh,"LD_INDEXRR_nnnn(R.I%c.W);\r\n",IndexCh);
-					//					sprintf(OutputString,"LD HL,(#%04x)",
-					//						Diss_GetWord(DisAddr));
+										fprintf(fh,"/* LD I%c,(nnnn) */\r\n",IndexCh);
+										fprintf(fh,Z80_LD_INDEXRR_nnnn, sReg);
 									}
 								}
 								break;
@@ -2561,19 +3174,19 @@ static void	Z80_Index_GenerateCode(int DisAddr, unsigned char IndexCh,FILE *fh)
 							if ((Opcode & 0x08)==0)
 							{
 								/* 00ss0011 - INC ss */
-								fprintf(fh,"INC_rp(R.I%c.W);\r\n",IndexCh);
+								char sReg[128];
+								fprintf(fh,"/* INC I%c */\r\n",IndexCh);
+								sprintf(sReg,"R.I%c.W", IndexCh);
+								fprintf(fh,Z80_INC_rp,sReg);
 							}
 							else
 							{
 								/* 00ss1011 - DEC ss */
-								fprintf(fh,"DEC_rp(R.I%c.W);\r\n",IndexCh);
+								char sReg[128];
+								fprintf(fh,"/* DEC I%c */\r\n",IndexCh);
+								sprintf(sReg,"R.I%c.W", IndexCh);
+								fprintf(fh,Z80_DEC_rp,sReg);
 							}
-
-							
-					//		Diss_strcat(Instruction);
-					//		Diss_space();
-					//		Diss_IndexReg(IndexCh);
-					//		Diss_endstring();
 						}
 						break;
 
@@ -2603,7 +3216,7 @@ static void	Z80_Index_GenerateCode(int DisAddr, unsigned char IndexCh,FILE *fh)
 					//		Diss_Index_Reg8Bit(((Opcode>>3) & 0x07),DisAddr, IndexCh);
 					//		Diss_endstring();
 
-									
+
 						}
 						break;
 
@@ -2639,27 +3252,29 @@ static void	Z80_Index_GenerateCode(int DisAddr, unsigned char IndexCh,FILE *fh)
 							/* LD r,n - 00rrr110 */
 							//unsigned char Data = Z80_RD_MEM(DisAddr+1);
 							unsigned char RegIndex;
+							char Reg1[128];
 
 							RegIndex = ((Opcode>>3) & 0x07);
 
 							if (RegIndex==4)
 							{
-								fprintf(fh,"LD_RI_n(R.I%c.B.h);\r\n",IndexCh);
+								fprintf(fh,"/* LD HI%c, n */\r\n",IndexCh);
+								sprintf(Reg1,"R.I%c.B.h",IndexCh);
+								fprintf(fh,Z80_LD_RI_n,Reg1);
 							}
 							else if (RegIndex==5)
 							{
-								fprintf(fh,"LD_RI_n(R.I%c.B.l);\r\n",IndexCh);
+								fprintf(fh,"/* LD LI%c, n */\r\n",IndexCh);
+								sprintf(Reg1,"R.I%c.B.l",IndexCh);
+								fprintf(fh,Z80_LD_RI_n,Reg1);
 							}
 							else if (RegIndex==6)
 							{
-								fprintf(fh,"LD_INDEX_n(R.I%c.W);\r\n",IndexCh);
+								char sReg[128];
+								fprintf(fh,"/* LD (I%c+d),n */\r\n", IndexCh);
+								sprintf(sReg,"R.I%c.W",IndexCh);
+								fprintf(fh,Z80_LD_INDEX_n, sReg);
 							}
-					//		Diss_strcat("LD");
-					//		Diss_space();
-					//		Diss_Index_Reg8Bit(((Opcode>>3) & 0x07),DisAddr, IndexCh);
-					//		Diss_comma();
-					//		Diss_WriteHexByte(Data);
-					//		Diss_endstring();
 						}
 						break;
 
@@ -2675,28 +3290,34 @@ static void	Z80_Index_GenerateCode(int DisAddr, unsigned char IndexCh,FILE *fh)
 					/* HALT, LD r,R */
 					unsigned char Reg1,Reg2;
 					/* will not get here if defb &dd:HALT is encountered! */
-					
+
 					/* 01rrrRRR - LD r,R */
 			//		Diss_strcat("LD");
 			//		Diss_space();
-					
+
 					Reg1 = (Opcode>>3) & 0x07;
-					Reg2 = Opcode & 0x07; 
+					Reg2 = Opcode & 0x07;
 
 					if ((Reg1==6) || (Reg2==6))
 					{
 						if (Reg1==6)
 						{
-							fprintf(fh,"LD_INDEX_R(R.I%c.W,%s);\r\n",IndexCh,RegA[Reg2]);
+							char sReg[128];
+							sprintf(sReg,"R.I%c.W", IndexCh);
+							fprintf(fh,"/* LD (I%c+D),%s */\r\n",IndexCh,RegASmall[Reg2]);
+							fprintf(fh,Z80_LD_INDEX_R, sReg,RegA[Reg2]);
 						}
-						
+
 						if (Reg2==6)
 						{
-							fprintf(fh,"LD_R_INDEX(R.I%c.W,%s);\r\n",IndexCh,RegA[Reg1]);
+							char sReg[128];
+							sprintf(sReg,"R.I%c.W", IndexCh);
+							fprintf(fh,"/* LD %s,(I%c+D) */\r\n",RegASmall[Reg1],IndexCh);
+							fprintf(fh,Z80_LD_R_INDEX, sReg,RegA[Reg1]);
 						}
 					}
 					else
-					{ 
+					{
 						unsigned char Reg1Char='h', Reg2Char='h';
 
 						if (Reg1 == 4)
@@ -2707,7 +3328,7 @@ static void	Z80_Index_GenerateCode(int DisAddr, unsigned char IndexCh,FILE *fh)
 						{
 							Reg1Char = 'l';
 						}
-						else 
+						else
 						{
 							printf("warning Reg1 not valid %d!\r\n",Reg1);
 						}
@@ -2732,30 +3353,35 @@ static void	Z80_Index_GenerateCode(int DisAddr, unsigned char IndexCh,FILE *fh)
 								if (Reg1!=Reg2)
 								{
 									/* reg 1,2 IXh type */
-									fprintf(fh,"LD_R_R(R.I%c.B.%c,R.I%c.B.%c);\r\n",IndexCh,Reg1Char,IndexCh,Reg2Char);
+									char sReg1[128];
+									char sReg2[128];
+									fprintf(fh,"/* LD %cI%c,%cI%c */\r\n",Reg1Char, IndexCh, Reg2Char, IndexCh);
+									sprintf(sReg1,"R.I%c.B.%c",IndexCh,Reg1Char);
+									sprintf(sReg2,"R.I%c.B.%c",IndexCh,Reg2Char);
+									fprintf(fh,Z80_LD_R_R, sReg1, sReg2);
 								}
 							}
 							else
 							{
 								/* reg 1 is IXH, Reg 2 isn't */
-								fprintf(fh,"LD_R_R(R.I%c.B.%c,%s);\r\n",IndexCh,Reg1Char,RegA[Reg2]);
+								char sReg1[128];
+								fprintf(fh,"/* LD %cI%c,%s */\r\n",Reg1Char, IndexCh, RegASmall[Reg2]);
+								sprintf(sReg1,"R.I%c.B.%c",IndexCh,Reg1Char);
+								fprintf(fh,Z80_LD_R_R,sReg1, RegA[Reg2]);
 							}
 						}
-						else 
+						else
 						{
 							if ((Reg2==4) || (Reg2==5))
 							{
 								/* reg 1 not IXH type */
-								fprintf(fh,"LD_R_R(%s,R.I%c.B.%c);\r\n",RegA[Reg1],IndexCh,Reg2Char);
+								char sReg2[128];
+								fprintf(fh,"/* LD %s,%cI%c */\r\n",RegASmall[Reg1], Reg2Char, IndexCh);
+								sprintf(sReg2,"R.I%c.B.%c",IndexCh,Reg2Char);
+								fprintf(fh,Z80_LD_R_R,RegA[Reg1],sReg2);
 							}
 						}
-
-			//			Diss_Index_Reg8Bit(Reg1,DisAddr, IndexCh);
-			//			Diss_comma();
-			//			Diss_Index_Reg8Bit(Reg2,DisAddr,IndexCh);
 					}
-
-			//		Diss_endstring();
 				}
 				break;
 
@@ -3014,8 +3640,8 @@ static void	Z80_Index_GenerateCode(int DisAddr, unsigned char IndexCh,FILE *fh)
 				case 0x0c0:
 				{
 					/* 11xxxxxx */
-			
-			
+
+
 					switch (Opcode & 0x07)
 					{
 						case 1:
@@ -3023,6 +3649,7 @@ static void	Z80_Index_GenerateCode(int DisAddr, unsigned char IndexCh,FILE *fh)
 							if ((Opcode & (1<<3))==0)
 							{
 								/* 11qq0001 - POP qq */
+								fprintf(fh,"/* POP I%c */\r\n",IndexCh);
 								fprintf(fh,"R.I%c.W = POP();\r\n",IndexCh);
 
 					//			Diss_strcat("POP");
@@ -3031,30 +3658,30 @@ static void	Z80_Index_GenerateCode(int DisAddr, unsigned char IndexCh,FILE *fh)
 					//			Diss_endstring();
 							}
 							else
-							{	
+							{
 								/* 11001001 - RET */
 								/* 11011001 - EXX */
 								/* 11101001 - JP (HL) */
 								/* 11111001 - LD SP,HL */
 
+                                char sReg1[128];
+                                sprintf(sReg1,"R.I%c.W", IndexCh);
+
 								if (Opcode==0x0e9)
 								{
-									fprintf(fh,"JP_rp(R.I%c.W);\r\n",IndexCh);
+									fprintf(fh,"/* JP (I%c) */\r\n",IndexCh);
+									fprintf(fh,Z80_JP_rp, sReg1);
 								}
 
 								if (Opcode==0x0f9)
 								{
-									fprintf(fh,"LD_SP_rp(R.I%c.W);\r\n",IndexCh);
+									fprintf(fh,"/* LD SP,I%c */\r\n",IndexCh);
+									fprintf(fh,Z80_LD_SP_rp, sReg1);
 								}
-
-
-
-					//			sprintf(OutputString,
-					//				MiscMneumonics3[((Opcode>>4) & 0x03)]);
 							}
 						}
 						break;
-				
+
 						case 3:
 						{
 							/* 11001011 - CB prefix */
@@ -3070,7 +3697,7 @@ static void	Z80_Index_GenerateCode(int DisAddr, unsigned char IndexCh,FILE *fh)
 								if ((Opcode & (1<<4))!=0)
 								{
 									/* 11011011 - IN A,(n) */
-								
+
 					//				sprintf(OutputString,"IN A,(#%02x)",
 					//					PortByte);
 								}
@@ -3080,9 +3707,9 @@ static void	Z80_Index_GenerateCode(int DisAddr, unsigned char IndexCh,FILE *fh)
 					//				sprintf(OutputString,"OUT (#%02x),A",
 					//					PortByte);
 								}
-		
-							}	
-							else if (Opcode == 0x0c3) 
+
+							}
+							else if (Opcode == 0x0c3)
 							{
 								/* 11000011 - JP nn */
 					//			sprintf(OutputString,"JP #%04x",
@@ -3092,17 +3719,17 @@ static void	Z80_Index_GenerateCode(int DisAddr, unsigned char IndexCh,FILE *fh)
 							{
 								/* 11100011 - EX (SP).HL */
 								/* 11101011 - EX DE,HL */
-							
+
 								/* 11110011 - DI */
 								/* 11111011 - EI */
 
 								if (Opcode==0x0e3)
 								{
-									fprintf(fh,"EX_SP_rr(R.I%c.W);\r\n",IndexCh);
+								    char sReg[128];
+									fprintf(fh,"/* EX (SP),I%c */\r\n",IndexCh);
+								    sprintf(sReg,"R.I%c.W",IndexCh);
+									fprintf(fh,Z80_EX_SP_rr, sReg, sReg);
 								}
-
-					//			sprintf(OutputString,"%s",
-					//				MiscMneumonics9[(((Opcode>>3) & 0x07)-4)]);
 							}
 
 						}
@@ -3113,12 +3740,8 @@ static void	Z80_Index_GenerateCode(int DisAddr, unsigned char IndexCh,FILE *fh)
 							/* 11qq0101 - PUSH qq */
 							if ((Opcode & (1<<3))==0)
 							{
+								fprintf(fh,"/* PUSH I%c */\r\n",IndexCh);
 								fprintf(fh,"PUSH(R.I%c.W);\r\n",IndexCh);
-
-					//			Diss_strcat("PUSH");
-					//			Diss_space();
-					//			Diss_IndexReg(IndexCh);
-					//			Diss_endstring();
 							}
 						}
 						break;
@@ -3141,7 +3764,7 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 {
 	unsigned char Opcode;
 	Z80_WORD		DisAddr = Addr;
-	
+
 //	pDissassemblyString = OutputString;
 
 	Opcode = Z80_RD_MEM(DisAddr);
@@ -3164,9 +3787,9 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 				/* 00101rrr - SRA */
 				/* 00110rrr - SLL */
 				/* 00111rrr - SRL */
-				
+
 				unsigned char Reg = (Opcode & 0x07);
- 
+
 				switch ((Opcode>>3) & 0x07)
 				{
 					case 0:
@@ -3264,13 +3887,13 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 						else
 						{
 							fprintf(fh,"SLL_HL();\r\n");
-						
+
 						}
 						}
 						break;
 
 					case 7:
-						{						
+						{
 							if (Reg!=6)
 							{
 								fprintf(fh,"SRL_REG(%s);\r\n",RegA[Reg]);
@@ -3297,7 +3920,7 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 				/* 10bbbrrr - RES */
 				/* 11bbbrrr - SET */
 				int BitIndex = ((Opcode>>3) & 0x07);
-				
+
 				unsigned char Reg = (Opcode & 0x07);
 
 				switch (Opcode & 0x0c0)
@@ -3306,13 +3929,16 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 					{
 						if (Reg!=6)
 						{
-							fprintf(fh,"BIT_REG(%d,%s);\r\n",BitIndex, RegA[Reg]);
+						    fprintf(fh,"/* BIT %d,%s */\r\n",BitIndex,RegASmall[Reg]);
+							fprintf(fh,Z80_BIT,BitIndex, RegA[Reg], BitIndex, BitIndex);
 						}
 						else
 						{
-							fprintf(fh,"BIT_HL(%d);\r\n",BitIndex);
+						    fprintf(fh,"/* BIT %d,(HL) */\r\n",BitIndex);
+						    fprintf(fh,"R.TempByte = Z80_RD_BYTE(R.HL.W);\r\n");
+							fprintf(fh,Z80_BIT_MP,BitIndex,BitIndex, BitIndex);
 						}
-						
+
 					}
 					break;
 
@@ -3366,7 +3992,7 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 			/* ED prefix */
 			Opcode = Z80_RD_MEM(DisAddr);
 			DisAddr++;
-		
+
 			if ((Opcode & 0x0c0)==0x040)
 			{
 				switch (Opcode & 0x07)
@@ -3380,12 +4006,14 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 						if ((Opcode & (0x07<<3))==(6<<3))
 						{
 							/* IN X,(C) */
-							fprintf(fh,"_IN(R.TempByte);\r\n");
+							fprintf(fh,"/* IN X,(C) */\r\n");
+							fprintf(fh,Z80_IN,"R.TempByte","R.TempByte");
 
 						}
 						else
 						{
-							fprintf(fh,"_IN(%s);\r\n",RegA[RegIndex]);
+							fprintf(fh,"/* IN %s,(C) */\r\n",RegASmall[RegIndex]);
+							fprintf(fh,Z80_IN,RegA[RegIndex],RegA[RegIndex]);
 						}
 					}
 					break;
@@ -3398,11 +4026,13 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 						if ((Opcode & (0x07<<3))==(6<<3))
 						{
 							/* OUT (C),0 */
-							fprintf(fh,"_OUT(0);\r\n");
+							fprintf(fh," /* OUT (C),0 */\r\n");
+							fprintf(fh,Z80_OUT,"0");
 						}
 						else
 						{
-							fprintf(fh,"_OUT(%s);\r\n",RegA[RegIndex]);
+							fprintf(fh," /* OUT (C),%s */\r\n", RegASmall[RegIndex]);
+							fprintf(fh,Z80_OUT,RegA[RegIndex]);
 						}
 					}
 					break;
@@ -3422,7 +4052,7 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 							fprintf(fh,"SBC_HL_rr(%s);\r\n",RegB[((Opcode>>4) & 0x03)]);
 						}
 
-						
+
 //						Diss_strcat(Instruction);
 //						Diss_space();
 //						Diss_strcat(RegB[2]);
@@ -3438,18 +4068,13 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 
 						if ((Opcode & 0x08)!=0)
 						{
-							fprintf(fh,"LD_RR_nnnn(%s);\r\n",RegB[((Opcode>>4) & 0x03)]);
-
-//							sprintf(OutputString, "LD %s,(#%04x)",
-//								RegB[((Opcode>>4) & 0x03)],
-//								Diss_GetWord(DisAddr));
+						    fprintf(fh,"/* LD %s,(nnnn) */\r\n",RegBSmall[((Opcode>>4) & 0x03)]);
+							fprintf(fh,Z80_LD_RR_nnnn,RegB[((Opcode>>4) & 0x03)]);
 						}
 						else
 						{
-							fprintf(fh,"LD_nnnn_RR(%s);\r\n",RegB[((Opcode>>4) & 0x03)]);
-//							sprintf(OutputString," LD (#%04x),%s",
-//								Diss_GetWord(DisAddr),
-//								RegB[((Opcode>>4) & 0x03)]);
+						    fprintf(fh,"/* LD (nnnn),%s */\r\n",RegBSmall[((Opcode>>4) & 0x03)]);
+							fprintf(fh,Z80_LD_nnnn_RR,RegB[((Opcode>>4) & 0x03)]);
 						}
 					}
 					break;
@@ -3457,7 +4082,8 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 					case 4:
 					{
 						/* NEG - 01xxx100 */
-						fprintf(fh,"NEG();\r\n");	//OutputString,"NEG");
+						fprintf(fh,"/* NEG */\r\n");
+						fprintf(fh,Z80_NEG);
 					}
 					break;
 
@@ -3467,14 +4093,13 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 						/* RETN - 01xx0110 */
 						if ((Opcode & 0x08)!=0)
 						{
-							fprintf(fh,"RETI();\r\n");
-
-//							sprintf(OutputString,"RETI");
+							fprintf(fh,"/* RETI */\r\n");
+							fprintf(fh,Z80_RETI);
 						}
 						else
 						{
-							fprintf(fh,"RETN();\r\n");
-//							sprintf(OutputString,"RETN");
+							fprintf(fh,"/* RETN */\r\n");
+							fprintf(fh,Z80_RETN);
 						}
 					}
 					break;
@@ -3515,14 +4140,8 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 							}
 							break;
 						}
-
-						fprintf(fh,"SET_IM(%d);\r\n",IM_Type);
-
-//						Diss_strcat("IM");
-//						Diss_space();
-//						pDissassemblyString[0] = IM_Type;
-//						pDissassemblyString++;
-//						Diss_endstring();
+						fprintf(fh,"/* IM %d */\r\n",IM_Type);
+						fprintf(fh,Z80_SET_IM, IM_Type);
 					}
 					break;
 
@@ -3542,37 +4161,43 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 						{
 							case 0:
 							{
-								fprintf(fh,"LD_I_A();\r\n");
+								fprintf(fh,"/* LD I,A */\r\n");
+							    fprintf(fh,Z80_LD_I_A);
 							}
 							break;
-							
+
 							case 1:
 							{
-								fprintf(fh,"LD_R_A();\r\n");
+								fprintf(fh,"/* LD R,A */\r\n");
+								fprintf(fh,Z80_LD_R_A);
 							}
 							break;
 
 							case 2:
 							{
-								fprintf(fh,"LD_A_I();\r\n");
+								fprintf(fh,"/* LD A,I */\r\n");
+								fprintf(fh,Z80_LD_A_I);
 							}
 							break;
 
 							case 3:
 							{
-								fprintf(fh,"LD_A_R();\r\n");
+								fprintf(fh,"/* LD A,R */\r\n");
+								fprintf(fh,Z80_LD_A_R);
 							}
 							break;
 
 							case 4:
 							{
-								fprintf(fh,"RRD();\r\n");
+								fprintf(fh,"/* RRD */\r\n");
+								fprintf(fh,Z80_RRD);
 							}
 							break;
 
 							case 5:
 							{
-								fprintf(fh,"RLD();\r\n");
+								fprintf(fh,"/* RLD */\r\n");
+								fprintf(fh,Z80_RLD);
 							}
 							break;
 
@@ -3580,12 +4205,6 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 							default:
 								break;
 						}
-						
-
-//						sprintf(OutputString,"%s",
-//							MiscMneumonics4[((Opcode>>3) & 0x07)]);
-
-
 					}
 					break;
 
@@ -3652,7 +4271,7 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 								fprintf(fh,"}\r\n");
 								fprintf(fh,"else\r\n");
 								fprintf(fh,"{\r\n");
-								fprintf(fh,"ADD_PC(2);\r\n");
+								fprintf(fh,Z80_ADD_PC,2);
 								fprintf(fh,"Cycles=5;\r\n");	//Z80_UpdateCycles(5);\r\n");
 								fprintf(fh,"}\r\n");
 							}
@@ -3664,13 +4283,13 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 
 					}
 					break;
-					
+
 					case 1:
 					{
 						/* 10100001 - CPI */
+						/* 10101001 - CPD */
 						/* 10111001 - CPDR */
 						/* 10110001 - CPIR */
-						/* 10101001 - CPD */
 
 						switch ((Opcode>>3) & 0x03)
 						{
@@ -3716,7 +4335,7 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 								fprintf(fh,"}\r\n");
 								fprintf(fh,"else\r\n");
 								fprintf(fh,"{\r\n");
-								fprintf(fh,"ADD_PC(2);\r\n");
+								fprintf(fh,Z80_ADD_PC,2);
 								fprintf(fh,"Cycles=6;\r\n");	//Z80_UpdateCycles(6);\r\n");
 								fprintf(fh,"}\r\n");
 							}
@@ -3733,8 +4352,8 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 					case 2:
 					{
 						/* 10100010 - INI */
-						/* 10110010 - INIR */
 						/* 10101010 - IND */
+						/* 10110010 - INIR */
 						/* 10111010 - INDR */
 						switch ((Opcode>>3) & 0x03)
 						{
@@ -3776,7 +4395,7 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 							{
 								fprintf(fh,"if (Z80_TEST_ZERO_SET)\r\n");
 								fprintf(fh,"{\r\n");
-								fprintf(fh,"ADD_PC(2);\r\n");
+								fprintf(fh,Z80_ADD_PC,2);
 								fprintf(fh,"Cycles=6;\r\n");	//Z80_UpdateCycles(1);\r\n");
 								fprintf(fh,"}\r\n");
 								fprintf(fh,"else\r\n");
@@ -3798,8 +4417,8 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 					case 3:
 					{
 						/* 10100011 - OUTI */
-						/* 10110011 - OTIR */
 						/* 10101011 - outd */
+						/* 10110011 - OTIR */
 						/* 10111011 - otdr */
 						switch ((Opcode>>3) & 0x03)
 						{
@@ -3829,7 +4448,7 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 							}
 							break;
 						}
-		
+
 						switch ((Opcode>>3) & 0x03)
 						{
 							case 0:
@@ -3841,7 +4460,7 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 							{
 								fprintf(fh,"if (Z80_TEST_ZERO_SET)\r\n");
 								fprintf(fh,"{\r\n");
-								fprintf(fh,"ADD_PC(2);\r\n");
+								fprintf(fh,Z80_ADD_PC,2);
 								fprintf(fh,"Cycles=6;\r\n");	//Z80_UpdateCycles(1);\r\n");
 								fprintf(fh,"}\r\n");
 								fprintf(fh,"else\r\n");
@@ -3892,10 +4511,24 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 						{
 							if ((Opcode & 0x020)!=0)
 							{
-	
+
 								/* 001cc000 - JR cc */
-	
+
+								fprintf(fh, "/* JR cc,dd */\r\n");
+
+								fprintf(fh, "Z80_BYTE_OFFSET Offset;\r\n");
+								if (InterruptMode)
+								{
+									fprintf(fh,"Offset = Z80_RD_BYTE_IM0();\r\n");
+								}
+								else
+								{
+									fprintf(fh,"Offset = Z80_RD_OPCODE_BYTE(1);\r\n");
+								}
+
+								fprintf(fh,"R.MemPtr.W = R.PC.W.l + (Z80_LONG)2 + Offset;\r\n");
 								fprintf(fh,"if (");
+
 
 								switch ((Opcode>>3) & 0x03)
 								{
@@ -3923,36 +4556,25 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 									}
 									break;
 								}
-				
+
 								fprintf(fh,")\r\n");
 								fprintf(fh,"{\r\n");
-								if (InterruptMode)
-								{
-									fprintf(fh,"JR_IM0();\r\n");
-								}
-								else
-								{
-									fprintf(fh,"JR();\r\n");
-								}
-								fprintf(fh,"Cycles=3;\r\n");	//Z80_UpdateCycles(3);\r\n");
+
+								fprintf(fh,"R.PC.W.l = R.MemPtr.W;\r\n");
+								fprintf(fh,"Cycles=3;\r\n");
 
 								fprintf(fh,"}\r\nelse\r\n{\r\n");
-						
+
 								if (!InterruptMode)
 								{
-									fprintf(fh,"ADD_PC(2);\r\n");
+									fprintf(fh,Z80_ADD_PC,2);
 								}
-								fprintf(fh,"Cycles=2;\r\n");	//Z80_UpdateCycles(2);\r\n");
+								fprintf(fh,"Cycles=2;\r\n");
 								fprintf(fh,"}\r\n");
-
-					//			sprintf(OutputString,"JR %s,#%04x",
-					//				ConditionCodes[((Opcode>>3) & 0x03)],
-					//				Diss_GetRelativeAddr(DisAddr));
-
 							}
 							else
 							{
-						
+
 								if ((Opcode & 0x010)!=0)
 								{
 									/* 00010000 - DJNZ */
@@ -3975,21 +4597,23 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 									}
 									else
 									{
+										fprintf(fh, "/* JR dd */\r\n");
+
+										fprintf(fh, "Z80_BYTE_OFFSET Offset;\r\n");
 										if (InterruptMode)
 										{
-											fprintf(fh,"JR_IM0();\r\n");
+											fprintf(fh,"Offset = Z80_RD_BYTE_IM0();\r\n");
 										}
 										else
 										{
-											fprintf(fh,"JR();\r\n");
+											fprintf(fh,"Offset = Z80_RD_OPCODE_BYTE(1);\r\n");
 										}
-//
-//										Instruction = "JR";
-									}
 
-					//				sprintf(OutputString,"%s #%04x",
-					//					Instruction, 
-					//					Diss_GetRelativeAddr(DisAddr));
+										fprintf(fh,"R.MemPtr.W = R.PC.W.l + (Z80_LONG)2 + Offset;\r\n");
+										fprintf(fh,"R.PC.W.l = R.MemPtr.W;\r\n");
+									//	fprintf(fh,"Cycles = 3;\r\n");
+
+									}
 								}
 								else
 								{
@@ -4014,18 +4638,12 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 							{
 								/* 00ss1001 - ADD HL,ss */
 								fprintf(fh,"ADD_RR_rr(R.HL.W,%s);\r\n",RegB[((Opcode>>4) & 0x03)]);
-
-					//			sprintf(OutputString,"ADD HL,%s",
-					//				RegB[((Opcode>>4) & 0x03)]);
 							}
 							else
 							{
 								/* 00dd0001 - LD dd,nn */
-								fprintf(fh,"LD_RR_nn(%s);\r\n",RegB[((Opcode>>4) & 0x03)]);
-
-					//			sprintf(OutputString,"LD %s,#%04x",
-					//				RegB[((Opcode>>4) & 0x03)],
-					//				Diss_GetWord(DisAddr));
+								fprintf(fh,"/* LD %s,nnnn */\r\n",RegBSmall[((Opcode>>4) & 0x03)]);
+								fprintf(fh,Z80_LD_RR_nn,RegB[((Opcode>>4) & 0x03)]);
 							}
 						}
 						break;
@@ -4041,15 +4659,15 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 
 									if ((Opcode & (1<<3))!=0)
 									{
-										fprintf(fh,"LD_A_RR(R.BC.W);\r\n");
-								//		sprintf(OutputString,"LD A,(BC)");
+										fprintf(fh,"/* LD A,(BC) */\r\n");
+										fprintf(fh,Z80_LD_A_RR,"R.BC.W","R.BC.W");
 									}
 									else
 									{
-										fprintf(fh,"LD_RR_A(R.BC.W);\r\n");
-								//		sprintf(OutputString,"LD (BC),A");
+										fprintf(fh,"/* LD (BC),A */\r\n");
+										fprintf(fh,Z80_LD_RR_A,"R.BC.W","R.BC.W");
 									}
-							
+
 								}
 								break;
 
@@ -4057,16 +4675,16 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 								{
 									/* 00010010 - LD (DE),A */
 									/* 00011010 - LD A,(DE) */
-				
+
 									if ((Opcode & (1<<3))!=0)
 									{
-										fprintf(fh,"LD_A_RR(R.DE.W);\r\n");
-								//		sprintf(OutputString,"LD A,(DE)");
+										fprintf(fh,"/* LD A,(DE) */\r\n");
+										fprintf(fh,Z80_LD_A_RR, "R.DE.W","R.DE.W");
 									}
 									else
 									{
-										fprintf(fh,"LD_RR_A(R.DE.W);\r\n");
-								//		sprintf(OutputString,"LD (DE),A");
+										fprintf(fh,"/* LD (DE),A */\r\n");
+										fprintf(fh,Z80_LD_RR_A,"R.DE.W","R.DE.W");
 									}
 								}
 								break;
@@ -4075,28 +4693,33 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 								{
 									/* 00100010 - LD (nnnn),HL */
 									/* 00101010 - LD HL,(nn) */
-									fprintf(fh,"{\r\n");
-									fprintf(fh,"Z80_WORD Addr;\r\n");
-
-									if (InterruptMode)
-									{
-										fprintf(fh,"Addr = Z80_RD_OPCODE_WORD_IM0();\r\n");
-									}
-									else
-									{
-										fprintf(fh,"Addr = Z80_RD_OPCODE_WORD(1);\r\n");
-									}
 
 									if ((Opcode & (1<<3))==0)
 									{
-										/* LD (nnnn), HL */										
-										fprintf(fh,"Z80_WR_WORD(Addr,R.HL.W);\r\n");
+										/* LD (nnnn), HL */
+										fprintf(fh,"/* LD (nnnn),HL */\r\n");
+										if (InterruptMode)
+										{
+											fprintf(fh,Z80_LD_nn_HL_IM0);
+										}
+										else
+										{
+											fprintf(fh,Z80_LD_nn_HL);
+										}
 									}
 									else
 									{
-										fprintf(fh,"R.HL.W = Z80_RD_WORD(Addr);\r\n");
+										fprintf(fh,"/* LD HL,(nnnn) */\r\n");
+
+										if (InterruptMode)
+										{
+											fprintf(fh,Z80_LD_HL_nn_IM0);
+										}
+										else
+										{
+											fprintf(fh,Z80_LD_HL_nn);
+										}
 									}
-									fprintf(fh,"}\r\n");
 								}
 								break;
 
@@ -4104,41 +4727,18 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 								{
 									/* 00110010 - LD (nnnn),A */
 									/* 00111010 - LD A,(nnnn) */
-									
+
 									if ((Opcode & (1<<3))==0)
 									{
 										/* LD (nnnn),A */
-										fprintf(fh,"{\r\n");
-										fprintf(fh,"Z80_WORD Addr;\r\n");
-										if (InterruptMode)
-										{
-											fprintf(fh,"Addr = Z80_RD_OPCODE_WORD_IM0();\r\n");
-										}
-										else
-										{
-											fprintf(fh,"Addr = Z80_RD_OPCODE_WORD(1);\r\n");
-										}
-										fprintf(fh,"Z80_WR_BYTE(Addr,R.AF.B.h);\r\n");
-										fprintf(fh,"}\r\n");
+										fprintf(fh,"/* LD (nnnn),A */\r\n");
+										fprintf(fh,Z80_LD_nnnn_A);
 									}
 									else
 									{
 										/* LD A,(nnnn) */
-										fprintf(fh,"{\r\n");
-										fprintf(fh,"Z80_WORD Addr;\r\n");
-										if (InterruptMode)
-										{
-											fprintf(fh,"Addr = Z80_RD_OPCODE_WORD_IM0();\r\n");
-										}
-										else
-										{
-											fprintf(fh,"Addr = Z80_RD_OPCODE_WORD(1);\r\n");
-										}
-										fprintf(fh,"R.AF.B.h = Z80_RD_BYTE(Addr);\r\n");
-										fprintf(fh,"}\r\n");
-
-										//		sprintf(OutputString,"LD A,(#%04x)",
-								//			Diss_GetWord(DisAddr));
+										fprintf(fh,"/* LD A,(nnnn) */\r\n");
+										fprintf(fh,Z80_LD_A_nnnn);
 									}
 								}
 								break;
@@ -4155,26 +4755,22 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 							if ((Opcode & 0x08)==0)
 							{
 								/* 00ss0011 - INC ss */
-							//	Instruction = "INC";
-								fprintf(fh,"INC_rp(%s);\r\n",RegB[RegIndex]);
+								fprintf(fh,"/* INC %s */\r\n",RegBSmall[RegIndex]);
+								fprintf(fh,Z80_INC_rp,RegB[RegIndex]);
 							}
 							else
 							{
 								/* 00ss1011 - DEC ss */
-								//Instruction = "DEC";
-								fprintf(fh,"DEC_rp(%s);\r\n",RegB[RegIndex]);
+								fprintf(fh,"/* DEC %s */\r\n",RegBSmall[RegIndex]);
+								fprintf(fh,Z80_DEC_rp,RegB[RegIndex]);
 							}
-
-							//Diss_strcat(Instruction);
-							//Diss_space();
-							//Diss_strcat_only(RegB[((Opcode>>4) & 0x03)]);
 						}
 						break;
 
 						case 4:
 						{
 							/* 00rrr100 - INC r */
-							
+
 							unsigned char Reg;
 
 							Reg = ((Opcode>>3) & 0x07);
@@ -4190,7 +4786,7 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 
 							//	sprintf(OutputString,"INC %s",
 						//		RegA[((Opcode>>3) & 0x07)]);
-							
+
 						}
 						break;
 
@@ -4201,7 +4797,7 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 
 							Reg = ((Opcode>>3) & 0x07);
 
-						
+
 							if (Reg!=6)
 							{
 								fprintf(fh,"DEC_R(%s);\r\n",RegA[Reg]);
@@ -4213,14 +4809,14 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 
 						//	sprintf(OutputString,"DEC %s",
 						//		RegA[((Opcode>>3) & 0x07)]);
-							
+
 						}
 						break;
 
 						case 6:
 						{
 							/* LD r,n - 00rrr110 */
-							
+
 							unsigned char Reg;
 
 							Reg = ((Opcode>>3) & 0x07);
@@ -4228,11 +4824,10 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 							if (Reg!=6)
 							{
 								/* LD r,n */
+								fprintf(fh," /* LD %s,n */\r\n", RegASmall[Reg]);
 								if (InterruptMode)
 								{
 									fprintf(fh,"%s = Z80_RD_OPCODE_BYTE(0);\r\n",RegA[Reg]);
-
-
 								}
 								else
 								{
@@ -4241,6 +4836,7 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 							}
 							else
 							{
+								fprintf(fh," /* LD (HL),n */\r\n", RegASmall[Reg]);
 								if (InterruptMode)
 								{
 									fprintf(fh,"R.TempByte = Z80_RD_OPCODE_BYTE(0);\r\n");
@@ -4251,15 +4847,7 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 								}
 
 							    fprintf(fh,"Z80_WR_BYTE(R.HL.W,R.TempByte);\r\n");
-
-							//	fprintf(fh,"LD_HL_n();\r\n");
 							}
-
-							/* LD r,n - 00rrr110 */
-						//	sprintf(OutputString,"LD %s,#%02x",
-						//		RegA[(Opcode>>3) & 0x07],
-						//		Data);
-
 						}
 						break;
 
@@ -4304,24 +4892,25 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 
 								case 5:
 									{
-										fprintf(fh,"CPL();\r\n");
+										fprintf(fh,"/* CPL */\r\n");
+										fprintf(fh,Z80_CPL);
 									}
 									break;
 
 								case 6:
 									{
-										fprintf(fh,"SCF();\r\n");
+										fprintf(fh,"/* SCF */\r\n");
+										fprintf(fh,Z80_SCF);
 									}
 									break;
 
 								case 7:
 									{
-										fprintf(fh,"CCF();\r\n");
+										fprintf(fh,"/* CCF */\r\n");
+										fprintf(fh,Z80_CCF);
 									}
 									break;
 							}
-
-						//	Diss_strcat_only(MneumonicsList[((Opcode>>3) & 0x03)]);
 						}
 						break;
 					}
@@ -4348,7 +4937,8 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 						{
 							if (Reg1!=Reg2)
 							{
-								fprintf(fh,"LD_R_R(%s,%s);\r\n",RegA[Reg1],
+								fprintf(fh,"/* LD %s,%s */\r\n",RegASmall[Reg1],RegASmall[Reg2]);
+								fprintf(fh,Z80_LD_R_R,RegA[Reg1],
 									RegA[Reg2]);
 							}
 						}
@@ -4356,21 +4946,15 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 						{
 							if (Reg1==6)
 							{
-								fprintf(fh,"LD_HL_R(%s);\r\n",RegA[Reg2]);
+								fprintf(fh,"/* LD (HL),%s */\r\n",RegASmall[Reg2]);
+								fprintf(fh,Z80_LD_HL_R,RegA[Reg2]);
 							}
 							else
 							{
-								fprintf(fh,"LD_R_HL(%s);\r\n",RegA[Reg1]);
+								fprintf(fh,"/* LD %s,(HL) */\r\n",RegASmall[Reg1]);
+								fprintf(fh,Z80_LD_R_HL,RegA[Reg1]);
 							}
 						}
-
-						/* 01rrrRRR - LD r,R */
-				//		Diss_strcat("LD");
-				//		Diss_space();
-				//		Diss_strcat(RegA[((Opcode>>3) & 0x07)]);
-				//		Diss_comma();
-				//		Diss_strcat(RegA[(Opcode & 0x07)]);
-				//		Diss_endstring();
 					}
 				}
 				break;
@@ -4410,7 +4994,7 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 						break;
 
 						case 1:
-						{	
+						{
 							if (RegIndex==6)
 							{
 								fprintf(fh,"ADC_A_HL();\r\n");
@@ -4421,7 +5005,7 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 							}
 						}
 						break;
-						
+
 						case 2:
 						{
 							if (RegIndex==6)
@@ -4498,7 +5082,7 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 								}
 								else
 								{
-									/* XOR A,A - A = 0, S = 0 (positive), Z = 1 (zero), 
+									/* XOR A,A - A = 0, S = 0 (positive), Z = 1 (zero),
 									H = 0, P/V = 1 (even parity), N = 0, C = 0, F5 = 0, F3 = 0 */
 									fprintf(fh,"Z80_BYTE Flags;\r\n");
 									fprintf(fh,"%s=0;\r\n",RegA[RegIndex]);
@@ -4562,8 +5146,8 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 				case 0x0c0:
 				{
 					/* 11xxxxxx */
-			
-			
+
+
 					switch (Opcode & 0x07)
 					{
 
@@ -4622,7 +5206,7 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 									}
 									break;
 								}
-				
+
 								fprintf(fh,")\r\n");
 								fprintf(fh,"{\r\n");
 								fprintf(fh,"RETURN();\r\n");
@@ -4630,7 +5214,7 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 								fprintf(fh,"}\r\nelse\r\n{\r\n");
 								if (!InterruptMode)
 								{
-									fprintf(fh,"ADD_PC(1);\r\n");
+									fprintf(fh,Z80_ADD_PC,1);
 								}
 								fprintf(fh,"Cycles=2;\r\n");	//Z80_UpdateCycles(2);\r\n");
 								fprintf(fh,"}\r\n");
@@ -4645,14 +5229,14 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 							if ((Opcode & (1<<3))==0)
 							{
 								/* 11qq0001 - POP qq */
-				
+
 								fprintf(fh,"%s = POP();\r\n",RegC[((Opcode>>4) & 0x03)]);
 
 								//				sprintf(OutputString,"POP %s",
 				//					RegC[((Opcode>>4) & 0x03)]);
 							}
 							else
-							{	
+							{
 								/* 11001001 - RET */
 								/* 11011001 - EXX */
 								/* 11101001 - JP (HL) */
@@ -4672,23 +5256,33 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 
 								if (Opcode==0x0e9)
 								{
-									fprintf(fh,"JP_rp(R.HL.W);\r\n");
+									fprintf(fh,"/* JP (HL) */\r\n");
+									fprintf(fh,Z80_JP_rp, "R.HL.W");
 								}
 
 								if (Opcode==0x0f9)
 								{
-									fprintf(fh,"LD_SP_rp(R.HL.W);\r\n");
+									fprintf(fh,"/* LD SP,HL */\r\n");
+									fprintf(fh,Z80_LD_SP_rp, "R.HL.W");
 								}
-
-				//				sprintf(OutputString,
-				//					MiscMneumonics3[((Opcode>>4) & 0x03)]);
 							}
 						}
 						break;
-				
+
 						case 2:
 						{
-							/* 11 ccc 010 - JP cc,nnnn */
+								/* 11 ccc 010 - JP cc,nnnn */
+								fprintf(fh,"/* JP cc, nnnn */\r\n");
+
+								if (InterruptMode)
+								{
+									fprintf(fh,"R.MemPtr.W = Z80_RD_WORD_IM0();\r\n");
+								}
+								else
+								{
+									fprintf(fh,"R.MemPtr.W = Z80_RD_OPCODE_WORD(1);\r\n");
+								}
+
 								fprintf(fh,"if (");
 
 								switch ((Opcode>>3) & 0x07)
@@ -4741,28 +5335,21 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 									}
 									break;
 								}
-				
+
 								fprintf(fh,")\r\n");
 								fprintf(fh,"{\r\n");
-								if (InterruptMode)
-								{
-									fprintf(fh,"JP_IM0();\r\n");
-								}
-								else
-								{
-									fprintf(fh,"JP();\r\n");
-								}
+								fprintf(fh,"R.PC.W.l = R.MemPtr.W;\r\n");
 								fprintf(fh,"}\r\nelse\r\n{\r\n");
 								if (!InterruptMode)
 								{
-									fprintf(fh,"ADD_PC(3);\r\n");
+								fprintf(fh,Z80_ADD_PC,3);
 								}
 								fprintf(fh,"}\r\n");
 								fprintf(fh,"Cycles=3;\r\n");	//Z80_UpdateCycles(3);\r\n");
 				//			sprintf(OutputString,"JP %s,#%04x",
 				//				ConditionCodes[((Opcode>>3) & 0x07)],
 				//				Diss_GetWord(DisAddr));
-								
+
 						}
 						break;
 
@@ -4781,33 +5368,29 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 								if ((Opcode & (1<<3))!=0)
 								{
 									/* 11011011 - IN A,(n) */
-						
-									fprintf(fh,"Cycles = IN_A_n();\r\n");
 
-						//			sprintf(OutputString,"IN A,(#%02x)",
-						//				PortByte);
+									fprintf(fh,"/* IN A,(n) */\r\n");
+									fprintf(fh,Z80_IN_A_n);
 								}
 								else
 								{
-									fprintf(fh,"Cycles = OUT_n_A();\r\n");
-									/* 11010011 - OUT (n),A */
-						//			sprintf(OutputString,"OUT (#%02x),A",
-						//				PortByte);
+									fprintf(fh,"/* OUT (n),A */\r\n");
+									fprintf(fh,Z80_OUT_n_A);
 								}
-		
-							}	
-							else if (Opcode == 0x0c3) 
+
+							}
+							else if (Opcode == 0x0c3)
 							{
 								/* 11000011 - JP nn */
-								fprintf(fh,"JP();\r\n");
-						//		sprintf(OutputString,"JP #%04x",
-						//			Diss_GetWord(DisAddr));
+								fprintf(fh,"/* JP nnnn */\r\n");
+								fprintf(fh,"R.MemPtr.W = Z80_RD_OPCODE_WORD(1);\r\n");
+								fprintf(fh,"R.PC.W.l = R.MemPtr.W;\r\n");
 							}
 							else
 							{
 								/* 11100011 - EX (SP).HL */
 								/* 11101011 - EX DE,HL */
-							
+
 								/* 11110011 - DI */
 								/* 11111011 - EI */
 
@@ -4815,13 +5398,15 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 								{
 									case 0x0f3:
 									{
-										fprintf(fh,"DI();\r\n");
+										fprintf(fh,"/* DI */\r\n");
+										fprintf(fh,Z80_DI);
 									}
 									break;
 
 									case 0x0fb:
 									{
-										fprintf(fh,"EI();\r\n");
+										fprintf(fh,"/* EI */\r\n");
+										fprintf(fh,Z80_EI);
 									}
 									break;
 
@@ -4833,7 +5418,7 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 
 									case 0x0e3:
 									{
-										fprintf(fh,"EX_SP_rr(R.HL.W);\r\n");
+										fprintf(fh,Z80_EX_SP_rr,"R.HL.W","R.HL.W");
 									}
 									break;
 								}
@@ -4849,6 +5434,18 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 						case 4:
 						{
 							/* 11 ccc 100 - CALL cc,nnnn */
+
+								fprintf(fh,"/* CALL cc,nnnn */\r\n");
+
+								if (InterruptMode)
+								{
+									fprintf(fh,"R.MemPtr.W = Z80_RD_WORD_IM0();\r\n");
+								}
+								else
+								{
+									fprintf(fh,"R.MemPtr.W = Z80_RD_OPCODE_WORD(1);\r\n");
+								}
+
 								fprintf(fh,"if (");
 
 								switch ((Opcode>>3) & 0x07)
@@ -4901,22 +5498,16 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 									}
 									break;
 								}
-				
+
 								fprintf(fh,")\r\n");
 								fprintf(fh,"{\r\n");
-								if (InterruptMode)
-								{
-									fprintf(fh,"CALL_IM0();\r\n");
-								}
-								else
-								{
-									fprintf(fh,"CALL();\r\n");
-								}
+								fprintf(fh,"PUSH((R.PC.W.l+3));\r\n");
+								fprintf(fh,"R.PC.W.l = R.MemPtr.W;\r\n");
 								fprintf(fh,"Cycles=5;\r\n");	//Z80_UpdateCycles(5);\r\n");
 								fprintf(fh,"}\r\nelse\r\n{\r\n");
 								if (!InterruptMode)
 								{
-									fprintf(fh,"ADD_PC(3);\r\n");
+								fprintf(fh,Z80_ADD_PC,3);
 								}
 								fprintf(fh,"Cycles=3;\r\n");	//Z80_UpdateCycles(3);\r\n");
 								fprintf(fh,"}\r\n");
@@ -4933,7 +5524,7 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 							if ((Opcode & (1<<3))==0)
 							{
 								/* 11qq0101 - PUSH qq */
-						
+
 								fprintf(fh,"PUSH(%s);\r\n",RegC[((Opcode>>4) & 0x03)]);
 
 								//		sprintf(OutputString,"PUSH %s",
@@ -4947,10 +5538,19 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 								/* 11101101 - ED */
 								/* 11111101 - FD */
 
-								fprintf(fh,"CALL();\r\n");
+								fprintf(fh,"/* CALL nnnn */\r\n");
 
-						//		sprintf(OutputString,"CALL #%04x",
-						//			Diss_GetWord(DisAddr));
+								if (InterruptMode)
+								{
+									fprintf(fh,"R.MemPtr.W = Z80_RD_WORD_IM0();\r\n");
+								}
+								else
+								{
+									fprintf(fh,"R.MemPtr.W = Z80_RD_OPCODE_WORD(1);\r\n");
+								}
+
+								fprintf(fh,"PUSH((R.PC.W.l+3));\r\n");
+								fprintf(fh,"R.PC.W.l = R.MemPtr.W;\r\n");
 							}
 						}
 						break;
@@ -4986,11 +5586,11 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 							break;
 
 							case 1:
-							{	
+							{
 								fprintf(fh,"ADC_A_X(R.TempByte);\r\n");
 							}
 							break;
-							
+
 							case 2:
 							{
 								fprintf(fh,"SUB_A_X(R.TempByte);\r\n");
@@ -5038,7 +5638,8 @@ void	Z80_GenerateCode(int Addr, FILE *fh)
 						case 7:
 						{
 							/* 11ttt111 - RST */
-							fprintf(fh,"RST(0x0%04x);\r\n",(Opcode & 0x038));
+							fprintf(fh,"/* RST 0x%04x */\r\n",(Opcode&0x038));
+							fprintf(fh,Z80_RST,(Opcode & 0x038));
 						}
 						break;
 					}

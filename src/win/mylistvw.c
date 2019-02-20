@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -29,7 +29,7 @@ void MyListView_AddItemWithIcon(HWND hListView, TCHAR *ItemText, int ColumnIndex
 
 	HWND hHeader;
 
-	hHeader = ListView_GetHeader(hListView);
+//	hHeader = ListView_GetHeader(hListView);
 
 	if (ColumnIndex == (Header_GetItemCount(hHeader)-1))
 	{
@@ -37,7 +37,7 @@ void MyListView_AddItemWithIcon(HWND hListView, TCHAR *ItemText, int ColumnIndex
 		RECT headerRect;
 
 		// get rect of last column in header
-		Header_GetItemRect(hHeader, (Header_GetItemCount(hHeader)-1), &itemRect);
+	//	Header_GetItemRect(hHeader, (Header_GetItemCount(hHeader)-1), &itemRect);
 
 		GetClientRect(hHeader,&headerRect);
 
@@ -47,11 +47,11 @@ void MyListView_AddItemWithIcon(HWND hListView, TCHAR *ItemText, int ColumnIndex
 	{
 		ItemWidth = ListView_GetStringWidth(hListView, ItemText) + (GetSystemMetrics(SM_CXEDGE)<<1)+(4<<1);
 	}
-	
+
 	ColumnWidth = ListView_GetColumnWidth(hListView,ColumnIndex);
 
 	ListViewItem.mask = LVIF_TEXT;
-	
+
 	if (iIcon!=-1)
 	{
 		ListViewItem.mask |= LVIF_IMAGE;
@@ -82,7 +82,7 @@ void MyListView_AddItemWithIcon(HWND hListView, TCHAR *ItemText, int ColumnIndex
 
 }
 
-void	MyListView_AddItem(HWND hListView, TCHAR *ItemText, int ColumnIndex, int RowIndex, void *pData) 
+void	MyListView_AddItem(HWND hListView, TCHAR *ItemText, int ColumnIndex, int RowIndex, void *pData)
 {
 	MyListView_AddItemWithIcon(hListView, ItemText, ColumnIndex, RowIndex, pData, -1);
 }
@@ -118,7 +118,7 @@ int	ListView_HitTest(HWND hListView,POINT *pPoint)
 
 	/* get item at point specified */
 	ItemIndex = ListView_HitTest(hListView,&ListViewHitTestInfo);
-	
+
 	if (ItemIndex!=-1)
 	{
 		/* got an item */

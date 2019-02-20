@@ -1,6 +1,6 @@
-/* 
+/*
  *  Arnold emulator (c) Copyright, Kevin Thacker 1995-2001
- *  
+ *
  *  This file is part of the Arnold emulator source code distribution.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -73,16 +73,9 @@ void	HandleKey(SDL_KeyboardEvent *theEvent)
 	/* Handle Function keys to control emulator */
 	if (keycode == SDLK_F1 && theEvent->type == SDL_KEYDOWN ) {
 		CPC_Reset();
-	} else if (keycode == SDLK_F2 && theEvent->type == SDL_KEYDOWN ) {	
+	} else if (keycode == SDLK_F2 && theEvent->type == SDL_KEYDOWN ) {
 		//DisplayMode ^=0x0ff;
-		fullscreen = !fullscreen;
-		if (fullscreen) {
-			sdl_SetDisplayFullscreen(screen->w,screen->h,
-				screen->format->BitsPerPixel);
-		} else {
-			sdl_SetDisplayWindowed(screen->w,screen->h,
-				screen->format->BitsPerPixel);
-		}
+		sdl_toggleDisplayFullscreen();
 	} else if (keycode == SDLK_F3 && theEvent->type == SDL_KEYDOWN ) {
 		SDL_GrabMode grabmode = SDL_WM_GrabInput(SDL_GRAB_QUERY);
 		fprintf(stderr,"%i\n",grabmode);
@@ -115,8 +108,8 @@ void	HandleKey(SDL_KeyboardEvent *theEvent)
 			printf(Messages[87], keysym->sym);
 		}
 
-		// set or release key depending on state	
-		if ( theEvent->type == SDL_KEYDOWN ) {	
+		// set or release key depending on state
+		if ( theEvent->type == SDL_KEYDOWN ) {
 			// set key
 			CPC_SetKey(theKeyPressed);
 		} else {
@@ -275,7 +268,7 @@ BOOL sdl_ProcessSystemEvents()
 					}
 				}
 				break;
-				
+
 			case SDL_MOUSEBUTTONUP:  /* Handle Mouse Buttons */
 				if (mouseType == MOUSE_NONE) break;
 				if (event.button.button == SDL_BUTTON_LEFT) {
@@ -373,7 +366,7 @@ void	sdl_InitialiseKeyboardMapping(int layout)
 	{
 		KeySymToCPCKey[i] = CPC_KEY_NULL;
 	}
-	
+
 	/* International key mappings */
 	KeySymToCPCKey[SDLK_0] = CPC_KEY_ZERO;
 	KeySymToCPCKey[SDLK_1] = CPC_KEY_1;
@@ -431,7 +424,7 @@ void	sdl_InitialiseKeyboardMapping(int layout)
 	KeySymToCPCKey[SDLK_DOWN] = CPC_KEY_CURSOR_DOWN;
 	KeySymToCPCKey[SDLK_LEFT] = CPC_KEY_CURSOR_LEFT;
 	KeySymToCPCKey[SDLK_RIGHT] = CPC_KEY_CURSOR_RIGHT;
-	
+
 	KeySymToCPCKey[SDLK_KP0] = CPC_KEY_F0;
 	KeySymToCPCKey[SDLK_KP1] = CPC_KEY_F1;
 	KeySymToCPCKey[SDLK_KP2] = CPC_KEY_F2;
@@ -450,7 +443,7 @@ void	sdl_InitialiseKeyboardMapping(int layout)
 	KeySymToCPCKey[SDLK_LCTRL] = CPC_KEY_CONTROL;
 	KeySymToCPCKey[SDLK_RCTRL] = CPC_KEY_CONTROL;
 	KeySymToCPCKey[SDLK_CAPSLOCK] = CPC_KEY_CAPS_LOCK;
-	
+
 	KeySymToCPCKey[SDLK_KP_ENTER] = CPC_KEY_SMALL_ENTER;
 
 	KeySymToCPCKey[SDLK_DELETE] = CPC_KEY_JOY_LEFT;
@@ -458,7 +451,7 @@ void	sdl_InitialiseKeyboardMapping(int layout)
 	KeySymToCPCKey[SDLK_PAGEDOWN] = CPC_KEY_JOY_RIGHT;
 	KeySymToCPCKey[SDLK_INSERT] = CPC_KEY_JOY_FIRE1;
 	KeySymToCPCKey[SDLK_HOME] = CPC_KEY_JOY_UP;
-	KeySymToCPCKey[SDLK_PAGEUP] = CPC_KEY_JOY_FIRE2;	
+	KeySymToCPCKey[SDLK_PAGEUP] = CPC_KEY_JOY_FIRE2;
 
 	KeySymToCPCKey[0x0134] = CPC_KEY_COPY;			/* Alt */
 	KeySymToCPCKey[0x0137] = CPC_KEY_COPY;			/* Compose */
@@ -497,7 +490,7 @@ void	sdl_InitialiseKeyboardMapping_azerty()
 {
 	// Ajout Ramlaid
 	KeySymToCPCKey[SDLK_LALT] = CPC_KEY_COPY;
-	
+
 	KeySymToCPCKey[SDLK_AMPERSAND]  = CPC_KEY_1;
 	KeySymToCPCKey[SDLK_WORLD_73]   = CPC_KEY_2;
 	KeySymToCPCKey[SDLK_QUOTEDBL]   = CPC_KEY_3;
@@ -508,7 +501,7 @@ void	sdl_InitialiseKeyboardMapping_azerty()
 	KeySymToCPCKey[SDLK_UNDERSCORE] = CPC_KEY_8;
 	KeySymToCPCKey[SDLK_WORLD_71]   = CPC_KEY_9;
 	KeySymToCPCKey[SDLK_WORLD_64]   = CPC_KEY_ZERO;
-	
+
 	KeySymToCPCKey[SDLK_RIGHTPAREN] = CPC_KEY_MINUS;
 	KeySymToCPCKey[SDLK_EQUALS]     = CPC_KEY_HAT;
 	KeySymToCPCKey[SDLK_CARET]      = CPC_KEY_AT;
@@ -520,7 +513,7 @@ void	sdl_InitialiseKeyboardMapping_azerty()
 	KeySymToCPCKey[SDLK_COLON]      = CPC_KEY_COLON;
 	KeySymToCPCKey[SDLK_EXCLAIM]    = CPC_KEY_BACKSLASH;
 	KeySymToCPCKey[SDLK_LESS]       = CPC_KEY_FORWARD_SLASH;
-}				
+}
 
 void	sdl_InitialiseKeyboardMapping_spanish(){
 	keyUnicodeFlag = -1;

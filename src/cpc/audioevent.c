@@ -709,7 +709,7 @@ int     AudioEvent_TraverseAudioEventsAndBuildSampleData(int CPCNopCount, int No
         {
         AUDIO_EVENT *pCurrentEvent = (AUDIO_EVENT *)pEventBuffer;
 
-        unsigned char *pAudioPtr = pAudioBuffer2;
+        char *pAudioPtr = (char *) pAudioBuffer2;
 
         int EventCount = NoOfEventsInBuffer;
         int NopOffset;
