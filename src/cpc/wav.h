@@ -32,7 +32,7 @@ void	WavOutput_WriteBlock(char *, unsigned long);
 
 #include "sampload.h"
 
-BOOL	WAV_Validate(char *);
+BOOL	WAV_Validate(const char *);
 void	WAV_Open(SAMPLE_AUDIO_STREAM *);
 unsigned char WAV_GetDataByte(SAMPLE_AUDIO_STREAM *pAudioStream);
 #endif

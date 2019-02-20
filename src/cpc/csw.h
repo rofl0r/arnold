@@ -91,7 +91,7 @@ typedef struct
 
 #include "sampload.h"
 
-BOOL	CSW_Validate(char *);
+BOOL	CSW_Validate(const char *);
 void	CSW_Open(SAMPLE_AUDIO_STREAM *);
 unsigned char CSW_GetDataByte(SAMPLE_AUDIO_STREAM *pAudioStream);
 

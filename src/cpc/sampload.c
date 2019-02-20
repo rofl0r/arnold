@@ -40,7 +40,7 @@ static SAMPLE_AUDIO_STREAM	SampleAudioStream;
 /* the type of sample we are currently using */
 static SAMPLE_TYPE_ID SampleType = SAMPLE_TYPE_NONE;
 
-BOOL	Sample_Load(char *Filename)
+BOOL	Sample_Load(const char *Filename)
 {
 	HOST_FILE_HANDLE	FileHandle;
 	SAMPLE_AUDIO_STREAM	*pSampleAudioStream = &SampleAudioStream;

@@ -140,7 +140,7 @@ BOOL CSW_ValidateHeader(HOST_FILE_HANDLE FileHandle)
 	return FALSE;
 }
 
-int	CSW_Validate(char *Filename)
+int	CSW_Validate(const char *Filename)
 {
 	BOOL Valid = FALSE;
 	HOST_FILE_HANDLE FileHandle;

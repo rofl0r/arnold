@@ -72,7 +72,7 @@ BOOL	Host_LoadFile(char *Filename, unsigned char **pLocation, unsigned long *pLe
 	return FALSE;
 }
 
-HOST_FILE_HANDLE	Host_OpenFile(char *Filename, int Access)
+HOST_FILE_HANDLE	Host_OpenFile(const char *Filename, int Access)
 {
 	HOST_FILE_HANDLE fh;
 

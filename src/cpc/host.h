@@ -79,7 +79,7 @@ BOOL	Host_ProcessSystemEvents(void);
 //BOOL	Host_SaveFile(char *Filename, unsigned char *, unsigned long);
 //BOOL	Host_LoadFile(char *Filename, unsigned char **pLocation, unsigned long *pLength);
 
-HOST_FILE_HANDLE Host_OpenFile(char *Filename, int Access);
+HOST_FILE_HANDLE Host_OpenFile(const char *Filename, int Access);
 void	Host_CloseFile(HOST_FILE_HANDLE);
 int		Host_GetFileSize(HOST_FILE_HANDLE);
 void	Host_WriteData(HOST_FILE_HANDLE, unsigned char *, unsigned long);

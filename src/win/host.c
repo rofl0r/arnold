@@ -277,7 +277,7 @@ void	Host_Throttle(void)
 }
 
 
-HOST_FILE_HANDLE	Host_OpenFile(char *Filename, int Access)
+HOST_FILE_HANDLE	Host_OpenFile(const char *Filename, int Access)
 {
 	HOST_FILE_HANDLE fh;
 

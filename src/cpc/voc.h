@@ -22,7 +22,7 @@
 
 #include "sampload.h"
 
-BOOL	VOC_Validate(char *);
+BOOL	VOC_Validate(const char *);
 void	VOC_Open(SAMPLE_AUDIO_STREAM *);
 unsigned char VOC_GetDataByte(SAMPLE_AUDIO_STREAM *pAudioStream);
 

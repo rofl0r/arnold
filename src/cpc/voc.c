@@ -382,7 +382,7 @@ static void	VOC_Validate_SkipData(HOST_FILE_HANDLE FileHandle, unsigned long Siz
 
 /*-------------------------*/
 /* does a simple validation by checking size of each data block is correct */
-BOOL	VOC_Validate(char *Filename)
+BOOL	VOC_Validate(const char *Filename)
 {	
 	BOOL Valid = FALSE;
 	HOST_FILE_HANDLE FileHandle;

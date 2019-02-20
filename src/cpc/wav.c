@@ -292,7 +292,7 @@ void	WavOutput_StopRecording(void)
 #include "sampload.h"
 
 /* validates the wave file before we use it */
-BOOL	WAV_Validate(char *Filename)
+BOOL	WAV_Validate(const char *Filename)
 {
 	BOOL Valid = FALSE;
 	HOST_FILE_HANDLE FileHandle;

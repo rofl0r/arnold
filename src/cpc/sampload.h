@@ -83,7 +83,7 @@ void	Sample_ReadData(SAMPLE_AUDIO_STREAM *pAudioStream, unsigned char *pStart, u
 void	Sample_SkipData(SAMPLE_AUDIO_STREAM *pAudioStream, unsigned long Size);
 void	Sample_Init(void);
 void	Sample_Close(void);
-BOOL Sample_Load(char *);
+BOOL Sample_Load(const char *);
 
 
 #endif
