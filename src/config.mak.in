@@ -1,0 +1,20 @@
+CC = @CC@
+
+#use this for RedHat/SuSE Linux
+X11INC = -I@x_includes@
+X11LIB = -L@x_libraries@
+
+# Comment the following two lines to disable GTK+
+GTKINC = @GTK_CFLAGS@
+GTKLIB = @GTK_LIBS@
+
+# Comment to following two lines to disable SDL
+SDLINC = @SDL_CFLAGS@
+SDLLIB = @SDL_LIBS@
+
+# Comment to following two lines to disable ALSA
+ALSAINC = @ALSA_CFLAGS@
+ALSALIB = @ALSA_LIBS@
+
+CFLAGS_CONFIGURE = @CPPFLAGS@ @CFLAGS@ @DEFS@
+LDFLAGS_CONFIGURE = @LDFLAGS@ @LIBS@

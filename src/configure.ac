@@ -1,14 +1,12 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT(unix/main.c)
+AC_CONFIG_FILES([config.mak])
 
 dnl Checks for programs.
 AC_PROG_CC
 
 dnl Checks for endianness
 AC_C_BIGENDIAN
-
-dnl Checks for target
-AC_CANONICAL_SYSTEM
 
 dnl Checks for libraries.
 dnl Replace `main' with a function in -lX11:
@@ -41,4 +39,4 @@ dnl AC_FUNC_MEMCMP
 dnl AC_TYPE_SIGNAL
 dnl AC_CHECK_FUNCS(getcwd gettimeofday select)
 
-AC_OUTPUT(Makefile)
+AC_OUTPUT()
