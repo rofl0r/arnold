@@ -1,4 +1,4 @@
-# Makefile for Arnold WIN32 version
+# Makefile for Arnold WIN32 version compiled using MingW
 
 CC = gcc
 BIND = gcc
@@ -12,19 +12,18 @@ LFLAGS1 =
 LFLAGS2 = -s 
 
 CPC_O=	cpc/arnold.o cpc/asic.o cpc/audioevent.o cpc/bmp.o cpc/cpc.o \
-	cpc/crtc.o cpc/debugmain.o cpc/dirstuff.o cpc/dumpym.o cpc/fdc.o \
+        cpc/crtc.o cpc/dumpym.o cpc/fdc.o \
 	cpc/garray.o cpc/multface.o cpc/printer.o cpc/psgplay.o \
 	cpc/psg.o cpc/render.o cpc/render5.o cpc/scrsnap.o \
 	cpc/snapshot.o cpc/sampload.o cpc/spo256.o \
-	cpc/voc.o cpc/tzx.o cpc/wav.o cpc/westpha.o cpc/yiq.o \
-	cpc/debugger/debug.o cpc/z8536.o \
+        cpc/voc.o cpc/tzxold.o cpc/wav.o cpc/westpha.o cpc/yiq.o \
+	cpc/z8536.o \
 	cpc/debugger/gdebug.o cpc/debugger/breakpt.o \
 	cpc/diskimage/diskimg.o \
 	cpc/diskimage/dsk.o cpc/diskimage/extdsk.o \
-	cpc/diskimage/iextdsk.o cpc/diskimage/maketrk.o \
+	cpc/diskimage/iextdsk.o \
 	cpc/z80/z80.o cpc/cheatdb.o \
-	cpc/riff.o cpc/expbuf.o cpc/snapv3.o \
-	cpc/cheatsys.o cpc/cpcdbg.o
+	cpc/riff.o cpc/snapv3.o
 
 IFACEGEN_O= ifacegen/ifacegen.o ifacegen/fnp.o ifacegen/romfn.o \
 	ifacegen/filetool.o

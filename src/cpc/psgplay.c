@@ -22,10 +22,7 @@
 #include "psgplay.h"
 #include "audioevent.h"
 #include "psg.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <memory.h>
-#include <string.h>
+#include "headers.h"
 
 static int	AY_VolumeTranslation[]= {0,0,0,1,1,1,2,3,4,6,8,10,14,19,24,31};
 
@@ -37,7 +34,7 @@ static unsigned long             VolumeLookup8Bit[32];
 
 static int PSGPlay_ChannelOutputVolumes[3];
 
-typedef struct CHANNEL_PERIOD
+typedef struct
 {
 	/* tone period for this channel. Period is time for 1/2
 	the square wave */
@@ -205,8 +202,13 @@ void	PSG_UpdateState(unsigned long Reg, unsigned long Data)
 		case 10:
 			{
 				/* setup the output volume - to remove extra lookup */
-				PSGPlay_ChannelOutputVolumes[Reg-8] = AY_VolumeTranslation[Data & 0x0f];
-
+				
+				/* use hardware envelope? */
+				if ((Data & (1<<4))!=0)
+				{
+					/* no */
+					PSGPlay_ChannelOutputVolumes[Reg-8] = AY_VolumeTranslation[Data & 0x0f];
+				}
 
 			}
 			break;

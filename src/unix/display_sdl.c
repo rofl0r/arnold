@@ -22,6 +22,7 @@
 #include "display.h"
 #include "sdlsound.h"
 #include <string.h>
+#include "../cpc/messages.h"
 
 SDL_Surface *screen;
 BOOL fullscreen = FALSE;	//FIXME
@@ -33,17 +34,18 @@ static INLINE void debug(char *s) {
 	fprintf(stderr,"%s\n",s);
 }
 
+void sdl_InitialiseKeyboardMapping(void);
 void sdl_InitialiseJoysticks(void);
 
 void sdl_SetDisplay(int Width, int Height, int Depth, BOOL fullscreen) {
 
-	fprintf(stderr, "Opening window with resolution %i*%i*%i\n",
+	fprintf(stderr, Messages[106],
 		Width, Height, Depth);
 	if ( fullscreen ) mode |= SDL_FULLSCREEN;
 	else mode &= ~SDL_FULLSCREEN;
 	screen = SDL_SetVideoMode(Width, Height, Depth, mode);
 	if ( screen == NULL ) {
-		fprintf(stderr, "Unable to open window with resolution %i*%i*%i: %s\n",
+		fprintf(stderr, Messages[107],
 			Width, Height, Depth, SDL_GetError());
 		exit(1);
 	}

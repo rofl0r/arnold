@@ -60,7 +60,8 @@ BOOL	loadBuiltin(unsigned char **pLocation, unsigned long *pLength,
 	return FALSE;
 }
 
-BOOL	Host_LoadFile(char *Filename, unsigned char **pLocation, unsigned long *pLength)
+BOOL	LoadFile(char *Filename, char **pLocation, 
+unsigned long *pLength)
 {
 	FILE	*fh;
 	unsigned char	*pData;
@@ -106,38 +107,6 @@ BOOL	Host_LoadFile(char *Filename, unsigned char **pLocation, unsigned long *pLe
 				}
 
 				fclose(fh);
-			} else if (currentDir[0] == BUILTIN[0])
-			{
-				DBG_BUILTIN(Filename);
-				if (!strcmp(currentDir,"^/amsdose/")) {
-					if (!strcmp(Filename,"amsdos.rom")) {
-						return loadBuiltin(pLocation, pLength, &rom_amsdos);
-					}
-				} else if (strcmp(currentDir,"^/cpc464e/")==0) {
-					pRoms = &roms_cpc464;
-				} else if (strcmp(currentDir,"^/cpc664e/")==0) {
-					pRoms = &roms_cpc664;
-				} else if (strcmp(currentDir,"^/cpc6128e/")==0){
-					pRoms = &roms_cpc6128;
-				} else if (strcmp(currentDir,"^/kcc/")==0) {
-					pRoms = &roms_kcc;
-				} else if (strcmp(currentDir,"^/cpcplus/")==0) {
-					if (!strcmp(Filename,"system.cpr")) {
-						return loadBuiltin(pLocation, pLength,
-							&cartridge_cpcplus);
-					}
-				}
-				if (pRoms != NULL) {
-					if (!strcmp(Filename,"os.rom")
-						| !strcmp(Filename,"kccos.rom")) {
-						DBG_BUILTIN("OS");
-						return loadBuiltin(pLocation, pLength, &pRoms->os);
-					} else if (!strcmp(Filename,"basic.rom")
-						| !strcmp(Filename,"kccbas.rom")) {
-						DBG_BUILTIN("Basic");
-						return loadBuiltin(pLocation, pLength, &pRoms->basic);
-					}
-				}
 			}
 		}
 	}
@@ -212,7 +181,8 @@ void	Host_WriteData(HOST_FILE_HANDLE Handle, unsigned char *pData, unsigned long
 }
 
 
-BOOL	Host_SaveFile(char *Filename, unsigned char *pData, unsigned long
+BOOL	SaveFile(char *Filename,char *pData, unsigned 
+long
 Length)
 {
 	FILE	*fh;

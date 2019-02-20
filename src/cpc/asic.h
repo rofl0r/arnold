@@ -20,12 +20,8 @@
 #ifndef __ASIC_HEADER_INCLUDED__
 #define __ASIC_HEADER_INCLUDED__
 
-#include <stdio.h>
-#include <stdlib.h>
 #include "cpcglob.h"    
 #include "garray.h"
-#include "cpcglob.h"
-#include "cpcdefs.h"
 
 typedef struct 
 {
@@ -81,7 +77,9 @@ void    ASIC_WriteRam(int Addr,int Data);
 /* used when setting up ASIC in reset or from snapshots */
 void	ASIC_WriteRamFull(int Addr, int Data);
 
-BOOL    Cartridge_Load(char *);
+int Cartridge_AttemptInsert(unsigned char *pCartridgeData, unsigned long CartridgeLength);
+int		Cartridge_Insert(const unsigned char *pCartridgeData, const unsigned long CartridgeDataLength);
+void	Cartridge_Autostart(void);
 void    Cartridge_Remove(void);
 
 BOOL    ASIC_RasterIntEnabled(void);
@@ -99,11 +97,17 @@ unsigned char ASIC_GetSpritePixel(int SpriteIndex, int X, int Y);
 
 typedef struct 
 {
-        unsigned int    XMagShift,YMagShift;
-        signed short    SpriteMinXPixel, SpriteMinYPixel;
-        signed short    SpriteMaxXPixel, SpriteMaxYPixel;
-        signed short    SpriteXColumnMin, SpriteXColumnMax;
-		signed short	pad[2];
+	/* width of sprite in 16-pixel wide columns */
+	unsigned long WidthInColumns;
+	/* HCount of column that min sprite x is in */
+	unsigned long MinColumn;
+	/* height of sprite in scan-lines */
+	unsigned long HeightInLines;
+
+    unsigned int    XMagShift,YMagShift;
+    unsigned long    x, y;
+
+//	unsigned long    SpriteMaxXPixel, SpriteMaxYPixel;
 } ASIC_SPRITE_RENDER_INFO;
 
 #define ASIC_RAM_ENABLED	0x0002
@@ -114,19 +118,19 @@ typedef struct
 {
         union
         {
-                signed short    SpriteX_W;
+                unsigned short    SpriteX_W;
 
 #ifdef CPC_LSB_FIRST        
 
                 struct 
                 {
                         unsigned char l;
-                        signed char h;
+                        unsigned char h;
                 } SpriteX_B;
 #else
 	  struct
 	  {
-	    signed char h;
+	    unsigned char h;
 	    unsigned char l;
 	  } SpriteX_B;
 #endif
@@ -135,17 +139,17 @@ typedef struct
 
         union
         {
-                signed short    SpriteY_W;
+                unsigned short    SpriteY_W;
 #ifdef CPC_LSB_FIRST
                 struct
                 {
                         unsigned char l;
-                        signed char h;
+                        unsigned char h;
                 } SpriteY_B;
 #else
 	    struct
 	    {
-	      signed char h;
+	      unsigned char h;
 	      unsigned char l;
 	    } SpriteY_B;
 #endif
@@ -260,7 +264,7 @@ void	ASIC_UpdateColours(void);
 unsigned char ASIC_GetDCSR(void);
 unsigned char ASIC_GetPRI(void);
 unsigned char ASIC_GetSPLT(void);
-unsigned long ASIC_GetSSA(void);
+unsigned short ASIC_GetSSA(void);
 unsigned char ASIC_GetSSCR(void);
 unsigned char ASIC_GetIVR(void);
 

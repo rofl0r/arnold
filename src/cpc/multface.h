@@ -53,11 +53,14 @@ typedef enum
 /* called when Multiface stop button is pressed */
 void	Multiface_Stop(void);
 
+void	Multiface_Install(void);
+void	Multiface_DeInstall(void);
+
 /* called to initialise emulation */
 void	Multiface_Initialise(void);
 
 /* called to load a rom */
-BOOL	Multiface_LoadRom(MULTIFACE_ROM_TYPE, unsigned char *);
+int Multiface_SetRomData(const MULTIFACE_ROM_TYPE RomType, const unsigned char *pRomData, const unsigned long RomDataSize);
 
 /* set multiface mode - so correct rom can be used */
 void	Multiface_SetMode(MULTIFACE_MODE);

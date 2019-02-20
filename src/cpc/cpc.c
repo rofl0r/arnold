@@ -32,28 +32,16 @@
 
 #include "cpc.h"
 #include "audioevent.h"
-#include "cpcdefs.h"
-#include "debugmain.h"
-#include "host.h"
-#include "dirstuff.h"
+//#include "debugmain.h"
 #include "yiq.h"
 #include "z8536.h"
 #ifdef SPEECH
 #include "spo256.h"
 #endif
-
-void	CheatSystem_Initialise(void);
-
-
-#ifdef KEY_DEBUG
-#include "debugger/debug.h"
-extern char DebugString[256];
-extern DEBUG_HANDLE Debug_Keyboard;
-#endif
-
-/*#define AMX
-#define WESTPHASER */
-
+#include "fdi.h"
+#include "fdd.h"
+#include "amsdos.h"
+#include "pal.h"
 #include "fdc.h"
 #include "crtc.h"
 #include "garray.h"
@@ -62,51 +50,91 @@ extern DEBUG_HANDLE Debug_Keyboard;
 #include "cpcglob.h"    
 #include "diskimage/diskimg.h"
 #include "printer.h"
-#include "sampload.h"
 #include "cheatdb.h"
-#ifdef MULTIFACE
-#include "multface.h"
-#endif
+#include "kempston.h"
+#include "memory.h"
 
 /* Hardware we are emulating */
 /* CPC, PLUS or KC Compact */
-static int CPC_Hardware;
+static int CPC_Hardware = CPC_HW_CPC;
 
+static BOOL Amstrad_DiscInterface_Enabled = FALSE;
+static BOOL Amstrad_RamExpansion_Enabled = FALSE;
+
+void Amstrad_DiscInterface_Install(void)
+{
+	Amstrad_DiscInterface_Enabled = TRUE;
+}
+
+void Amstrad_DiscInterface_DeInstall(void)
+{
+	Amstrad_DiscInterface_Enabled = FALSE;
+}
+
+void	Amstrad_RamExpansion_Install(void)
+{
+	Amstrad_RamExpansion_Enabled = TRUE;
+}
+
+void	Amstrad_RamExpansion_DeInstall(void)
+{
+	Amstrad_RamExpansion_Enabled = FALSE;
+}
+
+static int NumReadPorts = 0;
+static CPCPortRead	readPorts[32];
+static int NumWritePorts = 0;
+static CPCPortWrite writePorts[32];
+static int NumResetFunctions = 0;
+static CPC_RESET_FUNCTION resetFunctions[32];
+
+
+void CPC_InstallResetFunction(CPC_RESET_FUNCTION resetFunction)
+{
+	resetFunctions[NumResetFunctions] = resetFunction;	
+	NumResetFunctions++;
+}
+
+void CPC_InstallReadPort(CPCPortRead *readPort)
+{
+	memcpy(&readPorts[NumReadPorts], readPort, sizeof(CPCPortRead));
+	NumReadPorts++;
+}
+
+void CPC_InstallWritePort(CPCPortWrite *writePort)
+{
+	memcpy(&writePorts[NumWritePorts], writePort, sizeof(CPCPortWrite));
+	NumWritePorts++;
+}
 
 static unsigned long   NopCount = 0;
 
-/* pointer to CPC Amsdos rom, used for 464, 664 and 6128 CPC */
-/* NOT used for KC Compact or CPC+ */
-static unsigned char *pCPCAmsdos;       
-
-/* these hold pointers to the Basic, OS, Amsdos for each CPC type */
-static AMSTRAD_ROMS     Roms464;
-static AMSTRAD_ROMS     Roms664;
-static AMSTRAD_ROMS     Roms6128;
-static AMSTRAD_ROMS		RomsKCC;
+//static unsigned char *pCPCAmsdos;       
 
 /* if CPC464/664/6128 or KC Compact selected these pointers are defined */
 /* DOS rom is NULL if no DOS is on the motherboard */
 /* basic rom */
-static unsigned char *pBasic;
+static const unsigned char *pBasic;
 
 /* os rom */
-unsigned char *pOS;
+const unsigned char *pOS;
 
 /* dos rom */
-static unsigned char *pDOS;
+static const unsigned char *pDOS;
 
-
-static unsigned long CPC_CassetteType = CASSETTE_TYPE_NONE;
-
-void	CPC_SetCassetteType(int CassetteType)
+void CPC_SetOSRom(const unsigned char *pOSRom)
 {
-	CPC_CassetteType = CassetteType;
+	pOS = pOSRom;
 }
 
-unsigned long CPC_GetCassetteType(void)
+void CPC_SetBASICRom(const unsigned char *pBASICROM)
 {
-	return CPC_CassetteType;
+	pBasic = pBASICROM;
+}
+
+void CPC_SetDOSRom(const unsigned char *pDOSRom)
+{
+	pDOS = pDOSRom;
 }
 
 
@@ -120,11 +148,7 @@ unsigned long CPC_GetCassetteType(void)
 /* in the CPC+, the rom data from the cartridge can be overriden by a rom */
 /* in a rom-board */
 
-/* this table holds the pointers for each expansion ROM selection that can */
-/* be made by writing a rom-slot index to the ROM select I/O port */
-
-/* this table is refreshed when a cartridge is loaded, a expansion rom is enabled */
-/* or the computer is changed through the UI */
+/* this table holds the pointers for the active expansion ROM selections */
 static unsigned char *ExpansionROMTable[256];
 
 /* this is the index of the currently selected rom as written by the ROM select I/O */
@@ -136,12 +160,13 @@ unsigned char   *pUpperRom;
 /* 16k position in read memory map of rom */
 unsigned long	LowerRomIndex;
 /* lower rom */
-unsigned char	*pLowerRom;
+const unsigned char	*pLowerRom;
 
 /********************/
 
 /* keyboard data */
 static int              SelectedKeyboardLine;
+static BOOL				KeyboardScanned;
 
 unsigned char KeyboardData[16]=
 {
@@ -159,8 +184,6 @@ static unsigned long CPC_HardwareConnectedToJoystickPort = JOYSTICK_HARDWARE_JOY
 
 /* Vector these routines to change between CPC and PLUS mode */
 
-void	AmxMouse_UpdateMovement(unsigned long);
-
 extern unsigned char    *pReadRamPtr[8];
 extern unsigned char    *pWriteRamPtr[8];
 
@@ -168,26 +191,29 @@ extern  unsigned char *Z80MemoryBase;
 
 extern CRTC_INTERNAL_STATE CRTC_InternalState;
 
+BOOL Keyboard_HasBeenScanned()
+{
+	return KeyboardScanned;
+}
+
 
 unsigned char Joystick_ReadJoystickPort(void)
 {
 	return KeyboardData[9];
 }
 
-unsigned char WestPhaser_ReadJoystickPort(void);
-unsigned char AmxMouse_ReadJoystickPort(void);
-unsigned char SpanishLightGun_ReadJoystickPort(void);
-
 unsigned char Keyboard_Read(void)
 {
     if (SelectedKeyboardLine!=9)
     {
-            return KeyboardData[SelectedKeyboardLine];
+		KeyboardScanned = TRUE;
+		return KeyboardData[SelectedKeyboardLine];
     }
     else
     {
 		unsigned char Data = 0x07f;
 
+#if 0
 		switch (CPC_HardwareConnectedToJoystickPort)
 		{
 			case JOYSTICK_HARDWARE_AMX_MOUSE:
@@ -206,7 +232,7 @@ unsigned char Keyboard_Read(void)
 				Data = Joystick_ReadJoystickPort();
 				break;
 		}		
-
+#endif
 		return (unsigned char)((Data & 0x07f) | (KeyboardData[9] & 0x080));
 
 	}
@@ -335,7 +361,7 @@ void    ExpansionRom_Finish(void)
 }
 
 /* get a word of data from the expansion rom selected */
-unsigned short ExpansionRom_GetWord(unsigned char *pAddr, int Offset)
+unsigned short ExpansionRom_GetWord(const unsigned char *pAddr, int Offset)
 {
         unsigned short WordData;
 
@@ -362,7 +388,7 @@ BOOL    ExpansionRom_CheckRomAddrValid(unsigned short Addr)
    Byte 3: ROM Modification
    Byte 4,5: External Name Table */
 
-BOOL    ExpansionRom_Validate(unsigned char *pData, unsigned long DataSize)
+BOOL    ExpansionRom_Validate(const unsigned char *pData, unsigned long DataSize)
 {
         unsigned char RomType = (unsigned char)(pData[0] & 0x07f);
         unsigned short NameTableAddr;
@@ -383,29 +409,28 @@ BOOL    ExpansionRom_Validate(unsigned char *pData, unsigned long DataSize)
         if (ExpansionRom_CheckRomAddrValid(NameTableAddr))
         {
                 /* it is valid */
-                unsigned char   *pNames = pData + (NameTableAddr & 0x03fff);
+                const unsigned char   *pNames = pData + (NameTableAddr & 0x03fff);
                 int             NameCount = 0;
 
-                do
+                while (pNames[0]!=0x00)
                 {
-                        /* the last character in each name has bit 7 set */
-                        if (pNames[0] & 0x080)
-                        {
-                                NameCount++;
-                        }
+                    /* the last character in each name has bit 7 set */
+                    if (pNames[0] & 0x080)
+                    {
+                            NameCount++;
+                    }
 
-                        /* a 0 indicates the end of the name table */
-                        if (pNames[0]==0x00)
-                                break;
-                
+                    /* a 0 indicates the end of the name table */
+                    if (pNames[0]!=0x00)
+					{                
                         pNames++;
 
                         /* if we were reading through rom data and ran out of
                         space the name table is damaged */
                         if (pNames>=(pData+0x04000))
                                 return FALSE;
-                }
-                while (1==1);
+					}
+				}
 
                 /* must have at least one name = name for startup of rom */
                 if (NameCount==0)
@@ -415,13 +440,13 @@ BOOL    ExpansionRom_Validate(unsigned char *pData, unsigned long DataSize)
         return TRUE;
 }
 
-static char     RomName[64];
-
-/* return expansion rom name */
-char    *ExpansionRom_GetRomName(int RomIndex)
+/* return TRUE if slot is in-use, RomName will hold a pointer to the name */
+/* return FALSE if slot is not-used */
+BOOL ExpansionRom_GetRomName(const int RomIndex, char **RomName)
 {
         unsigned char *pRomData = ExpansionRomData[RomIndex];
         
+		*RomName = NULL;
         if (pRomData!=NULL)
         {
                 unsigned short NameTableAddr;
@@ -429,8 +454,8 @@ char    *ExpansionRom_GetRomName(int RomIndex)
                 unsigned int RomMark = pRomData[1] & 0x0ff;
                 unsigned int RomVersion = pRomData[2] & 0x0ff;
                 unsigned int RomModification = pRomData[3] & 0x0ff;
-
-                int i;
+				int NameLength;
+				char *pNameBuffer;
 
                 /* get rom name */
 
@@ -440,159 +465,133 @@ char    *ExpansionRom_GetRomName(int RomIndex)
                 /* get pointer to name */
                 pName = pRomData + (NameTableAddr & 0x03fff);
 
-                i = 0;
-                do
+				/* the last character of the name is marked with bit 7 set */
+                NameLength = 0;
+				while ((pName[NameLength]&0x080)==0)
                 {
-                        /* get name chars stripping of high bit */
-                        RomName[i] = (unsigned char)(pName[i] & 0x07f);
+					/* count this character */
+                    NameLength++;
                 
-                        /* if high bit set, then got to end of name */
-                        if ((pName[i] & 0x080)==0x080)
-                                break;
-                
-                        i++;
+					/* if this character has bit 7 set, then it is the last
+					character in the name. If this character doesn't have bit 7 set
+					then this is not the last character */
+				}
+				NameLength++;
 
-                }
-                while (1==1);
+				/* allocate buffer to hold name */
+				pNameBuffer = malloc(NameLength+8+1);
 
-                i++;
+				if (pNameBuffer!=NULL)
+				{
+					int Count;
 
-                RomName[i] = ' ';
+					/* fill in buffer */
+					for (Count=0; Count<NameLength; Count++)
+					{
+						pNameBuffer[Count] = pName[Count]&0x07f;
+					}
 
-                i++;
+					pNameBuffer[Count]=' ';
+					Count++;
+					sprintf(&pNameBuffer[Count],"[v%1x.%01x%01x]",RomMark, RomVersion, RomModification);
 
-                /* put version number on name string */
-                sprintf(&RomName[i],"[v%1x.%01x%01x]",RomMark, RomVersion, RomModification);
-
-                return RomName;
+					*RomName = pNameBuffer;
+					return TRUE;
+				}
         }
 
-        return "EMPTY SLOT";
+        return FALSE;
 }
  
 
-static unsigned int AMSDOS_CalculateChecksum(unsigned char *pHeader)
+/* insert a expansion rom; returns status code */
+int    ExpansionRom_SetRomData(const unsigned char *RomData, const unsigned long RomDataSize, const int RomIndex)
 {
-        unsigned int Checksum;
-        int i;
+	const unsigned char *pRomData;
+	unsigned long RomLength;
+	int Status = ARNOLD_STATUS_ERROR;
+	
+    /* remove an existing rom */
+    if (ExpansionRomData[RomIndex]!=NULL)
+    {
+        ExpansionRom_Remove(RomIndex);
+    }
+    
+	pRomData = RomData;
+	RomLength = RomDataSize;
 
-        Checksum = 0;
-
-        for (i=0; i<67; i++)
+    if (pRomData!=NULL)
+    {
+        /* as long as rom data is large enough to hold a amsdos header, we can check it
+        for one */
+        if (RomLength>128)
         {
-                unsigned int CheckSumByte;
+            /* does rom data have a amsdos header? */
+            if (AMSDOS_HasAmsdosHeader(pRomData))
+            {
+				/* yes */
 
-                CheckSumByte = pHeader[i] & 0x0ff;
-
-                Checksum+=CheckSumByte;
+				/* adjust pointer */
+				pRomData = pRomData+128;
+				/* adjust length */
+				RomLength = RomLength-128;
+			}
         }
 
-        return Checksum;
-}
-
-static BOOL     AMSDOS_HasAmsdosHeader(unsigned char *pHeader)
-{
-        unsigned int CalculatedChecksum;
-        unsigned int ChecksumFromHeader;
-
-        CalculatedChecksum = AMSDOS_CalculateChecksum(pHeader);
-
-        ChecksumFromHeader = (pHeader[67] & 0x0ff) |
-                                                (pHeader[68] & 0x0ff)<<8;
-
-        if (ChecksumFromHeader == CalculatedChecksum)
-                return TRUE;
-
-        return FALSE;
-}
-
-
-/* insert a expansion rom */
-BOOL    ExpansionRom_Insert(char *RomFilename, int RomIndex)
-{
-        unsigned char *RomData = NULL;
-        unsigned long RomDataSize = 0;
-
-        /* remove an existing rom */
-        if (ExpansionRomData[RomIndex]!=NULL)
+		/* is rom length valid? */
+        if (RomLength>0)
         {
-                ExpansionRom_Remove(RomIndex);
-        }
+			/* validate */
+            if (ExpansionRom_Validate(pRomData,RomLength))
+            {
+                /* it is valid */
 
-        /* load new rom data */
-        Host_LoadFile(RomFilename, &RomData, &RomDataSize);
-        
-        if (RomData!=NULL)
-        {
-                /* as long as rom data is large enough to hold a amsdos header, we can check it
-                for one */
-                if (RomDataSize>128)
+                /* we want to check if a foreground rom data file is 
+                loaded into any slot above 0, or a non-foreground not
+                loaded into slot 0 */
+
+                /* store rom pointer in expansion rom table */
+
+
+                /* The following is done, so that roms with less
+                than 16k can be supported. We allocate 16k, so that
+                if a memory access is done which would be outside the rom
+                data area, it doesn't cause an invalid memory access */
+
+                /* allocate 16384 bytes */
+                ExpansionRomData[RomIndex] = (unsigned char *)malloc(16384);
+
+                if (ExpansionRomData[RomIndex]!=NULL)
                 {
-                        /* does rom data have a amsdos header? */
-                        if (AMSDOS_HasAmsdosHeader(RomData))
-                        {
-                                /* does have a amsdos header */
-                                unsigned char *NewRomData;
-
-                                /* allocate size of rom minus header */
-                                NewRomData = malloc(RomDataSize-128);
-
-                                if (NewRomData!=NULL)
-                                {
-                                        /* copy data to new rom block (data after header) */
-                                        memcpy(NewRomData, RomData+128, RomDataSize-128);
-                                
-                                        /* free old data */
-                                        free(RomData);
-                                }
-                        
-                                /* set pointer to point to new block */
-                                RomData = NewRomData;
-                                RomDataSize = RomDataSize-128;
-                        }
+                    /* copy rom data into allocated block */
+                    memcpy(ExpansionRomData[RomIndex],pRomData,RomLength);
+    
+                    /* mark it as active */
+                    ExpansionRom_SetActiveState(RomIndex, TRUE);
+                 
+					/* ok! */
+					Status = ARNOLD_STATUS_OK;
                 }
-        
-                if (RomDataSize>0)
-                {
-                        /* loaded data */
-                        if (ExpansionRom_Validate(RomData,RomDataSize))
-                        {
-                                /* it is valid */
-
-                                /* we want to check if a foreground rom data file is 
-                                loaded into any slot above 0, or a non-foreground not
-                                loaded into slot 0 */
-
-                                /* store rom pointer in expansion rom table */
-
-
-                                /* The following is done, so that roms with less
-                                than 16k can be supported. We allocate 16k, so that
-                                if a memory access is done which would be outside the rom
-                                data area, it doesn't cause an invalid memory access */
-
-                                /* allocate 16384 bytes */
-                                ExpansionRomData[RomIndex] = (unsigned char *)malloc(16384);
-
-                                if (ExpansionRomData[RomIndex]!=NULL)
-                                {
-                                        /* copy rom data into allocated block */
-                                        memcpy(ExpansionRomData[RomIndex],RomData,RomDataSize);
-                        
-                                        /* mark it as active */
-                                        ExpansionRom_SetActiveState(RomIndex, TRUE);
-                                        
-                                        free(RomData);
-                                        return TRUE;
-                                }
-                        }
-                }
-
-                /* free rom data */
-                free(RomData);
+				else
+				{
+					Status = ARNOLD_STATUS_OUT_OF_MEMORY;
+				}
+            }
+			else
+			{
+				/* invalid */
+				Status = ARNOLD_STATUS_INVALID;
+			}
         }
+		else
+		{
+			/* the length is invalid */
+			Status = ARNOLD_STATUS_INVALID_LENGTH;
+		}
+    }
 
-        return FALSE;
+	/* return status */
+    return Status;
 }
 
 unsigned char *ExpansionRom_Get(int RomIndex)
@@ -669,6 +668,7 @@ void	ExpansionROM_SetupTable(void)
 	}
 }
 
+
 void	ExpansionROM_RefreshTable(void)
 {
 	if (CPC_GetHardware()==CPC_HW_CPCPLUS)
@@ -704,9 +704,14 @@ void	ExpansionROM_RefreshTable(void)
 
 	/* now override with roms from a ram-rom */
 	/* does ram/rom override rom-board settings? */
-	RAM_ROM_SetupTable();
+//	RAM_ROM_SetupTable();
 
 	GateArray_RethinkMemory();
+}
+
+void	ExpansionROM_SetTableEntry(int Index, unsigned char *pRomData)
+{
+	ExpansionROMTable[Index] = pRomData;
 }
 
 
@@ -842,7 +847,9 @@ void	PPI_UpdatePortBInputData(void)
 
 			/* set screen refresh */
 			Data |= PPI_SCREEN_REFRESH_50HZ;
-        }
+        
+			/* on CPC464+, /EXP is set to 0 */
+		}
 
 
 		PPI_PortBInputData = Data;
@@ -868,7 +875,7 @@ int CPC_GetComputerNameIndex(void)
 
 /* when port is set to input, the output of that port is 0x0ff */
 
-typedef struct PPI_8255
+typedef struct
 {
 	/* latched data written to outputs */
 	unsigned char latched_outputs[4];
@@ -906,18 +913,12 @@ void    PPI_Reset(void)
 
 }
 
-
-#define CPCPLUS_8255_STATE_ACTIVE 0x0001
-
-static unsigned char PPI_PSG_LatchedOperation = 0;
-static int PPI_State = 0;
-
 static void     UpdatePSG(void)
 {
 	/* psg databus at high impedance */
 	ppi8255.inputs[0] = 0x0ff;
 
-    switch (PPI_PSG_LatchedOperation)
+    switch ((ppi8255.final_outputs[2]>>6) & 0x03)
     {
 		default:
         case 0:
@@ -959,10 +960,52 @@ static unsigned char PPI_PreviousPortC = 0;
 static unsigned char PPI_CurrentPortC = 0;
  
 
-/* refresh hardware connected to port C depending on outputs from the port */
-void    Amstrad_WritePPIPortC(void)
+void PPI_DoPortBInput(void)
+{
+	unsigned long CurrentNopCount;
+	unsigned char Data = PPI_PortBInputData;
+
+	/* get current nop count */
+	CurrentNopCount = CPC_GetNopCount();
+
+
+        /* set state of vsync bit */
+        if (CRTC_InternalState.CRTC_Flags & CRTC_VS_FLAG)                    
+        {
+                Data |= VSYNC_ACTIVE;
+        }
+
+		/**** TAPE ****/
+		/* tape motor is on? */
+		if (PPI_CurrentPortC & 0x010)
+		{
+			unsigned char CassetteReadBit;
+			unsigned long NopsPassed;
+
+			NopsPassed = CurrentNopCount - PortBRead_PreviousNopCount;
+
+			CassetteReadBit = Cassette_Read(NopsPassed);
+
+	        Data |= (CassetteReadBit<<7);
+		
+			/* store previous port B read nop count */
+			PortBRead_PreviousNopCount = CurrentNopCount;
+		}
+        
+
+        ppi8255.inputs[1] = Data;
+
+}
+
+
+/* called when port A, port B or port C output has changed */
+void	Amstrad_PPI_Refresh(void)
 {
 	unsigned char Data;
+	unsigned long CurrentNopCount;
+
+	/* get current nop count */
+	CurrentNopCount = CPC_GetNopCount();
 
 	/* get output from PPI */
 	Data = ppi8255.final_outputs[2];
@@ -976,81 +1019,25 @@ void    Amstrad_WritePPIPortC(void)
 	/* tape-volume when writing! */
 	if (((PPI_PreviousPortC^PPI_CurrentPortC)&(1<<5))!=0)
 	{
-		unsigned char DataBit;
-
-		if ((Data & (1<<5))!=0)
-		{
-			DataBit = 0x0ff;
-		}
-		else
-		{
-			DataBit = 0x00;
-		}
-
-		/* write data to audio event */
-		AudioEvent_AddEventToBuffer(AUDIO_EVENT_TAPE, DataBit, DataBit);
-	
 		if (PPI_CurrentPortC & 0x010)
 		{
-			unsigned long CurrentNopCount;
-/*			unsigned char CassetteReadBit; */
 			unsigned long NopsPassed;
-
-			/* get current nop count */
-			CurrentNopCount = CPC_GetNopCount();
 
 			NopsPassed = CurrentNopCount - PortCWrite_PreviousNopCount;
 
-			TZX_Write(NopsPassed, (Data>>5) & 0x01);
-													
-			/* store previous port B read nop count */
+			Cassette_Write(NopsPassed, (Data>>5) & 0x01);
+
 			PortCWrite_PreviousNopCount = CurrentNopCount;
 		}
-
 	}
 
 	SelectedKeyboardLine = Data & 0x0f; 
 
-	{
-		unsigned char OperationCode = (unsigned char)((Data>>6) & 0x03);
-
-		/* cpc+? */
-		if (CPC_GetHardware()==CPC_HW_CPCPLUS)
-		{
-			/* cpc+ */
-			if (PPI_State & CPCPLUS_8255_STATE_ACTIVE)
-			{
-				/* active */
-				
-				/* if code is 0, go back to inactive otherwise stay in current state */
-				if (OperationCode==0)
-				{
-					PPI_PSG_LatchedOperation = 0;
-					PPI_State &= ~CPCPLUS_8255_STATE_ACTIVE;
-				}
-			}
-			else
-			{
-				/* inactive */
-
-				/* if 0, stay inactive, otherwise do operation specified */
-				PPI_PSG_LatchedOperation = OperationCode;
-
-				if (OperationCode!=0)
-				{
-					PPI_State |= CPCPLUS_8255_STATE_ACTIVE;
-				}
-			}
-		}
-		else
-		{
-			/* cpc */
-			PPI_PSG_LatchedOperation = OperationCode;
-		}
-	}
-
     UpdatePSG();
 
+	/* when the keyboard is checked, the I/O status of the ports forces the outputs to zeros!
+	causing the motor to be switched on and off quickly, should this be correct? */
+	
 	/* tape motor */
 	if (((PPI_PreviousPortC^PPI_CurrentPortC)&0x010)!=0)
 	{
@@ -1059,8 +1046,16 @@ void    Amstrad_WritePPIPortC(void)
 		if (PPI_CurrentPortC & 0x010)
 		{
 			/* tape motor has been switched on */
-			PortBRead_PreviousNopCount = CPC_GetNopCount();
-			PortCWrite_PreviousNopCount = CPC_GetNopCount();
+			PortBRead_PreviousNopCount = CurrentNopCount;
+			PortCWrite_PreviousNopCount = CurrentNopCount;
+
+			// switched on
+			Cassette_Write(0,(Data>>5) & 0x01);
+		}
+		else
+		{
+			// switched off
+			Cassette_Write((CurrentNopCount - PortCWrite_PreviousNopCount), (Data>>5) & 0x01);
 		}
 	}
 
@@ -1074,80 +1069,6 @@ void    Amstrad_WritePPIPortC(void)
 			TapeImage_PlayStatus(FALSE);
 		}
 */
-}
-
-void PPI_DoPortBInput(void)
-{
-		unsigned char Data = PPI_PortBInputData;
-		
-        /* set state of vsync bit */
-        if (CRTC_InternalState.CRTC_Flags & CRTC_VS_FLAG)                    
-        {
-                Data |= VSYNC_ACTIVE;
-        }
-
-		/**** TAPE ****/
-		/* tape motor is on? */
-		if (PPI_CurrentPortC & 0x010)
-		{
-			unsigned long CurrentNopCount;
-			unsigned char CassetteReadBit;
-
-			/* get current nop count */
-			CurrentNopCount = CPC_GetNopCount();
-
-			switch (CPC_CassetteType)
-			{
-				case CASSETTE_TYPE_SAMPLE:
-				{
-					CassetteReadBit = Sample_GetDataByteTimed(PortBRead_PreviousNopCount, CurrentNopCount);
-				}
-				break;
-
-				case CASSETTE_TYPE_TAPE_IMAGE:
-				{
-					unsigned long TStatesPassed;
-
-					/* 4 t-states per NOP */
-					TStatesPassed = (CurrentNopCount - PortBRead_PreviousNopCount)<<2;
-                
-					CassetteReadBit = TapeImage_GetBit(TStatesPassed);
-				}
-				break;
-			
-				default:
-					CassetteReadBit = 0;
-					break;
-			}
-			
-#if 0
-			{
-				int TapeAudio;
-
-				if (CassetteReadBit)
-				{
-					TapeAudio = 128;
-				}
-				else
-				{
-					TapeAudio = 0;
-				}
-
-
-				AudioEvent_AddEventToBuffer(AUDIO_EVENT_DIGIBLASTER, TapeAudio, TapeAudio);
-			}
-#endif
-
-	        Data |= (CassetteReadBit<<7);
-		
-			/* store previous port B read nop count */
-			PortBRead_PreviousNopCount = CurrentNopCount;
-
-		}
-        
-
-        ppi8255.inputs[1] = Data;
-
 }
 
 
@@ -1172,21 +1093,22 @@ void    PPI_WritePortA(int Data)
 {
 	ppi_write_port(0, Data);
 
-    UpdatePSG();
+	Amstrad_PPI_Refresh();
 }
 
 void    PPI_WritePortB(int Data)
 {
 	ppi_write_port(1, Data);
+
+	Amstrad_PPI_Refresh();
 }
 
 void	PPI_WritePortC(int Data)
 {
 	ppi_write_port(2, Data);
 
-	Amstrad_WritePPIPortC();
+	Amstrad_PPI_Refresh();
 }
-
 
 
 void    PPI_WriteControl(int Data)
@@ -1201,60 +1123,85 @@ void    PPI_WriteControl(int Data)
             /* on CPC and KCC, the PPI resets the port values when the
             configuration is set. On CPC+ it doesn't do this. */
             ppi8255.latched_outputs[0] = ppi8255.latched_outputs[1] = ppi8255.latched_outputs[2] = 0;
+
+			ppi8255.control = PPI_PortControl;
+
+			if (Data & PPI_CONTROL_PORT_A_STATUS)
+			{
+				/* port A is input */
+				ppi8255.io_mask[0] = 0x0ff;
+			}
+			else
+			{
+				/* port A is output */
+				ppi8255.io_mask[0] = 0x000;
+			}
+
+
+			/* PORT B */
+			if (Data & PPI_CONTROL_PORT_B_STATUS)
+			{
+				/* port B is in input mode */
+				ppi8255.io_mask[1] = 0x0ff;
+			}
+			else
+			{
+				/* port B is in output mode, return data written to it */
+				ppi8255.io_mask[1] = 0x000;
+			}
+
+			/* PORT C */
+			ppi8255.io_mask[2] = 0x0ff;
+
+			if ((Data & PPI_CONTROL_PORT_C_LOWER_STATUS)==0)
+			{
+				/* lower part of port is in output mode */
+				
+				ppi8255.io_mask[2] &= 0x0f0;
+			}
+
+			if ((Data & PPI_CONTROL_PORT_C_UPPER_STATUS)==0)
+			{
+				/* upper part of port is in output mode */
+				ppi8255.io_mask[2] &= 0x00f;
+			}
+
+			ppi_write_port(0, ppi8255.latched_outputs[0]);
+			ppi_write_port(1, ppi8255.latched_outputs[1]);
+			ppi_write_port(2, ppi8255.latched_outputs[2]);
+
+			Amstrad_PPI_Refresh();
 		}
 		else
 		{
 			/* CPC type is CPC+ */
 
-            /* with CPC+ port B is always in input mode. Therefore it always
-            returns the inputs to the port */
-			PPI_PortControl |= PPI_CONTROL_PORT_B_STATUS;
-
-            /* on CPC+ port C is always in output mode */
-            PPI_PortControl &= ~(PPI_CONTROL_PORT_C_LOWER_STATUS | PPI_CONTROL_PORT_C_UPPER_STATUS);
-		}
-
-		ppi8255.control = PPI_PortControl;
-
-		if (PPI_PortControl & PPI_CONTROL_PORT_A_STATUS)
-		{
-			/* port A is input */
-			ppi8255.io_mask[0] = 0x0ff;
-		}
-		else
-		{
-			/* port A is output */
-			ppi8255.io_mask[0] = 0x000;
-		}
-
-
-		/* PORT B */
-        if (PPI_PortControl & PPI_CONTROL_PORT_B_STATUS)
-        {
-            /* port B is in input mode */
+            /* on CPC+ port B is always in input mode and
+            port C is always in output mode */
 			ppi8255.io_mask[1] = 0x0ff;
-        }
-        else
-        {
-            /* port B is in output mode, return data written to it */
-            ppi8255.io_mask[1] = 0x000;
-        }
+			ppi8255.io_mask[2] = 0x000;
 
-		/* PORT C */
-		ppi8255.io_mask[2] = 0x0ff;
-
-        if ((PPI_PortControl & PPI_CONTROL_PORT_C_LOWER_STATUS)==0)
-        {
-            /* lower part of port is in output mode */
+			Data |= PPI_CONTROL_PORT_B_STATUS;
+            Data &= ~(PPI_CONTROL_PORT_C_LOWER_STATUS | PPI_CONTROL_PORT_C_UPPER_STATUS);
 			
-			ppi8255.io_mask[2] &= 0x0f0;
-        }
+			ppi8255.control = Data;
 
-        if ((PPI_PortControl & PPI_CONTROL_PORT_C_UPPER_STATUS)==0)
-        {
-            /* upper part of port is in output mode */
-            ppi8255.io_mask[2] &= 0x00f;
-        }
+			/* on CPC+ port A can be programmed as input or output */
+			if (Data & PPI_CONTROL_PORT_A_STATUS)
+			{
+				/* port A is input */
+				ppi8255.io_mask[0] = 0x0ff;
+			}
+			else
+			{
+				/* port A is output */
+				ppi8255.io_mask[0] = 0x000;
+			}
+
+			ppi_write_port(0, ppi8255.latched_outputs[0]);
+	
+			Amstrad_PPI_Refresh();
+		}
 
 	}
     else
@@ -1265,30 +1212,29 @@ void    PPI_WriteControl(int Data)
 
         if (Data & 1)
         {
-                /* set bit */
+			/* set bit */
 
-                int     OrData;
+			int     OrData;
 
-                OrData = (1<<BitIndex);
+			OrData = (1<<BitIndex);
 
-                ppi8255.latched_outputs[2]|=OrData;
+			ppi8255.latched_outputs[2]|=OrData;
         }
         else
         {
-                /* clear bit */
+			/* clear bit */
 
-                int     AndData;
+			int     AndData;
 
-                AndData = (~(1<<BitIndex));
+			AndData = (~(1<<BitIndex));
 
-                ppi8255.latched_outputs[2]&=AndData;
+			ppi8255.latched_outputs[2]&=AndData;
         }
+
+		ppi_write_port(2, ppi8255.latched_outputs[2]);
+
+		Amstrad_PPI_Refresh();
     }
-
-
-    PPI_WritePortA(ppi8255.latched_outputs[0]);
-	PPI_WritePortB(ppi8255.latched_outputs[1]);
-	PPI_WritePortC(ppi8255.latched_outputs[2]);
 }
 
 int PPI_ReadControl(void)
@@ -1356,7 +1302,7 @@ void    PPI_SetPortCDataFromSnapshot(int Data)
 	/* CPCEMU stores the outputs from this port regardless of it's input/output setting */
 	ppi8255.final_outputs[2] = Data;
 
-	Amstrad_WritePPIPortC();
+	Amstrad_PPI_Refresh();
 }
 
 int PPI_GetPortCDataForSnapshot(void)
@@ -1396,6 +1342,7 @@ void    Z80_Reti(void)
 /*------------------------------------------------------------------------*/
 /* set the CPC machine type */
 
+#if 0
 static int CurrentCPCType;
 
 void    CPC_SetCPCType(CPC_TYPE_ID Type)
@@ -1413,9 +1360,9 @@ void    CPC_SetCPCType(CPC_TYPE_ID Type)
         {
                 case CPC_TYPE_CPC464:
                 {
-                        pOS = Roms464.pOs;
-                        pBasic = Roms464.pBasic;
-                        pDOS = pCPCAmsdos;
+//                        pOS = Roms464.pOs;
+  //                      pBasic = Roms464.pBasic;
+    //                    pDOS = pCPCAmsdos;
 
 						/* if CPC, do not allow type 3 to be selected */
 						if (CPC_GetCRTCType()==3)
@@ -1427,9 +1374,9 @@ void    CPC_SetCPCType(CPC_TYPE_ID Type)
 
                 case CPC_TYPE_CPC664:
                 {
-                        pOS = Roms664.pOs;
-                        pBasic = Roms664.pBasic;
-                        pDOS = pCPCAmsdos;
+      //                  pOS = Roms664.pOs;
+        //                pBasic = Roms664.pBasic;
+          //              pDOS = pCPCAmsdos;
          
 						/* if CPC, do not allow type 3 to be selected */
 						if (CPC_GetCRTCType()==3)
@@ -1442,9 +1389,9 @@ void    CPC_SetCPCType(CPC_TYPE_ID Type)
 
                 case CPC_TYPE_CPC6128:
                 {
-                        pOS = Roms6128.pOs;
-                        pBasic = Roms6128.pBasic;
-                        pDOS = pCPCAmsdos;
+            //            pOS = Roms6128.pOs;
+              //          pBasic = Roms6128.pBasic;
+                //        pDOS = pCPCAmsdos;
         
 						/* if CPC, do not allow type 3 to be selected */
 						if (CPC_GetCRTCType()==3)
@@ -1466,9 +1413,9 @@ void    CPC_SetCPCType(CPC_TYPE_ID Type)
 
 				case CPC_TYPE_KCCOMPACT:
 				{
-					pOS = RomsKCC.pOs;
-					pBasic = RomsKCC.pBasic;
-					pDOS = pCPCAmsdos;
+//					pOS = RomsKCC.pOs;
+//					pBasic = RomsKCC.pBasic;
+//					pDOS = pCPCAmsdos;
         
 					/* force type 0, my KC Compact has a HD6845S */
 					/* this is likely to be the only type of CRTC */
@@ -1480,9 +1427,9 @@ void    CPC_SetCPCType(CPC_TYPE_ID Type)
                 case CPC_TYPE_464PLUS:
                 case CPC_TYPE_6128PLUS:
                 {
-                        pOS = ASIC_GetCartPage(0);
-                        pBasic = ASIC_GetCartPage(1);
-                        pDOS = ASIC_GetCartPage(3);
+  //                      pOS = ASIC_GetCartPage(0);
+    //                    pBasic = ASIC_GetCartPage(1);
+      //                  pDOS = ASIC_GetCartPage(3);
          
 						/* if plus, force crtc type 3 */
 						CPC_SetCRTCType(3);
@@ -1507,6 +1454,7 @@ int CPC_GetCPCType(void)
 {
         return CurrentCPCType;
 }
+#endif
 
 /*--------------------------------------------------------------------------*/
 
@@ -1642,50 +1590,48 @@ int CPC_GetCRTCType(void)
 /* do a reset of CPC/CPC+ system */
 void    CPC_Reset(void)
 {
+	int i;
+
+	/* reset keyboard scanned flag; used by auto-type feature */
+	KeyboardScanned = FALSE;
+
 	/* reset lower rom index */
 	LowerRomIndex = 0;
 
 
 	/* refresh vector base */
-	switch (CPC_GetCPCType())
+	switch (CPC_GetHardware())
 	{
-			case CPC_TYPE_CPC464:
-			case CPC_TYPE_CPC664:
-			case CPC_TYPE_CPC6128:
-			{
+		case CPC_HW_CPC:
+		{
 					/* interrupt vector normally on bus on a standard CPC.
 					Although, this is not really guaranteed, depending
 					on what peripheral's are plugged in etc. NWC mentioned
 					that fact. */
 					Z80_SetInterruptVector(0x0ff);
 
-					CPC_SetHardware(CPC_HW_CPC);
-	#ifdef MULTIFACE
-					Multiface_SetMode(MULTIFACE_CPC_MODE);
-	#endif
+//	#ifdef MULTIFACE
+//					Multiface_SetMode(MULTIFACE_CPC_MODE);
+//	#endif
 			}
 			break;
 
-			case CPC_TYPE_KCCOMPACT:
+			case CPC_HW_KCCOMPACT:
 			{
 				Z80_SetInterruptVector(0x0ff);
 
-				CPC_SetHardware(CPC_HW_KCCOMPACT);
-	#ifdef MULTIFACE
-				Multiface_SetMode(MULTIFACE_CPC_MODE);
-	#endif
+//	#ifdef MULTIFACE
+//				Multiface_SetMode(MULTIFACE_CPC_MODE);
+//	#endif
 			}
 			break;
 
-			case CPC_TYPE_464PLUS:
-			case CPC_TYPE_6128PLUS:
+			case CPC_HW_CPCPLUS:
 			{
-					/* set mode */
-					CPC_SetHardware(CPC_HW_CPCPLUS);
 
-	#ifdef MULTIFACE
-					Multiface_SetMode(MULTIFACE_CPCPLUS_MODE);
-	#endif
+//	#ifdef MULTIFACE
+//					Multiface_SetMode(MULTIFACE_CPCPLUS_MODE);
+//	#endif
 			}
 	}
 
@@ -1718,6 +1664,9 @@ void    CPC_Reset(void)
     /* reset ASIC */
     ASIC_Reset();
 
+	/* PAL16L8 controlling RAM configuration reset */
+	PAL_Reset();
+
     /* reset Gate Array (CPC or ASIC) */
     GateArray_Reset();
 
@@ -1742,9 +1691,11 @@ void    CPC_Reset(void)
     /* reset Z80 */
     Z80_Reset();
 
-#ifdef MULTIFACE
-    Multiface_Reset();
-#endif
+	/* call the additional reset functions */
+	for (i=0; i<NumResetFunctions; i++)
+	{
+		resetFunctions[i]();
+	}
 }
 
 /*=====================================================================================*/
@@ -1878,7 +1829,16 @@ void	SetupMemoryPaging(int RamConfig, int RamConfigAdjusted, unsigned char *pExt
 		else
 		{
 			/* base 64k ram memory block - adjusted for Z80 memory address to be added on for access */
-			pBlockAddr = Z80MemoryBase;	
+			if (BlockIndex==p)
+			{
+				pBlockAddr = Z80MemoryBase;	
+			}
+			else
+			{
+				// BlockIndex is original position 
+				// (e.g. "3" in position 1. Here we need to add &c000-&4000
+				pBlockAddr = Z80MemoryBase + ((BlockIndex<<14) - (p<<14));
+			}
 		}
 
 		/* set ram address in table */
@@ -2090,6 +2050,10 @@ void    CPC_SetHardware(int Hardware)
 
         if (Hardware==CPC_HW_CPCPLUS)
         {    
+			pOS = ASIC_GetCartPage(0);
+			pBasic = ASIC_GetCartPage(1);
+			pDOS = ASIC_GetCartPage(3);
+  
             CPC_EnableASICRamWrites(FALSE);
 
             /* if green screen was specified, and we changed to CPC+ mode,
@@ -2117,109 +2081,11 @@ int     CPC_GetHardware(void)
 }
 
 
-/**************************************************************************
-  
- INITIALISATION
-
- **************************************************************************/
-/*
-static PATCH_ENTRY      Amsdos_Patch[]=
-{
-        {0x07e0,0x0c9},
-        {0x07d0,0x000},
-        {0x07d1,0x000},
-        {0x0931,0x000},
-        {0x0932,0x000},
-        {0x0933,0x000},
-        {0x0934,0x000},
-        {0x0935,0x000},
-        {0x096e,0x000},
-        {0x096f,0x000},
-        {0x0970,0x000},
-        {0x0972,0x000},
-        {0x0973,0x000},
-        {0x05d4,0x001},
-        {0x05d5,0x000},
-        {0x05d6,0x001},
-        {0x05d7,0x000}
-};
-
-#define NUM_AMSDOS_PATCH_ENTRIES (sizeof(Amsdos_Patch)/sizeof(PATCH_ENTRY))
-
-static PATCH_ENTRY      PlusAmsdos_Patch[]=
-{
-        {0x080c,0x0c9},
-        {0x07fc,0x000},
-        {0x07fd,0x000},
-        {0x095f,0x000},
-        {0x0960,0x000},
-        {0x0961,0x000},
-        {0x0962,0x000},
-        {0x099d,0x000},
-        {0x099e,0x000},
-        {0x09b7,0x000},
-        {0x09b8,0x000},
-        {0x09b9,0x000},
-        {0x09ba,0x000},
-        {0x05d4,0x001},
-        {0x05d5,0x000},
-        {0x05d6,0x001},
-        {0x05d7,0x000}
-};
-
-#define NUM_PLUS_AMSDOS_PATCH_ENTRIES (sizeof(PlusAmsdos_Patch)/sizeof(PATCH_ENTRY))
-        if (pCPCAmsdos!=NULL)
-        {
-                for (i=0; i<NUM_AMSDOS_PATCH_ENTRIES; i++)
-                {
-                        int             Data;
-
-                        Data = Amsdos_Patch[i].Byte & 0x0ff;
-
-                        pCPCAmsdos[(long)Amsdos_Patch[i].Addr] = Data;
-                }
-        }
-
-
-         Patch ASIC Amsdos 
-        
-        RomBase = ASIC_GetCartPage(3);
-
-        if (RomBase!=NULL)
-        {
-                for (i=0; i<NUM_PLUS_AMSDOS_PATCH_ENTRIES; i++)
-                {
-                        int             Data;
-
-                        Data = PlusAmsdos_Patch[i].Byte & 0x0ff;
-
-                        RomBase[(long)PlusAmsdos_Patch[i].Addr] = Data;
-                }
-        }       
-*/
-
-/* can be called at any time to set memory size */
-/*
-BOOL	CPC_SetMemorySize(int MemorySizeInK)
-{
-    if (AllocateEmulatorMemory(MemorySizeInK))
-	{
-		InitialiseMemoryPaging(MemorySizeInK);
-
-		return TRUE;
-	}
-
-	return FALSE;
-}
-*/
-
 BOOL    CPC_Initialise(void)
 {
-        unsigned long RomLength;
+		PAL_Initialise();
 
-		RAM_ROM_Initialise(16);
-
-/*		Vortex_Initialise(); */
+/*		Memory_Init(); */
 
 		BrightnessControl_Initialise();
 
@@ -2235,9 +2101,6 @@ BOOL    CPC_Initialise(void)
 		/*CPC_SetMemorySize(128); */
 
 		FDD_InitialiseAll();
-
-		CheatSystem_Initialise();
-        
 		
 		PSG_Init();
 
@@ -2254,38 +2117,6 @@ BOOL    CPC_Initialise(void)
         /* initialise keyboard */
         CPC_ClearKeyboard();
 
-        /* CPC EMULATION */
-
-        /* same amsdos rom for 464,664 and 6128 */
-
-		ChangeToLocationDirectory(EMULATOR_ROM_CPCAMSDOS_DIR);
-
-        Host_LoadFile("amsdos.rom", &pCPCAmsdos,&RomLength);
-
-		ChangeToLocationDirectory(EMULATOR_ROM_CPC464_DIR);
-
-        /* load roms for CPC464 */
-        Host_LoadFile("basic.rom", &Roms464.pBasic, &RomLength);
-        Host_LoadFile("os.rom", &Roms464.pOs,&RomLength);
-
-		ChangeToLocationDirectory(EMULATOR_ROM_CPC664_DIR);
-
-        /* load roms for CPC664 */
-        Host_LoadFile("basic.rom", &Roms664.pBasic, &RomLength);
-        Host_LoadFile("os.rom", &Roms664.pOs, &RomLength);
-
-		ChangeToLocationDirectory(EMULATOR_ROM_CPC6128_DIR);
-
-        /* load roms for CPC6128 */
-        Host_LoadFile("basic.rom", &Roms6128.pBasic, &RomLength);
-        Host_LoadFile("os.rom", &Roms6128.pOs, &RomLength);
-
-		ChangeToLocationDirectory(EMULATOR_ROM_KCCOMPACT_DIR);
-
-		/* load roms for KC Compact */
-        Host_LoadFile("kccbas.rom", &RomsKCC.pBasic, &RomLength);
-        Host_LoadFile("kccos.rom", &RomsKCC.pOs, &RomLength);
-
         /* TAPEFILE */
         /* patch rom for tape file loading/saving */
 /*      Tape_PatchRom(Roms6128.pOs, Roms6128.pBasic); */
@@ -2297,13 +2128,8 @@ BOOL    CPC_Initialise(void)
         /* Initialise ASIC */
         ASIC_Initialise();
 
-		ChangeToLocationDirectory(EMULATOR_ROM_CPCPLUS_DIR);
-		
-        Cartridge_Load("system.cpr");
 
-#ifdef MULTIFACE
-        Multiface_Initialise();
-#endif
+	Cassette_Init();
 
    DiskImage_Initialise();
 
@@ -2312,76 +2138,23 @@ BOOL    CPC_Initialise(void)
    /* initialise drive 1 */
    FDD_Initialise(1);
 
-   TZX_Write_Initialise("out.tmp");
 
-	TapeImage_Init();
-
-#ifdef AY_OUTPUT
-   YMOutput_Init("ymout.tmp");
-#endif
-
-   WavOutput_Init("wavout.tmp");
+//   WavOutput_Init("wavout.tmp");
 
    AudioEvent_Initialise();
 
 
-   if (
-	(Z80MemoryBase==NULL) ||
-          (Roms464.pBasic==NULL) || 
-          (Roms464.pOs==NULL) ||
-          (pCPCAmsdos==NULL) ||
-          (Roms664.pBasic==NULL) ||
-          (Roms664.pOs==NULL) ||
-          (Roms6128.pBasic==NULL) ||
-          (Roms6128.pOs==NULL)
-          )
-          {
-           return FALSE;
-   }
-
+		/* initialise z80 emulation */
+		Z80_Init();
 
    return TRUE;
 }
 
 void    CPC_Finish(void)
 {
-	TZX_Write_End();
-
-	/* free ram-rom ram */
-	RAM_ROM_Finish();
-	/* free vortex ram */
-/*	Vortex_Finish(); */
-
-	if (RomsKCC.pBasic!=NULL)
-	{
-		free(RomsKCC.pBasic);
-	}
-
-	if (RomsKCC.pOs!=NULL)
-	{
-		free(RomsKCC.pOs);
-	}
-
-        if (pCPCAmsdos!=NULL)
-                free(pCPCAmsdos);
-
-        if (Roms464.pBasic!=NULL)
-                free(Roms464.pBasic);
-
-        if (Roms464.pOs!=NULL)
-                free(Roms464.pOs);
-
-        if (Roms664.pBasic!=NULL)
-                free(Roms664.pBasic);
-
-        if (Roms664.pOs!=NULL)
-                free(Roms664.pOs);
-
-        if (Roms6128.pBasic!=NULL)
-                free(Roms6128.pBasic);
-
-        if (Roms6128.pOs!=NULL)
-                free(Roms6128.pOs);
+	
+	Render_Finish();
+	Cassette_Finish();
 
         AudioEvent_Finish();
 
@@ -2395,21 +2168,19 @@ void    CPC_Finish(void)
         /* free ram allocated for memory */
         FreeEmulatorMemory();
 
-#ifdef MULTIFACE
-        Multiface_Finish();
-#endif
-
+		/* removes all disc images; doesn't save! */
         DiskImage_Finish();
 
 #ifdef AY_OUTPUT
-        YMOutput_Finish();
+      YMOutput_Finish();
 #endif
 
-        WavOutput_Finish();
+//       WavOutput_Finish();
 
 		/* remove any tape image inserted */
-		TapeImage_Remove();
+		Tape_Remove();
 }
+
 
 /*--------------------------------------------------------------*/
 
@@ -2519,80 +2290,79 @@ void Z80_WR_MEM(Z80_WORD Addr,Z80_BYTE Data)
   bit 10 = bit 7 = 0; FDC Write 
 */
 
-void	Vortex_Write(Z80_WORD Port, Z80_BYTE Data);
-
-static void	ExpansionPeripherals_Write(Z80_WORD Port, Z80_BYTE Data)
+static void AmstradDiscInterface_PortWrite(Z80_WORD Port, Z80_BYTE Data)
 {
-#ifdef MULTIFACE
-	Multiface_WriteIO(Port,Data);
-#endif
+	unsigned int            Index;
 
-#ifdef SPEECH
-			/* SSA-1 */
-			if (Port == 0x0fbee)
-			{
-					CPC_SPO256_WriteData(Data);
-			}
+	Index = ((Port & 0x0100)>>(8-1)) | (Port & 0x01);
 
-			/* Dk'Tronics speech */
-	/*      if (Port == 0x0fbfe)
-	      {
-	              CPC_SPO256_WriteData(NewData);
-	      }
-	*/
-#endif
+	switch (Index)
+	{
+		case 0:
+		case 1:
+		{
+			FDI_SetMotorState(Data);
+		}
+		break;
 
-	Magnum_DoOut(Port, Data);
+		case 2:
+		case 3:
+		{
+			FDC_WriteDataRegister(Data);
+		}
+		break;
 
-	Vortex_Write(Port, Data);
-
+		default:
+			break;
+	}
 }
 
-static Z80_BYTE ExpansionPeripherals_Read(Z80_WORD Port)
+static Z80_BYTE Amstrad_DiscInterface_PortRead(Z80_WORD Port)
 {
-	int Data = 0x0ff;
+	unsigned int            Index;
 
-#ifdef SPEECH
-        
-        /* SSA-1 */
-        if (Port==0x0fbee)
-        {
-                Data = CPC_SPO256_ReadData();
-        }
+	Index = ((Port & 0x0100)>>(8-1)) | (Port & 0x01);
 
-        /* DK'Tronics speech */
-        /*if (Port==0x0fbfe)
-        {
-              Data = CPC_SPO256_ReadData();
-        }*/
-#endif
+	switch (Index)
+	{
+		case 2:
+		{
+			return FDC_ReadMainStatusRegister();
+		}
+		break;
 
-		return (unsigned char)Data;
+		case 3:
+		{
+			return FDC_ReadDataRegister();
+		}
+		break;
+	
+		default:
+			break;
+	}
+
+	return 0x0ff;
 }
 
 
 void	CPC_OR_CPCPLUS_Out(Z80_WORD Port, Z80_BYTE Data)
 {
 
-#ifdef KEY_DEBUG
-	{
-		char DebugString[256];
-
-		sprintf(DebugString,"P: %04x D: %02x\r\n",
-			Port, Data);
-
-		Debug_WriteString(Debug_Keyboard, DebugString);
-	}
-#endif
-
     if ((Port & 0x0c000)==0x04000)
     {
 		/* gate array cannot be selected if CRTC is also
 		selected */
         GateArray_Write(Data);
+	}
 
-		if ((((~Port)>>8) & (0x0ff>>2))==0)
-			return;
+
+	if (Amstrad_RamExpansion_Enabled)
+	{
+		if ((Port & 0x08000)==0x00000)
+		{
+			/* RAM expansion PAL16L8 write in CPC6128*/
+			PAL_WriteConfig(Data);
+		}
 	}
 
     if ((Port & 0x04000)==0)
@@ -2667,31 +2437,13 @@ void	CPC_OR_CPCPLUS_Out(Z80_WORD Port, Z80_BYTE Data)
 		}
     }
 
-    if ((Port & 0x0480)==0) 
-    {
-        unsigned int            Index;
-
-        Index = ((Port & 0x0100)>>(8-1)) | (Port & 0x01);
-
-		switch (Index)
+	if (Amstrad_DiscInterface_Enabled)
+	{
+		if ((Port & 0x0480)==0) 
 		{
-			case 0:
-			{
-				FDD_MotorControl(Data);
-			}
-			break;
-
-			case 3:
-			{
-				FDC_WriteDataRegister(Data);
-			}
-			break;
-
-			default:
-				break;
+			AmstradDiscInterface_PortWrite(Port, Data);
 		}
-    }
-
+	}
 }
 
 /*
@@ -2899,30 +2651,13 @@ void	KCCompact_Out(Z80_WORD Port, Z80_BYTE Data)
 		}
     }
 
-    if ((Port & 0x0480)==0) 
-    {
-       unsigned int            Index;
-
-        Index = ((Port & 0x0100)>>(8-1)) | (Port & 0x01);
-
-		switch (Index)
+	if (Amstrad_DiscInterface_Enabled)
+	{
+		if ((Port & 0x0480)==0) 
 		{
-			case 0:
-			{
-				FDD_MotorControl(Data);
-			}
-			break;
-
-			case 3:
-			{
-				FDC_WriteDataRegister(Data);
-			}
-			break;
-
-			default:
-				break;
+			AmstradDiscInterface_PortWrite(Port, Data);
 		}
-    }
+	}
 }
 
 
@@ -2946,170 +2681,17 @@ void    Z80_DoOut(Z80_WORD Port,Z80_BYTE Data)
 		break;
 	}
 		        
-	/* expansion peripherals */
-	ExpansionPeripherals_Write(Port, Data);
-}
-
-static unsigned long ActiveDelay;
-static int AmxMouse_DelayActive = 0;
-static unsigned char AmxMouse_Current;
-static unsigned char AmxMouse_Next;
-static unsigned char AmxMouse_MovementData;
-
-static int AmxMouse_PreviousNopCount = 0;
-
-unsigned char AmxMouse_ReadJoystickPort(void)
-{
-	int CurrentNopCount = CPC_GetNopCount();
-	int NopsPassed;
-
-	NopsPassed = CurrentNopCount - AmxMouse_PreviousNopCount;
-
-	AmxMouse_UpdateMovement(NopsPassed);
-
-	AmxMouse_PreviousNopCount = CurrentNopCount;
-
-	return AmxMouse_Current;
-}
-
-void	AmxMouse_UpdateMovement(unsigned long NopsPassed)
-{
-	if (AmxMouse_DelayActive)
+	if (NumWritePorts!=0)
 	{
-		if (NopsPassed>=ActiveDelay)
+		int i;
+
+		for (i=0; i<NumWritePorts; i++)
 		{
-			/* turn off directions */
-
-			AmxMouse_Current |= AmxMouse_MovementData;
-
-			AmxMouse_DelayActive = 0;
+			if ((Port&writePorts[i].PortAnd)==writePorts[i].PortCmp)
+				writePorts[i].pWriteFunction(Port, Data);
 		}
-		
-		ActiveDelay = ActiveDelay - NopsPassed;
-	}
-
-
-}
-
-
-
-void	AmxMouse_Update(int DeltaX, int DeltaY, int LeftButton, int RightButton)
-{
-	AmxMouse_MovementData = 0x00;
-
-	/* left */
-	if (DeltaX<0)
-	{
-		ActiveDelay = (-DeltaX)*3328;
-
-		AmxMouse_MovementData |= 1<<(CPC_KEY_JOY_LEFT & 0x07);
-	}
-	else if (DeltaX>0)
-	{
-		ActiveDelay = (DeltaX)*3328;
-
-		AmxMouse_MovementData |= 1<<(CPC_KEY_JOY_RIGHT & 0x07);
-	}
-
-	/* up */
-	if (DeltaY<0)
-	{
-		ActiveDelay = (-DeltaY)*3328;
-
-		AmxMouse_MovementData |= 1<<(CPC_KEY_JOY_UP & 0x07);
-	}
-	else if (DeltaY>0)
-	{
-		ActiveDelay = (DeltaY)*3328;
-
-		AmxMouse_MovementData |= 1<<(CPC_KEY_JOY_DOWN & 0x07);
-	}
-
-	if ((AmxMouse_MovementData & 0x0f)!=0)
-	{
-		AmxMouse_DelayActive = 1;
-	}
-
-
-	AmxMouse_Current = 0x0ff^AmxMouse_MovementData;
-
-	
-	/* fire */
-	if (LeftButton)
-	{
-		AmxMouse_MovementData &= ~(1<<4);
-		AmxMouse_Current &= ~(1<<4);
-	}
-	
-	/* fire 2 */
-	if (RightButton)
-	{
-		AmxMouse_MovementData &= ~(1<<5);
-		AmxMouse_Current &= ~(1<<5);
 	}
 }
-
-void	AmxMouse_Reset(void)
-{
-	AmxMouse_PreviousNopCount = 0;
-}
-
-static unsigned char KempstonMouse_Y = 0;
-static unsigned char KempstonMouse_X = 0;
-static unsigned char KempstonMouse_Buttons = 0x0ff;
-
-void	KempstonMouse_Update(int DeltaX, int DeltaY, int LeftButton, int RightButton)
-{
-	KempstonMouse_X += DeltaX;
-	KempstonMouse_Y += -DeltaY;
-	KempstonMouse_Buttons = 0x0ff;
-
-	if (LeftButton)
-	{
-		KempstonMouse_Buttons &= ~(1<<0);
-	}
-
-	if (RightButton)
-	{
-		KempstonMouse_Buttons &= ~(1<<1);
-	}
-
-}
-
-static unsigned char KempstonMouse_Read(Z80_WORD Port, Z80_BYTE Data)
-{
-	if (Port==0x0fbef)
-	{
-		return KempstonMouse_Y;
-	}
-
-	if (Port==0x0fbee)
-	{
-		return KempstonMouse_X;
-	}
-
-	if (Port==0x0faef)
-	{
-		return KempstonMouse_Buttons;
-	}
-
-	return Data;
-}
-
-
-static unsigned char ExpansionPeripheralsRead(Z80_WORD Port)
-{
-
-/*		if ((Port & 0x0400)==0)
-		{
-			Data = ExpansionPeripherals_Read(Port);
-		}
-
-		return Data;
-*/
-	return 0x0ff;
-}
-
 
 /*--------------------------------------------------------------------------*/
 /* Port Read
@@ -3118,6 +2700,7 @@ static unsigned char ExpansionPeripheralsRead(Z80_WORD Port)
   bit 11 = 0; PPI Read 
   bit 10 = bit 7 = 0; FDC Read 
 */
+
 
 /* In of port &efxx on CPC?! */
 
@@ -3187,48 +2770,37 @@ Z80_BYTE        CPC_In(Z80_WORD Port)
 			}
         }
 
-        if ((Port & 0x0480)==0)
-        {
-            unsigned int            Index;
-
-            Index = ((Port & 0x0100)>>(8-1)) | (Port & 0x01);
-
-			switch (Index)
+		if (Amstrad_DiscInterface_Enabled)
+		{
+			if ((Port & 0x0480)==0)
 			{
-				case 2:
-				{
-					Data = FDC_ReadMainStatusRegister();
-				}
-				break;
-
-				case 3:
-				{
-					Data = FDC_ReadDataRegister();
-				}
-				break;
-			
-				default:
-					break;
+				Data = Amstrad_DiscInterface_PortRead(Port);
 			}
 		}
+			
+		if (NumReadPorts!=0)
+		{
+			int i;
 
-		
-		Data = KempstonMouse_Read(Port, Data);
-
-
-	/*	ExpansionPeripheralsRead(); */
+			for (i=0; i<NumReadPorts; i++)
+			{
+				if ((Port&readPorts[i].PortAnd)==readPorts[i].PortCmp)
+					Data = readPorts[i].pReadFunction(Port);
+			}
+		}
 
         return (Z80_BYTE)Data;
 }
 
+
 /* In of printer on CPC+? */
 Z80_BYTE        CPCPlus_In(Z80_WORD Port)
 {
-        unsigned int Data=0x0ff;
+		/* CPC6128+ gives 0x079, CPC464+ gives 0x078 */
+		unsigned int Data=0x079;
 
         if ((Port & 0x0c000)==0x04000)
         {
-			Data = 0x079;
             GateArray_Write(Data);
         }
 
@@ -3242,14 +2814,12 @@ Z80_BYTE        CPCPlus_In(Z80_WORD Port)
 			{
 				case 0:
 				{
-					Data = 0x079;
 					CRTC_RegisterSelect(Data);
 				}
 				break;
 
 				case 1:
 				{
-					Data = 0x079;
 					CRTC_WriteData(Data);
 				}
 				break;
@@ -3305,34 +2875,25 @@ Z80_BYTE        CPCPlus_In(Z80_WORD Port)
 			}
         }
 
-        if ((Port & 0x0480)==0)
-        {
-            unsigned int            Index;
 
-            Index = ((Port & 0x0100)>>(8-1)) | (Port & 0x01);
-
-			switch (Index)
+		if (Amstrad_DiscInterface_Enabled)
+		{
+			if ((Port & 0x0480)==0)
 			{
-				case 2:
-				{
-					Data = FDC_ReadMainStatusRegister();
-				}
-				break;
-
-				case 3:
-				{
-					Data = FDC_ReadDataRegister();
-				}
-				break;
-			
-				default:
-					break;
+				Data = Amstrad_DiscInterface_PortRead(Port);
 			}
 		}
 
-		
-		Data = KempstonMouse_Read(Port, Data);
-		/*ExpansionPeripheralsRead(); */
+		if (NumReadPorts!=0)
+		{
+			int i;
+
+			for (i=0; i<NumReadPorts; i++)
+			{
+				if ((Port&readPorts[i].PortAnd)==readPorts[i].PortCmp)
+					Data = readPorts[i].pReadFunction(Port);
+			}
+		}
 
         return (Z80_BYTE)Data;
 }
@@ -3414,32 +2975,25 @@ Z80_BYTE        KCCompact_In(Z80_WORD Port)
 				}
         }
 
-        if ((Port & 0x0480)==0)
-        {
-            unsigned int            Index;
 
-            Index = ((Port & 0x0100)>>(8-1)) | (Port & 0x01);
-
-			switch (Index)
+		if (Amstrad_DiscInterface_Enabled)
+		{
+			if ((Port & 0x0480)==0)
 			{
-				case 2:
-				{
-					Data = FDC_ReadMainStatusRegister();
-				}
-				break;
-
-				case 3:
-				{
-					Data = FDC_ReadDataRegister();
-				}
-				break;
-			
-				default:
-					break;
+				Data = Amstrad_DiscInterface_PortRead(Port);
 			}
 		}
 
-		/*ExpansionPeripheralsRead(); */
+		if (NumReadPorts!=0)
+		{
+			int i;
+
+			for (i=0; i<NumReadPorts; i++)
+			{
+				if ((Port&readPorts[i].PortAnd)==readPorts[i].PortCmp)
+					Data = readPorts[i].pReadFunction(Port);
+			}
+		}
 
         return (Z80_BYTE)Data;
 }
@@ -3500,18 +3054,6 @@ void    CPC_ReleaseKeys(void)
 	memset(KeyboardData, 0x0ff, 16);
 }
 
-void    CPC_ReloadSystemCartridge(void)
-{
-	/* change to directory for CPC+ roms */
-	ChangeToLocationDirectory(EMULATOR_ROM_CPCPLUS_DIR);
-
-	/* load system cartridge */
-	Cartridge_Load("system.cpr");
-
-	/* reset CPC */
-    CPC_Reset();
-}
-
 
 void	CPC_UpdateColours(void)
 {
@@ -3529,529 +3071,3 @@ void	CPC_UpdateColours(void)
 	}
 }
 
-/***********/
-/* VORTEX */
-
-/* 2 blocks 64 32	without vortex
- 9 block 288 256 */
-
-/* ram select */
-static unsigned char Vortex_RamExpansion_Block = 0x0;
-/* allocated ram */
-static unsigned char *Vortex_Ram = NULL;
-/* pointer to current block */
-static unsigned char *Vortex_RamPtr = NULL;
-
-void	Vortex_Initialise(void)
-{
-	Vortex_Ram = malloc(128*1024);
-}
-
-void	Vortex_Finish(void)
-{
-	if (Vortex_Ram!=NULL)
-	{
-		free(Vortex_Ram);
-		Vortex_Ram = NULL;
-	}
-}
-
-extern GATE_ARRAY_STATE GateArray_State;
-
-#define VORTEX_RAM_ENABLE	((1<<5) | (1<<2))
-
-void	Vortex_RethinkMemory(void)
-{
-	if (
-		((GateArray_State.RomConfiguration & VORTEX_RAM_ENABLE)==VORTEX_RAM_ENABLE) && 
-		((Vortex_RamExpansion_Block & 0x020)!=0)
-		)
-	{
-		pReadRamPtr[0] = pReadRamPtr[1] = Vortex_RamPtr;
-		pWriteRamPtr[0] = pWriteRamPtr[1] = Vortex_RamPtr;
-	}
-}
-
-void	Vortex_Write(Z80_WORD Port, Z80_BYTE Data)
-{
-	if (Port==0x0fbbd)
-	{
-		/* bit 6 = 0, bit 5 = 1, bit 2 = 1 */
-	/*	if (Data & 0x020) */
-		{
-			/* ram select */
-			Vortex_RamExpansion_Block = Data;
-
-			/* pointer to ram data */
-			Vortex_RamPtr = Vortex_Ram + ((Data & 0x07)<<14);
-
-			GateArray_RethinkMemory();
-		}
-
-		/* rethink memory */
-/*		Vortex_RethinkMemory(); */
-	}
-}
-#if 0
-/*************************/
-/*** AMRAM/AMRAM 2     ***/
-
-static unsigned char *Amram_RamState = 0;
-
-/* amram - fbf1, fbf0 */
-
-void	Amram_Write(Z80_WORD Port, Z80_BYTE Data)
-{
-	if (Port==0x0fbf1)
-	{
-		Amram_RamState = Data;
-	}
-}
-#endif
-
-
-#if 0
-/*************************/
-/**** RAM7 MEMCARD    ****/
-
-static unsigned char *MemCard_Ram;
-
-void	MemCard_Write(Z80_WORD Port, Z80_BYTE Data)
-{
-	/* detect memcard write */
-	unsigned char Upper;
-
-	Upper = Port>>8;
-
-	if ((Upper & 0x0fc)==0x07c)
-	{
-		int BankIndex;
-
-		BankIndex = Upper & 0x03;
-
-	}
-}
-#endif
-
-
-/*************************/
-/**** INICRON RAM-ROM ****/
-
-/* buffer to hold ram contents; split into banks of 16k */
-static unsigned char	*RAM_ROM_RAM = NULL;
-/* an array of bits, a bit will be 1 if the corresponding bank is enabled,
-and 0 if the corresponding bank is disabled */
-static unsigned char	*RAM_ROM_BankEnables = NULL;
-/* rom select index for eprom onboard ram-rom (not emulated) */
-static unsigned char	RAM_ROM_EPROM_Bank = 0;
-/* flags about the ram-rom status */
-static unsigned char	RAM_ROM_Flags = 0;
-/* number of banks the ram-rom holds */
-static unsigned long	RAM_ROM_NumBlocks;
-/* the mask will be 0 if ram is write disabled and 0x0ffffffff if the ram is write enabled */
-static unsigned long	RAM_ROM_WriteMask;
-
-BOOL	RAM_ROM_IsRamOn(void)
-{
-	return ((RAM_ROM_Flags & RAM_ROM_FLAGS_RAM_ON)!=0);
-}
-
-/* set if ram-rom ram is enabled and therefore if roms can be seen */
-void	RAM_ROM_SetRamOnState(BOOL State)
-{
-	if (State)
-	{
-		RAM_ROM_Flags |= RAM_ROM_FLAGS_RAM_ON;
-	}
-	else
-	{
-		RAM_ROM_Flags &= ~RAM_ROM_FLAGS_RAM_ON;
-	}
-	
-	ExpansionROM_RefreshTable();
-}
-
-/* set read/write state for whole ram */
-void	RAM_ROM_SetRamWriteEnableState(BOOL State)
-{
-	if (State)
-	{
-		RAM_ROM_Flags |= RAM_ROM_FLAGS_RAM_WRITE_ENABLE;
-	}
-	else
-	{
-		RAM_ROM_Flags &= ~RAM_ROM_FLAGS_RAM_WRITE_ENABLE;
-	}
-	ExpansionROM_RefreshTable();
-}
-
-/* set if eprom on ram-rom is visible */
-void	RAM_ROM_SetEPROMOnState(BOOL State)
-{
-	if (State)
-	{
-		RAM_ROM_Flags |= RAM_ROM_FLAGS_EPROM_ON;
-	}
-	else
-	{
-		RAM_ROM_Flags &= ~RAM_ROM_FLAGS_EPROM_ON;
-	}
-
-	ExpansionROM_RefreshTable();
-}
-
-/* true if ram is write enabled, false if ram is write disabled */
-BOOL	RAM_ROM_IsRamWriteEnabled(void)
-{
-	return ((RAM_ROM_Flags & RAM_ROM_FLAGS_RAM_WRITE_ENABLE)!=0);
-}
-
-/* true if rom is on and visible, false if off */
-BOOL	RAM_ROM_IsEPROMOn(void)
-{
-	return ((RAM_ROM_Flags & RAM_ROM_FLAGS_EPROM_ON)!=0);
-}
-
-/* get selection value for rom */
-int		RAM_ROM_GetEPROMBank(void)
-{
-	return RAM_ROM_EPROM_Bank;
-}
-
-/* initialise, allocate memory and setup */
-void	RAM_ROM_Initialise(int NumBlocks)
-{
-	int Size;
-
-	RAM_ROM_NumBlocks = NumBlocks;
-
-	Size = NumBlocks*16*1024;
-
-	RAM_ROM_RAM = malloc(Size);
-
-	if (RAM_ROM_RAM!=NULL)
-	{
-		memset(RAM_ROM_RAM, 0, Size);
-	}
-	
-	Size = NumBlocks>>3;
-
-	
-	RAM_ROM_BankEnables = malloc(Size);
-
-	if (RAM_ROM_BankEnables!=NULL)
-	{
-		memset(RAM_ROM_BankEnables, 0x0ff, Size);
-	}
-		
-	RAM_ROM_WriteMask = 0;
-	RAM_ROM_Flags = 0;
-
-}
-
-void	RAM_ROM_Finish(void)
-{
-	if (RAM_ROM_RAM!=NULL)
-	{
-		free(RAM_ROM_RAM);
-		RAM_ROM_RAM = NULL;
-	}
-
-	if (RAM_ROM_BankEnables!=NULL)
-	{
-		free(RAM_ROM_BankEnables);
-		RAM_ROM_BankEnables = NULL;
-	}
-}
-
-/* called when ram-rom has changed state and some tables need to be re-setup */
-void	RAM_ROM_SetupTable(void)
-{
-	int i;
-
-	RAM_ROM_WriteMask = 0;
-
-	if (RAM_ROM_RAM==NULL)
-		return;
-
-	if ((RAM_ROM_Flags & RAM_ROM_FLAGS_RAM_ON)==0)
-		return;
-
-	if (RAM_ROM_Flags & RAM_ROM_FLAGS_RAM_WRITE_ENABLE)
-	{
-		RAM_ROM_WriteMask = ~0;
-	}
-
-	for (i=0; i<16; i++)
-	{
-		unsigned long BankByte;
-		unsigned char BankBit;
-		unsigned long BankSelected;
-
-		if (i<RAM_ROM_NumBlocks)
-		{
-			BankSelected = i;
-
-			BankByte = BankSelected>>3;
-			BankBit = BankSelected & 0x07;
-
-			/* if enabled... */
-			if (RAM_ROM_BankEnables[BankByte] & (1<<BankBit))
-			{
-				unsigned char	*RAM_ROM_BankPtr;
-
-				/* get pointer to data */
-				RAM_ROM_BankPtr = (unsigned char *)((unsigned long)(RAM_ROM_RAM + (BankSelected<<14)) - (unsigned long)0x0c000);
-
-				/* setup entry in table */
-				ExpansionROMTable[i] = RAM_ROM_BankPtr;
-			}
-		}
-	}
-}
-
-/* set bank enabled  state - if bank is enabled it is visible */
-void	RAM_ROM_SetBankEnable(int Bank, BOOL State)
-{
-	unsigned long BankByte;
-	unsigned char BankBit;
-
-	if (RAM_ROM_BankEnables==NULL)
-		return;
-
-	BankByte = Bank>>3;
-	BankBit = Bank & 0x07;
-
-	if (State)
-	{
-		RAM_ROM_BankEnables[BankByte] |= (1<<BankBit);
-	}
-	else
-	{
-		RAM_ROM_BankEnables[BankByte] &= ~(1<<BankBit);
-	}
-
-	ExpansionROM_RefreshTable();
-}
-
-/* true if bank is enabled, false otherwise */
-BOOL	RAM_ROM_GetBankEnableState(int Bank)
-{
-	unsigned long BankByte;
-	unsigned char BankBit;
-
-	if (RAM_ROM_BankEnables==NULL)
-		return FALSE;
-
-	BankByte = Bank>>3;
-	BankBit = Bank & 0x07;
-
-	return ((RAM_ROM_BankEnables[BankByte] & (1<<BankBit))!=0);
-}
-
-void	RAM_ROM_RethinkMemory(unsigned char **pReadPtr, unsigned char **pWritePtr)
-{	
-	unsigned char *pPtr;
-	unsigned long Mask = RAM_ROM_WriteMask;
-
-	/* this will be pointer to rom or ram in ram/rom */
-	
-	/* if mask is all 1's, then pPtr = pReadPtr[6] 
-	if mask is all 0's then pPtr = pWritePtr[6]; */
-	pPtr = (unsigned char *)(((unsigned long)pReadPtr[6]&Mask)|((unsigned long)pWritePtr[6]&(~Mask)));
-
-	pWritePtr[6] = pWritePtr[7] = pPtr;
-}
-
-
-/**** MAGNUM LIGHT PHASER ****/
-
-static int Magnum_FirePressed = FALSE;
-static unsigned char Magnum_PreviousByteWritten = 0x07f;
-
-void	Magnum_Update(int X, int Y, int FirePressed)
-{
-	Magnum_FirePressed = FirePressed;
-
-	if (Magnum_FirePressed)
-	{
-	unsigned long Nops;
-	unsigned long MonitorLine;
-	unsigned long LinesToTrigger;
-	unsigned long MonitorX;
-	unsigned long CharsToTrigger;
-
-	/* get current monitor line we are on. */
-	MonitorLine = CRTC_InternalState.Monitor_State.MonitorScanLineCount;
-
-	/* work out number of complete lines until the trigger should occur */
-	if (Y>MonitorLine)
-	{
-		LinesToTrigger = Y - MonitorLine;
-	}
-	else
-	{
-		LinesToTrigger = (312 - MonitorLine) + Y;
-	}
-	
-	Nops = (LinesToTrigger<<6);
-
-	MonitorX = CRTC_InternalState.Monitor_State.MonitorHorizontalCount;
-
-	X = (X>>(4-1)) + X_CRTC_CHAR_OFFSET;
-
-	if (X>MonitorX)
-	{
-		CharsToTrigger = X - MonitorX;
-	}
-	else
-	{
-		CharsToTrigger = (64 - MonitorX) + X;
-	}
-
-	Nops += (CharsToTrigger>>1);
-	
-		
-/*		unsigned long Nops;
-
-		Nops = (YPos<<6) + (XPos>>5) + ((8*10)*64);
-*/
-		CRTC_LightPen_Trigger(Nops);
-	}
-}
-
-void	Magnum_DoOut(Z80_WORD Port, Z80_BYTE Data)
-{
-	/* when a write is done to this port, it signifies that the
-	magnum should trigger the LPEN input to signify the fire button is pressed */
-	if (Port==0x0fbfe)
-	{
-		if (((Data^Magnum_PreviousByteWritten) & 0x080)!=0)
-		{
-			/* bit changed state */
-			if ((Data & 0x080)!=0)
-			{
-				/* if the data is the same when read, LPEN has not been triggered,
-				 and therefore the fire button is pressed.
-				*/
-				if (!(Magnum_FirePressed))
-				{
-					/* not pressed, trigger LPEN. */
-
-					/* number of cycles before lpen is triggered... */
-					CRTC_LightPen_Trigger(1);
-				}
-			}
-
-		}
-			
-		Magnum_PreviousByteWritten = Data;
-	}
-}
-
-
-
-static unsigned long SpanishLightGun_CyclesToTrigger = 0;
-static BOOL		SpanishLightGun_DoTrigger = FALSE;
-static unsigned long SpanishLightGun_PreviousNopCount = 0;
-extern unsigned char CRTCRegisters[32];
-extern CRTC_INTERNAL_STATE CRTC_InternalState;
-
-/**** SPANISH LIGHT GUN ****/
-void	SpanishLightGun_Update(int X, int Y, int Button)
-{
-	unsigned long Nops;
-	unsigned long MonitorLine;
-	unsigned long LinesToTrigger;
-	unsigned long MonitorX;
-	unsigned long CharsToTrigger;
-
-	/* get current monitor line we are on. */
-	MonitorLine = CRTC_InternalState.Monitor_State.MonitorScanLineCount;
-
-	/* work out number of complete lines until the trigger should occur */
-	if (Y>MonitorLine)
-	{
-		LinesToTrigger = Y - MonitorLine;
-	}
-	else
-	{
-		LinesToTrigger = (312 - MonitorLine) + Y;
-	}
-	
-	Nops = (LinesToTrigger<<6);
-
-	MonitorX = CRTC_InternalState.Monitor_State.MonitorHorizontalCount;
-
-	X = (X>>3) + X_CRTC_CHAR_OFFSET;
-
-	if (X>MonitorX)
-	{
-		CharsToTrigger = X - MonitorX;
-	}
-	else
-	{
-		CharsToTrigger = (64 - MonitorX) + X;
-	}
-
-	Nops += (CharsToTrigger>>1);
-	
-	
-	if (Button)
-	{
-/*		unsigned long XPos;
-		unsigned long Nops;
-
-		 1 NOP = 2 bytes
-		 2 bytes = 16 mode 2 pixels.
-
-		 get Nops accross screen + adjust for rendering accuracy
-		XPos = X>>(4+1);
-		XPos = XPos + 
-
-		Nops = (Y<<6) + (X>>5) + ((8*10)*64);
-
-		 hsync position + chars so that 
-		(CRTCRegisters[2] + 6)
-*/
-		SpanishLightGun_CyclesToTrigger = Nops;
-		SpanishLightGun_PreviousNopCount = CPC_GetNopCount();
-		SpanishLightGun_DoTrigger = TRUE;
-	}		
-
-}
-
-unsigned char SpanishLightGun_ReadJoystickPort(void)
-{
-	unsigned char Data = 0x0ff;
-
-	if (SpanishLightGun_DoTrigger)
-	{
-	    int CurrentNopCount = CPC_GetNopCount();
-	    int NopsPassed;
-
-	    NopsPassed = CurrentNopCount - SpanishLightGun_PreviousNopCount;
-		
-		if (NopsPassed>=SpanishLightGun_CyclesToTrigger)
-		{
-			SpanishLightGun_DoTrigger = 0;
-
-			Data &= ~2;
-		}
-
-		SpanishLightGun_CyclesToTrigger -= NopsPassed;
-
-
-		SpanishLightGun_PreviousNopCount = CurrentNopCount;
-	
-		Data &= ~(16|32);
-	}
-
-	return Data;
-}
-
-
-void	SpanishLightGun_Reset(void)
-{
-	SpanishLightGun_PreviousNopCount = 0;
-}

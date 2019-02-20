@@ -28,5 +28,6 @@ int		Debugger_Execute();
 void	Debugger_OpenDebugDialog(void);
 void	Debugger_CloseDebugDialog(void);
 void	Debugger_Close(void);
+void	Debugger_UpdateDisplay();
 
 #endif

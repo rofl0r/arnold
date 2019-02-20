@@ -22,22 +22,20 @@
 
 #include "cpcglob.h"
 
-#define AY_INFO_REG_CHANGED	0x0001
+/* register was updated this frame */
+#define AY_INFO_REG_UPDATED 0x0001
+/* register data is different from previous frame */
+#define AY_INFO_REG_DATA_CHANGED 0x0002
 
-typedef struct	AY_INFO
+typedef struct
 {
-	unsigned char RegisterData;
-	unsigned char Flags;
+	unsigned char RegisterData[16];
+	unsigned char PreviousRegisterData[16];
+	unsigned char Flags[16];
 } AY_INFO;
 
-void	YMOutput_Init(char *pTempFilename);
 void	YMOutput_Finish(void);
-void	YMOutput_WriteRegs(void);
-void	YMOutput_StartRecording(char *,int);
-void	YMOutput_StopRecording(void);
-void	YMOutput_ClearRegStatus(void);
 void	YMOutput_StoreRegData(int PSG_SelectedRegister, int Data);
-void	YMOutput_SetStartRecordingState(BOOL State);
 void	YMOutput_SetName(unsigned char *);
 void	YMOutput_SetAuthor(unsigned char *);
 void	YMOutput_SetComment(unsigned char *);
@@ -45,5 +43,28 @@ unsigned char *YMOutput_GetComment(void);
 unsigned char *YMOutput_GetName(void);
 unsigned char *YMOutput_GetAuthor(void);
 
+/* true if output is silent, false otherwise */
+BOOL YMOutput_IsSilent(void);
+
+/* calculate size for YM header */
+unsigned long YMOutput_GenerateHeaderOutputSize(int nVersion);
+
+/* calculate size for YM trailer (if present in chosen format */
+unsigned long YMOutput_GenerateTrailerOutputSize(int nVersion);
+
+/* validate the output version supported */
+int		YMOutput_ValidateVersion(int Version);
+
+/* generate a record which can be written to a temporary file */
+/* record is 16 bytes long */
+void	YMOutput_GenerateTempRecord(unsigned char *Regs);
+
+/* setup header data */
+void YMOutput_GenerateHeaderData(unsigned char *pData, int nVersion, int nVBL);
+/* setup trailer data */
+void YMOutput_GenerateTrailerData(unsigned char *pData, int nVersion);
+
+/* convert the data */
+void YMOutput_ConvertTempData(const unsigned char *pSrcData, unsigned char *pDestData, int nVersion, int nVBL);
 
 #endif

@@ -37,7 +37,7 @@ void	DD_ResizeWindow(HWND);
 BOOL	DD_GetSurfacePtr(DDSURFACEDESC *);
 void	DD_ReturnSurfacePtr(DDSURFACEDESC *);
 
-BOOL	DD_SetVideoMode(int Type,int Width,int Height,int Depth);
+BOOL	DD_SetVideoMode(int Width,int Height,int Depth, BOOL fFullScreen);
 
 BOOL		DirectX_CheckComponentsArePresent(void);
 

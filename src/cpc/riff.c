@@ -18,7 +18,6 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 #include "cpcglob.h"
-#include "cpcdefs.h"
 #include "riff.h"
 #include "endian.h"
 
@@ -38,7 +37,7 @@ void	Riff_SetChunkLength(RIFF_CHUNK *pChunk, unsigned long Length)
 #ifdef CPC_LSB_FIRST
 	pChunk->ChunkLength = Length;
 #else
-	pChunk->ChunkLength = SwapEndianLong(Length);
+	pChunk->Chunklength = SwapEndianLong(Length);
 #endif
 }
 

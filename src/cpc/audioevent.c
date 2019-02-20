@@ -19,12 +19,11 @@
  */
 #include "audioevent.h"
 #include "cpc.h"
-#include "debugmain.h"  
+//#include "debugmain.h"  
 #include "psg.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <memory.h>
-#include <string.h>
+
+#include "headers.h"
+
 #include "host.h"
 
 void	Digiblaster_Reset(void);
@@ -240,7 +239,7 @@ void    Audio_Init(int newFrequency, int newBitsPerSample, int newNoOfChannels)
 
 
         /* initialise format that samples will be written to file as */
-        WavOutput_InitialiseFormat(NoOfChannels, SampleRate, BitsPerSample);
+    //    WavOutput_InitialiseFormat(NoOfChannels, SampleRate, BitsPerSample);
         {
                 int i;
 
@@ -604,11 +603,11 @@ void	AudioEvent_ConvertToOutputFormat(void)
 		}
 #endif
 		/* if wave output is enabled, then dump sound data to a wav file */
-		WavOutput_WriteBlock((char *)pAudio1, AudioBlock1Size);
+//		WavOutput_WriteBlock((char *)pAudio1, AudioBlock1Size);
 		
 		if (pAudio2!=NULL)
 		{
-			WavOutput_WriteBlock((char *)pAudio2, AudioBlock2Size);
+//			WavOutput_WriteBlock((char *)pAudio2, AudioBlock2Size);
 		}
 
 		/* unlock */

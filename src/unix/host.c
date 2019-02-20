@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <string.h>
+#include "../cpc/messages.h"
 
 #include "sdlsound.h"
 #include "global.h"
@@ -38,6 +39,11 @@
 
 static GRAPHICS_BUFFER_INFO BufferInfo;
 static GRAPHICS_BUFFER_COLOUR_FORMAT BufferColourFormat;
+
+void Host_HandlePrinterOutput(void)
+{
+}
+
 
 BOOL	Host_SetDisplay(int Type, int Width, int Height, int Depth)
 {
@@ -186,6 +192,7 @@ BOOL	Host_ProcessSystemEvents(void)
 #else
 	return XWindows_ProcessSystemEvents();  /* no SDL / no GTK+ */
 #endif
+
 }
 
 /* copied from /usr/include/linux/kd.h */
@@ -203,9 +210,9 @@ void	Host_InitDriveLEDIndicator()
 {
 		fd_console = open(fn_console, O_RDONLY);
 		if(fd_console < 0) {
-			fprintf(stderr, "Could not open %s: ", fn_console);
+			fprintf(stderr, Messages[84], fn_console);
 			perror(NULL);
-			fprintf(stderr, "Keyboard LED flashing will be disabled.\n");
+			fprintf(stderr, Messages[85]);
 		}
 		ioctl(fd_console,KDGETLED,&led_save);
 }

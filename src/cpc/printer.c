@@ -19,23 +19,19 @@
  */
 #include "cpc.h"
 #include "printer.h"
-#include "audioevent.h"
 #include "host.h"
 
-static HOST_FILE_HANDLE fhPrinterOutput = 0;
 
-static int Bit7State = 0;
-static int PrinterOutputMethod = PRINTER_OUTPUT_DO_NOTHING;
-static unsigned char Digiblaster_Data=0x07f;
+static CPC_PRINTER_HW printer;
 
 void	Printer_Initialise(void)
 {
 	/* initialise bit 7 state for CPC */
-	Bit7State = 0;
-	/* set initial printer output method */
-	PrinterOutputMethod = PRINTER_OUTPUT_DO_NOTHING;
-	/* initialise file handle for printing to file */
-	fhPrinterOutput = 0;
+	printer.CurrentBit7State = 0;
+	printer.PreviousBit7State = printer.CurrentBit7State;
+
+	printer.CurrentDataByte = 0;
+	printer.PreviousDataByte = printer.CurrentDataByte;
 }
 
 
@@ -46,137 +42,63 @@ with a 8-bit printer port modification */
 
 void	Printer_SetDataBit7State(int BitState)
 {
-	Bit7State = (BitState & 1)<<7;
+	printer.PreviousBit7State = printer.CurrentBit7State;
+	printer.CurrentBit7State = 0;
+	if (BitState)
+		printer.CurrentBit7State |=(1<<7);
 }
 
 int	Printer_GetDataBit7State(void)
 {
-	return (Bit7State>>7);
+	return (printer.CurrentBit7State>>7);
 }
-
-static void	Printer_CloseOutputFile(void)
-{
-	if (fhPrinterOutput!=0)
-	{
-
-		Host_CloseFile(fhPrinterOutput);
-		fhPrinterOutput = 0;
-	}
-}
-
-static void	Printer_OpenOutputFile(void)
-{
-	fhPrinterOutput = Host_OpenFile("printer.txt", HOST_FILE_ACCESS_WRITE);
-}
-
-static void	Printer_WriteToOutputFile(unsigned char DataByte)
-{
-	if (fhPrinterOutput!=0)
-		Host_WriteData(fhPrinterOutput, &DataByte, sizeof(unsigned char));
-}
-
-int		Printer_GetOutputMethod(void)
-{
-	return PrinterOutputMethod;
-}
-
-void	Printer_SetOutputMethod(int Method)
-{
-	/* if the old printer output method is to a file, close
-	the output file */
-	if (PrinterOutputMethod == PRINTER_OUTPUT_TO_FILE)
-	{
-		Printer_CloseOutputFile();
-	}
-
-	/* select new output method */
-	switch (Method)
-	{
-		case PRINTER_OUTPUT_TO_FILE:
-		{
-			Printer_OpenOutputFile();
-		}
-		break;
-
-		case PRINTER_OUTPUT_DO_NOTHING:
-			break;
-	}
-
-	PrinterOutputMethod = Method;
-}
-
-static unsigned char Printer_DataByte;
 
 unsigned char Printer_GetDataByte(void)
 {
-	return Printer_DataByte;
+	return printer.CurrentDataByte;
 }
 
+unsigned char Printer_Get8BitData(void)
+{
+	return ((printer.CurrentDataByte&0x07f)|printer.CurrentBit7State);
+}
+
+unsigned char Printer_GetPrevious8BitData(void)
+{
+	return ((printer.PreviousDataByte&0x07f)|printer.PreviousBit7State);
+}
+
+int		Printer_GetStrobeState(void)
+{
+	/* /strobe is inverted by the hardware */
+	/* put state of strobe into bit 0 */
+	return ((printer.CurrentDataByte^0x080)>>7);
+}
+
+
+int		Printer_GetPreviousStrobeState(void)
+{
+	/* /strobe is inverted by the hardware */
+	/* put state of strobe into bit 0 */
+	return ((printer.PreviousDataByte^0x080)>>7);
+}
+
+void	Printer_SetBusyInput(int BusyState)
+{
+	/* to be implemented */
+}
 
 /* write a byte of data to printer port 0x0efxx */
 void	Printer_WriteDataByte(int DataByte)
 {
-	Printer_DataByte = DataByte;
+	printer.PreviousDataByte = printer.CurrentDataByte;
+	printer.CurrentDataByte = DataByte;
 
-	switch (PrinterOutputMethod)
-	{
-		case PRINTER_OUTPUT_TO_FILE:
-		{
-			int Strobe;
-			unsigned char Data;
-
-			Strobe = DataByte & 0x080;
-			Data = (unsigned char)((DataByte & 0x07f) | Bit7State);
-
-			if (Strobe!=0)
-			{
-				/* write databyte to printer text output file */
-				Printer_WriteToOutputFile(Data);
-			}
-		}
-		break;
-
-		case PRINTER_OUTPUT_TO_PRINTER:
-		{
-			int Strobe;
-			int Data;
-
-			Strobe = DataByte & 0x080;
-			Data = (DataByte & 0x07f) | Bit7State;
-		}
-		break;
-
-		case PRINTER_OUTPUT_TO_DIGIBLASTER:
-		{
-			unsigned char DigiData;
-
-			/* 8-th bit is sent with bit 7 inverted, because
-			the CPC h/w automatically inverts it */
-			DigiData = (unsigned char)(DataByte ^ 0x080);
-		
-			/* output from printer port after h/w has inverted it appears to be a unsigned 8-bit 
-			number */
-
-		
-			Audio_Digiblaster_Write(DigiData);
-
-		}
-		break;
-
-		case PRINTER_OUTPUT_DO_NOTHING:
-			break;
-	}
-
-
-	Digiblaster_Data = (unsigned char)DataByte;
+	Host_HandlePrinterOutput();
 }
 
 void	Printer_Finish(void)
 {
-	if (PrinterOutputMethod == PRINTER_OUTPUT_TO_FILE)
-	{
-		Printer_CloseOutputFile();
-	}
 }
 
 			

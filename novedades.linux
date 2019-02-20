@@ -1,0 +1,14 @@
+Arnold/Linux de Andreas Micklei
+
+Canvios:
+
+19-Enero-2002
+===============
+
+Linux:
+- La salida de Sonido con SDL funciona (por lo menos en mi máquina)
+- mejoras del GUI
+- Opción para utilizar el emulador a la velocidad del CPC original
+- <CTRL>M quitados del final de linea de los ficheros de código fuente para hacer más felices
+  ciertas versiones de GCC (no probado, pues yo uso RedHats GCC 2.96)
+

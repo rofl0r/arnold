@@ -31,6 +31,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <string.h>
+#include "../cpc/messages.h"
 
 static SOUND_PLAYBACK_FORMAT SoundFormat;
 
@@ -66,7 +67,7 @@ BOOL	sdl_open_audio(SDL_AudioSpec *audioSpec) {
 	audio_open = FALSE;
 	status = SDL_OpenAudio(&desired, audioSpec);
 	if ( status < 0 ){
-		fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
+		fprintf(stderr, Messages[82], SDL_GetError());
 		return FALSE;
 	}
 	fprintf(stderr, "Opened Audio device: %i/%0x/%i\n",
@@ -74,7 +75,7 @@ BOOL	sdl_open_audio(SDL_AudioSpec *audioSpec) {
 	if (audio_chunk != NULL) free(audio_chunk);
 	audio_chunk = malloc(audio_bufsize);
 	if (audio_chunk == NULL) {
-		fprintf(stderr,"Error: Unable to allocate %i bytes of memory\n",
+		fprintf(stderr,Messages[83],
 			audio_bufsize);
 		exit(1);
 	}

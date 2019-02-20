@@ -20,14 +20,15 @@
 #ifndef __CPC_RENDER_HEADER_INCLUDED__
 #define __CPC_RENDER_HEADER_INCLUDED__
 
-#include "cpcdefs.h"
+#define SIMPLE_MONITOR_EMULATION
+
 #include "cpcglob.h"
 
 /* NOTE: all graphics are rendered as if they are in mode 2 resolution */
 
 /* pixels in mode 2 size. 
 Used to define the position of each pixel for each graphical mode */
-typedef struct  PIXEL_DATA
+typedef struct
 {
 	unsigned int     Pixel[8];
 } PIXEL_DATA;
@@ -69,7 +70,7 @@ or an actual colour */
 
 #define PALETTE_ENTRY_DO_NOT_MATCH	0x0004
 
-typedef struct PALETTE_ENTRY
+typedef struct
 {
 	unsigned char Red;
 	unsigned char Green;
@@ -78,7 +79,7 @@ typedef struct PALETTE_ENTRY
 } PALETTE_ENTRY;
 
 
-typedef struct RGBCOLOUR
+typedef struct
 {
 	union
 	{
@@ -96,17 +97,17 @@ typedef struct RGBCOLOUR
 } RGBCOLOUR;
 
 
-typedef struct PALETTE_ENTRY_RGB888
+typedef struct
 {
 	union
 	{
 		unsigned long PackedElements;
 
-		struct RGBCOLOUR SeperateElements;
+		RGBCOLOUR SeperateElements;
 	} RGB;
 } PALETTE_ENTRY_RGB888;
 
-typedef struct RENDER_BUFFER_INFO
+typedef struct
 {
 	unsigned char *pSurface;
 	int		Width;
@@ -121,7 +122,7 @@ void	Render_Initialise(void);
 void	Render_DoScreen(void);
 void	Render_ClearScreen(void);
 void	Render_Flip(void);
-void	Render_SetColourTable(RGBCOLOUR *pColours, int NoOfColours);
+void	Render_SetColourTable(const RGBCOLOUR *pColours, int NoOfColours);
 
 void	Render_SetPixelTranslation(int Mode);
 void	Render_PutData(int HorizontalCount,unsigned long Data, int Offset,int InBorder,int,int);
@@ -132,7 +133,7 @@ void	Render_PutBorder(int HorizontalCount, int Line);
 
 void	Render_DumpLine(int LineNum);
 
-void	Render_SetColour(RGBCOLOUR *pColour,/*int,int,int,*/ int Index);
+void	Render_SetColour(const RGBCOLOUR *pColour,/*int,int,int,*/ int Index);
 
 void	Render_DumpDisplay(void);
 

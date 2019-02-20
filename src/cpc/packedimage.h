@@ -20,14 +20,14 @@
 #ifndef __PACKED_IMAGE_HEADER_INCLUDED__
 #define __PACKED_IMAGE_HEADER_INCLUDED__
 
-typedef struct          GRAPHICS_ELEMENT_FORMAT
+typedef struct
 {
         unsigned long                             BPP;                    /* Bits per pixel for this element */
         unsigned long   Mask;                   /* Mask */
         unsigned long                             Shift;                  /* Shift */
 } GRAPHICS_ELEMENT_FORMAT;
 
-typedef struct          GRAPHICS_FORMAT
+typedef struct
 {
         int BPP;                                                /* Bits Per Pixel in Resolution */
         GRAPHICS_ELEMENT_FORMAT Red;    /* Format info for Red */

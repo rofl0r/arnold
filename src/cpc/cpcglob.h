@@ -20,8 +20,6 @@
 #ifndef __CPC_GLOBAL_HEADER_INCLUDED__
 #define __CPC_GLOBAL_HEADER_INCLUDED__
 
-#include "cpcdefs.h"
-
 #ifndef _BOOL
 #define _BOOL
 typedef int BOOL;

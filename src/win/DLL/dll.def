@@ -1,0 +1,33 @@
+; arnold.dll
+EXPORTS
+
+   ; emushell - used by cpcload
+   EMUSHELL_ArnoldExternal
+   EMUSHELL_ArnoldInternal
+   EMUSHELL_Run
+
+   ; used by cpcload
+   GetInternalName
+
+   ; public variables
+   PUB_colorscheme
+   PUB_szProfileArnold
+   PUB_szPngAuthor
+   ResourceInstance
+   Render_RenderingAccuracyForWindowedMode
+
+   ; used by edit and telnet samples
+   CPCEMU_MainLoop
+   CPCEMU_SetKey_VK
+   CPCAPI_GetTextModeSize
+   CPCAPI_Z80_SetInterceptHandler
+   CPCAPI_SetConsoleBreak
+
+   ;no longer in use:
+   ;ArnoldMain
+   ;ApplicationHwnd
+   ;ArnoldMain
+   ;Z80_SetInterceptHandler
+   ;CPC_Initialise
+   ;GenericInterface_RestoreRomSettings
+   ;PUB_CPC_TextMode

@@ -17,9 +17,11 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
-#define WIN32_LEAN_AND_MEAN
-#define WIN32_EXTRA_LEAN
-#include <windows.h>
+//#define WIN32_LEAN_AND_MEAN
+//#define WIN32_EXTRA_LEAN
+//#include <windows.h>
+#include "../precomp.h"
+
 #include <mmsystem.h>
 #include <dsound.h>
 #include "ds.h"
@@ -28,6 +30,7 @@
 void	DS_ClearBuffer();
 
 BOOL	AudioActive = FALSE;
+static HINSTANCE hModule = NULL;
 
 void	WriteBufferForSoundPlayback(char *pBuffer,int BufferSize);
 
@@ -167,18 +170,32 @@ void	CheckSupportedSoundFormats(LPDIRECTSOUND pDirectSound)
 }
 
 
-BOOL	InitDirectSound(HWND hwnd)
+BOOL	DS_Init(HWND hwnd)
 {
 	DSBUFFERDESC	DirectSoundBufferDesc;
+
+	typedef HRESULT (WINAPI* PFNDIRECTSOUNDCREATE)(LPGUID, LPDIRECTSOUND *, LPUNKNOWN);
+	PFNDIRECTSOUNDCREATE pfn;
+
 
 	AudioActive = FALSE;
 
 	// get direct sound devices
 //	DirectSoundEnumerate((LPDSENUMCALLBACK)pDirectSoundEnumCallback,pDirectSoundDevices);
 
-	// create a direct sound interface. If this fails, no sound hardware is available
-	if (DirectSoundCreate(NULL,&pDirectSound,NULL)!=DS_OK)
+/* TROELS BEGIN */
+   if (hModule == NULL) hModule = LoadLibrary(_T("dsound.dll"));
+   pfn = (PFNDIRECTSOUNDCREATE)GetProcAddress(hModule, "DirectSoundCreate");
+   if (pfn == NULL)
 		return FALSE;
+	if ((*pfn)(NULL,&pDirectSound,NULL)!=DS_OK)
+		return FALSE;
+/* TROELS END */   
+
+
+//	// create a direct sound interface. If this fails, no sound hardware is available
+//	if (DirectSoundCreate(NULL,&pDirectSound,NULL)!=DS_OK)
+//		return FALSE;
 
 	// initialise normal co-operation level (means that sound device can be shared 
 	// with other programs.
@@ -334,11 +351,6 @@ void	FinishDirectSound()
 	{
 		IDirectSound_Release(pDirectSound);
 	}
-}
-
-void	DS_Init(HWND hWnd)
-{
-	InitDirectSound(hWnd);
 }
 
 void	DS_Close()

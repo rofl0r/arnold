@@ -20,11 +20,14 @@
 #include "../cpc/arnold.h"
 #include "../cpc/cpc.h"
 #include "../cpc/host.h"
-#include "../cpc/dirstuff.h"
-#include "../ifacegen/ifacegen.h"
+//#include "../cpc/dirstuff.h"
+#include "ifacegen.h"
 #include "configfile.h"
 #include "gtkui.h"
+#include "../cpc/messages.h"
 #include "roms.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 #ifdef HAVE_SDL
 #include <SDL.h>
@@ -43,6 +46,74 @@ extern void	Host_FreeDriveLEDIndicator();
 void init_main();
 char *getLocalIfNull(char *s);
 
+
+/* 464 base system -> cassette only, 64k only */ 
+void ConfigCPC464()
+{
+	CPC_SetOSRom(roms_cpc464.os.start);
+	CPC_SetBASICRom(roms_cpc464.basic.start);
+	Amstrad_DiscInterface_DeInstall();
+	Amstrad_RamExpansion_DeInstall();
+	CPC_SetHardware(CPC_HW_CPC);
+  CPC_Reset();
+}
+
+/* 664 base system -> disc, 64k only */
+void ConfigCPC664()
+{
+	CPC_SetOSRom(roms_cpc664.os.start);
+	CPC_SetBASICRom(roms_cpc664.basic.start);
+	CPC_SetDOSRom(rom_amsdos.start);
+	Amstrad_DiscInterface_Install();
+	Amstrad_RamExpansion_DeInstall();
+	CPC_SetHardware(CPC_HW_CPC);
+  CPC_Reset();
+}
+
+/* 6128 base system -> disc, 128k only */
+void ConfigCPC6128()
+{
+	CPC_SetOSRom(roms_cpc6128.os.start);
+	CPC_SetBASICRom(roms_cpc6128.basic.start);
+	CPC_SetDOSRom(rom_amsdos.start);
+	Amstrad_DiscInterface_Install();
+	Amstrad_RamExpansion_Install();
+	CPC_SetHardware(CPC_HW_CPC);
+  CPC_Reset();
+}
+
+/* 464+ base system -> tape, 64k only */
+void Config464Plus()
+{
+	CPC_SetHardware(CPC_HW_CPCPLUS);
+	Cartridge_Insert(cartridge_cpcplus.start, cartridge_cpcplus.size);
+	Amstrad_DiscInterface_DeInstall();
+	Amstrad_RamExpansion_DeInstall();	
+  CPC_Reset();
+}
+
+/* 6128+ base system-> disc, 64k only */
+void Config6128Plus()
+{	
+	CPC_SetHardware(CPC_HW_CPCPLUS);
+	Cartridge_Insert(cartridge_cpcplus.start, cartridge_cpcplus.size);
+	Amstrad_DiscInterface_Install();
+	Amstrad_RamExpansion_DeInstall();
+  CPC_Reset();
+}
+
+/* kc compact base system -> tape only, 64k */
+void ConfigKCCompact()
+{
+	CPC_SetOSRom(roms_kcc.os.start);
+	CPC_SetBASICRom(roms_kcc.basic.start);
+	Amstrad_DiscInterface_DeInstall();
+	Amstrad_RamExpansion_DeInstall();
+	CPC_SetHardware(CPC_HW_KCCOMPACT);
+  CPC_Reset();
+}
+
+
 /* main start for Arnold CPC emulator for linux */
 int main(int argc, char *argv[])
 {
@@ -54,7 +125,7 @@ int main(int argc, char *argv[])
 
 	if (!CPCEmulation_CheckEndianness())
 	{
-		printf("Program Compiled with wrong Endian settings.\n");
+		printf(Messages[72]);
 		exit(1);
 	}
 	
@@ -67,20 +138,22 @@ int main(int argc, char *argv[])
 	
 	/* display ok, continue with emulation */
 
-	DirStuff_Initialise();
+//	DirStuff_Initialise();
+
 
 	loadConfigfile();
 
 	init_main(argc, argv);
-
+	
 	GenericInterface_Finish();
 
-	DirStuff_Finish();
+//	DirStuff_Finish();
 
 	exit(0);
 
 	return 0;	/* Never reached */
 }
+
 
 	void help_exit() {
 		printf("Switches supported:\n");
@@ -96,13 +169,15 @@ int main(int argc, char *argv[])
 		exit(0);
 	}
 
+
 void sdl_InitialiseJoysticks(void);
 
 void init_main(int argc, char *argv[]) {
-	char LocalDirectory[1024];
+//	char LocalDirectory[1024];
 	//char ProgramDirectory[1024]="";
 	//char *dataDirectory;
-	char *romDirectory;
+//	char *romDirectory;
+
 	int kbd = -1;
 	/* name, has_arg, flag, val */
 	static struct option long_options[] = {
@@ -172,71 +247,78 @@ void init_main(int argc, char *argv[]) {
 	} while (c != -1);
 	printf("tape: %s\n", tape);
 
-	romDirectory = getRomDirectory();
-	if (romDirectory == NULL) {
-		/*char *local;
-		local = getLocalIfNull(romDirectory);
-		romDirectory = malloc(strlen(local)+5+1);
-		sprintf(romDirectory,"%s/roms",local);*/
-		romDirectory = BUILTIN;
-	}
+//	romDirectory = getRomDirectory();
+//	if (romDirectory == NULL) {
+//		/*char *local;
+//		local = getLocalIfNull(romDirectory);
+//		romDirectory = malloc(strlen(local)+5+1);
+//		sprintf(romDirectory,"%s/roms",local);*/
+//		romDirectory = BUILTIN;
+//	}
 
-	sprintf(LocalDirectory,"%s/amsdose/",romDirectory);
-	SetDirectoryForLocation(EMULATOR_ROM_CPCAMSDOS_DIR, LocalDirectory);
+//	sprintf(LocalDirectory,"%s/amsdose/",romDirectory);
+//	SetDirectoryForLocation(EMULATOR_ROM_CPCAMSDOS_DIR, LocalDirectory);
 	/* fprintf(stderr,"%s\n",LocalDirectory); */
 
-	sprintf(LocalDirectory,"%s/cpc464e/",romDirectory);
-	SetDirectoryForLocation(EMULATOR_ROM_CPC464_DIR, LocalDirectory);
+//	sprintf(LocalDirectory,"%s/cpc464e/",romDirectory);
+//	SetDirectoryForLocation(EMULATOR_ROM_CPC464_DIR, LocalDirectory);
 	/* fprintf(stderr,"%s\n",LocalDirectory); */
 
-	sprintf(LocalDirectory,"%s/cpc664e/",romDirectory);
-	SetDirectoryForLocation(EMULATOR_ROM_CPC664_DIR, LocalDirectory);
+//	sprintf(LocalDirectory,"%s/cpc664e/",romDirectory);
+//	SetDirectoryForLocation(EMULATOR_ROM_CPC664_DIR, LocalDirectory);
 	/* fprintf(stderr,"%s\n",LocalDirectory); */
 
-	sprintf(LocalDirectory,"%s/cpc6128e/",romDirectory);
-	SetDirectoryForLocation(EMULATOR_ROM_CPC6128_DIR, LocalDirectory);
+//	sprintf(LocalDirectory,"%s/cpc6128e/",romDirectory);
+//	SetDirectoryForLocation(EMULATOR_ROM_CPC6128_DIR, LocalDirectory);
 	/* fprintf(stderr,"%s\n",LocalDirectory); */
 
-	sprintf(LocalDirectory,"%s/cpcplus/",romDirectory);
-	SetDirectoryForLocation(EMULATOR_ROM_CPCPLUS_DIR, LocalDirectory);
+//	sprintf(LocalDirectory,"%s/cpcplus/",romDirectory);
+//	SetDirectoryForLocation(EMULATOR_ROM_CPCPLUS_DIR, LocalDirectory);
 	/* fprintf(stderr,"%s\n",LocalDirectory); */
 
-	sprintf(LocalDirectory,"%s/kcc/",romDirectory);
-	SetDirectoryForLocation(EMULATOR_ROM_KCCOMPACT_DIR, LocalDirectory);	
+//	sprintf(LocalDirectory,"%s/kcc/",romDirectory);
+//	SetDirectoryForLocation(EMULATOR_ROM_KCCOMPACT_DIR, LocalDirectory);	
 	/* fprintf(stderr,"%s\n",LocalDirectory); */
 
 
 	GenericInterface_Initialise();
 
-	if (CPCEmulation_Initialise()) {
-		//chdir(dataDirectory);		/* FIXME: What is this? */
-		chdir(getDiskDirectory());	/* FIXME: What is this? */
+  /* initialise cpc hardware */
+	CPC_Initialise();
+  
+	CPCEmulation_InitialiseDefaultSetup();
 
-		CPC_SetCPCType(CPC_TYPE_CPC6128);
-		
+	/*if (CPCEmulation_Initialise()) */{
+//		//chdir(dataDirectory);		/* FIXME: What is this? */
+//		chdir(getDiskDirectory());	/* FIXME: What is this? */
+
+//		CPC_SetCPCType(CPC_TYPE_CPC6128);
+
+		ConfigCPC6128();
+
 		if (tape) {
-			if (!TapeImage_Insert(tape)) {
-				printf("Failed to open tape image %s.\n", tape);
+			if (!TapeImage_InsertFromFile(tape)) {
+				printf(Messages[73], tape);
 			}
 		}
 
 		if (drivea) {
 			if (!GenericInterface_InsertDiskImage(0, drivea)) {
-				printf("Failed to open disk image %s.\n",
+				printf(Messages[74],
 					drivea);
 			}
 		}
 
 		if (driveb) {
 			if (!GenericInterface_InsertDiskImage(1, driveb)) {
-				printf("Failed to open disk image %s.\n",
+				printf(Messages[74],
 					driveb);
 			}
 		}
 
 		if (cart) {
 			if (!GenericInterface_InsertCartridge(cart)) {
-				printf("Failed to insert cartridge %s\n", cart);
+				printf(Messages[75], cart);
 			}
 		}
 
@@ -257,39 +339,57 @@ void init_main(int argc, char *argv[]) {
 			cpc = atoi(cpctype);
 			switch (cpc)
 			{
-				case 0:
-					CPC_SetCPCType(CPC_TYPE_CPC464);
-					break;
+						case 0:
+						{	
+				ConfigCPC464();
+				}
+				break;
 				case 1:
-					CPC_SetCPCType(CPC_TYPE_CPC664);
-					break;
+				{
+				ConfigCPC664();
+				}
+				break;
 				case 2:
-					CPC_SetCPCType(CPC_TYPE_CPC6128);
-					break;
+				{
+				ConfigCPC6128();
+				}
+				break;
 				case 3:
-					CPC_SetCPCType(CPC_TYPE_464PLUS);
-					break;
+				{
+				Config464Plus();
+				}
+				break;
 				case 4:
-					CPC_SetCPCType(CPC_TYPE_6128PLUS);
-					break;
+				{
+				Config6128Plus();
+				}
+				break;
+
 				case 5:
-					CPC_SetCPCType(CPC_TYPE_KCCOMPACT);
-					break;
+				{
+				ConfigKCCompact();
+				}
+				break;
+
 				default:
-					CPC_SetCPCType(CPC_TYPE_CPC6128);
-					break;
+				{
+				ConfigCPC6128();				
+}
+				break;
+
 			}
 		}
 
 		if (snapshot) {
 			if (!Snapshot_Load(snapshot)) {
-				printf("Failed to open snapshot %s.\n",
+				printf(Messages[78],
 					snapshot);
 			}
 		}
 
 		if ( kbdtype ) kbd = atoi(kbdtype);
 		printf("kbdtype: %i\n",kbd);
+
 
 #ifdef HAVE_GTK
 		fprintf(stderr, "Initializing GTK+\n");
@@ -312,15 +412,15 @@ void init_main(int argc, char *argv[]) {
 
 		Render_SetDisplayWindowed();
 
+
 #ifdef HAVE_SDL
 		if (kbd != -1) sdl_InitialiseKeyboardMapping(kbd);
 #endif
-
-		printf("Initialised CPC Emulation Core...\n");
+		printf(Messages[76]);
 
 		CPC_SetAudioActive(TRUE);
 
-		printf("Initialised Audio...\n");
+		printf(Messages[77]);
 
 		/* Enter GTK+ event loop when GTK+ is compiled in. Use own main loop
 		 * otherwise. */

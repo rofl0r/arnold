@@ -33,7 +33,7 @@
 #include "../z80/z80.h"
 #include "breakpt.h"
 #include "gdebug.h"
-
+#include "../host.h"
 
 /*static char     MemDumpString[256];
 static char DissassembleString[256];
@@ -2477,54 +2477,6 @@ char    *Debug_DumpFromAddress(int Addr, int NoOfBytes, int (*pReadFunction)(int
         return MemDumpString;
 }
 #endif
-
-void    Debug_WriteMemoryToDisk(char *Filename)
-{
-        char    *pBuffer;
-        FILE    *fh;
-
-        pBuffer = (char *)malloc(65536);
-
-        if (pBuffer!=NULL)
-        {
-                CPC_DumpRamToBuffer(pBuffer);
-
-                fh = fopen(Filename,"wb");
-                
-                if (fh!=NULL)
-                {
-                        fwrite(pBuffer,65536,1,fh);
-                        fclose(fh);
-                }
-
-                free(pBuffer);
-        }
-}
-
-void    Debug_WriteBaseMemoryToDisk(char *Filename)
-{
-        char    *pBuffer;
-        FILE    *fh;
-
-        pBuffer = (char *)malloc(65536);
-
-        if (pBuffer!=NULL)
-        {
-                CPC_DumpBaseRamToBuffer(pBuffer);
-
-                fh = fopen(Filename,"wb");
-                
-                if (fh!=NULL)
-                {
-                        fwrite(pBuffer,65536,1,fh);
-                        fclose(fh);
-                }
-
-                free(pBuffer);
-        }
-}
-
-
 
 int		Debugger_TestHalt(int PC)
 {

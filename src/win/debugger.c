@@ -21,6 +21,7 @@
 #define WIN32_EXTRA_LEAN
 #include <windows.h>
 #include <zmouse.h>
+#include "../cpc/messages.h"
 
 //#include <stdio.h>
 //#include <stdlib.h>
@@ -36,6 +37,11 @@
 #include "../cpc/debugger/memdump.h"
 #include "../cpc/debugger/dissasm.h"
 #include "cpcemu.h"
+#include <tchar.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+extern APP_DATA AppData;
 
 void	Debugger_DebugHooks(HWND);
 void	Debugger_RegisterSpriteClass(HWND hParent);
@@ -60,27 +66,48 @@ void	Debugger_UpdateCPCPLUSInfo(void);
 void	Debugger_UpdateCRTCInfo(void);
 void Debugger_OpenCPCInfo(HWND hParent);
 
-static int SearchStringCount;
-static char *pSearchString;
-static char *pSearchStringMask;
-
-
 
 #include "general\lnklist\lnklist.h"
 
-// memdump pop-up menu
-static HMENU hMemdumpPopupMenu = NULL;
-// dissassemble pop-up menu
-static HMENU hDissassemblePopupMenu = NULL;
-// memdump pop-up menu
-static HMENU hShowGfxPopupMenu= NULL;
 
-HWND hSprite = NULL;
+typedef struct 
+{
 
-/* list of memdump window's */
-LIST_HEADER	*pMemdump_WindowList;
-/* list of dissassemble window's */
-LIST_HEADER *pDissassemble_WindowList;
+	int SearchStringCount;
+	char *pSearchString;
+	char *pSearchStringMask;
+
+	// memdump pop-up menu
+	HMENU hMemdumpPopupMenu;
+	// dissassemble pop-up menu
+	HMENU hDissassemblePopupMenu;
+	// memdump pop-up menu
+	HMENU hShowGfxPopupMenu;
+
+	HWND hSprite;
+
+	/* list of memdump window's */
+	LIST_HEADER	*pMemdump_WindowList;
+	/* list of dissassemble window's */
+	LIST_HEADER *pDissassemble_WindowList;
+
+	int *HexSearchCount;
+	char * HexSearchString;
+	char * HexSearchMask;
+
+	HWND hMemDump;
+
+
+	SEARCH_DATA	SearchData;
+
+
+	HWND	hDebuggerDialog;
+	HWND	hParentHwnd;
+	HWND	hDissassemble;
+
+} DEBUGGER_DATA;
+
+static DEBUGGER_DATA DebuggerData;
 
 
 
@@ -89,10 +116,13 @@ LIST_HEADER *pDissassemble_WindowList;
 
 BOOL	HexDialog(HWND hwnd,int *);
 
-extern HINSTANCE hInstCommonControls;
+//extern HINSTANCE hInstCommonControls;
 
-#define Debug_ErrorMessage(ErrorText) \
-	MessageBox(GetActiveWindow(),ErrorText,"Arnold Debugger Error",MB_OK)
+void Debug_ErrorMessage(TCHAR *ErrorText)
+{
+	MessageBox(GetActiveWindow(),ErrorText,Messages[41],MB_OK);
+}
+
 /////////////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -199,14 +229,11 @@ TEXTMETRIC FontMetric;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 
-int *HexSearchCount;
-char ** HexSearchString;
-char ** HexSearchMask;
 
 BOOL CALLBACK  HexSearchDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
 
-	char	HexValueText[64];
+	TCHAR HexValueText[64];
 
     switch (iMsg)
     {
@@ -230,7 +257,7 @@ BOOL CALLBACK  HexSearchDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM 
 
 					GetDlgItemText(hwnd,IDC_EDIT_HEX_VALUE,HexValueText,16);
 
-					HexSearch_Evaluate(HexValueText,HexSearchCount, HexSearchString,HexSearchMask);
+					HexSearch_Evaluate(HexValueText,DebuggerData.HexSearchCount, DebuggerData.HexSearchString,DebuggerData.HexSearchMask);
 
 //					Number = EvaluateExpression(HexValueText);
 
@@ -271,15 +298,15 @@ BOOL CALLBACK  HexSearchDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM 
     return FALSE;
 }
 
-BOOL HexSearchDialog(HWND hwnd,int *pSearchCount, char **pSearchString, char **pSearchStringMask)
+BOOL HexSearchDialog(HWND hwnd,int *pSearchCount, TCHAR **pSearchString, TCHAR **pSearchStringMask)
 {
 	int Result;
 
 	HINSTANCE hInstance = (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE);
 
-	HexSearchCount = pSearchCount;
-	HexSearchString = pSearchString;
-	HexSearchMask = pSearchStringMask;
+	DebuggerData.HexSearchCount = pSearchCount;
+	DebuggerData.HexSearchString = pSearchString;
+	DebuggerData.HexSearchMask = pSearchStringMask;
 
 	Result = DialogBox(hInstance,MAKEINTRESOURCE(IDD_DIALOG_ENTER_HEX),hwnd,HexSearchDialogProc);
 
@@ -296,15 +323,11 @@ BOOL HexSearchDialog(HWND hwnd,int *pSearchCount, char **pSearchString, char **p
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-#include "commctrl.h"
+#include <commctrl.h>
 #define TOOLBAR_BUTTON_ENTRY(x,y)	{x,y,TBSTATE_ENABLED,TBSTYLE_BUTTON,0,0,0}
 
 #define CPCEMU_DEBUG_MEMDUMP_CLASS "ARNOLD_DEBUG_MEMDUMP_CLASS"
 
-HWND hMemDump;
-
-
-SEARCH_DATA	SearchData;
 
 long FAR PASCAL MemDumpWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam )
 {
@@ -336,7 +359,7 @@ long FAR PASCAL MemDumpWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 			ClientToScreen(hwnd, &point);
 
 			// display pop-up menu
-			TrackPopupMenu(GetSubMenu(hMemdumpPopupMenu,0),
+			TrackPopupMenu(GetSubMenu(DebuggerData.hMemdumpPopupMenu,0),
 				TPM_LEFTALIGN | TPM_RIGHTBUTTON,
 				point.x, point.y, 0, hwnd,
 				NULL);
@@ -365,16 +388,16 @@ long FAR PASCAL MemDumpWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 
 				case ID_MEMDUMP_SEARCHFORDATA:
 				{
-					HexSearchDialog(hwnd,&SearchStringCount, &pSearchString, &pSearchStringMask);
-					SearchData.pSearchString = pSearchString;
-					SearchData.pSearchStringMask = pSearchStringMask;
-					SearchData.NumBytes = SearchStringCount;
+					HexSearchDialog(hwnd,&DebuggerData.SearchStringCount, &DebuggerData.pSearchString, &DebuggerData.pSearchStringMask);
+					DebuggerData.SearchData.pSearchString = DebuggerData.pSearchString;
+					DebuggerData.SearchData.pSearchStringMask = DebuggerData.pSearchStringMask;
+					DebuggerData.SearchData.NumBytes = DebuggerData.SearchStringCount;
 
-					SearchData.FoundAddress = -1;
+					DebuggerData.SearchData.FoundAddress = -1;
 
-					if (Memdump_FindData(pMemdumpWindow,&SearchData)==-1)
+					if (Memdump_FindData(pMemdumpWindow,&DebuggerData.SearchData)==-1)
 					{
-						MessageBox(hwnd,"Data not found!", "Search", MB_ICONEXCLAMATION | MB_OK);
+						MessageBox(hwnd,Messages[42], Messages[43], MB_ICONEXCLAMATION | MB_OK);
 					}
 					
 					
@@ -396,9 +419,9 @@ long FAR PASCAL MemDumpWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 		{
 			case VK_F3:
 			{
-				if (Memdump_FindData(pMemdumpWindow,&SearchData)==-1)
+				if (Memdump_FindData(pMemdumpWindow,&DebuggerData.SearchData)==-1)
 				{
-					MessageBox(hwnd,"Data not found!", "Search", MB_ICONEXCLAMATION | MB_OK);
+					MessageBox(hwnd,Messages[42], Messages[43], MB_ICONEXCLAMATION | MB_OK);
 				}
 
 			}
@@ -575,11 +598,11 @@ long FAR PASCAL MemDumpWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 			for (j=0; j<NoOfCharsInHeight; j++)
 			{
 				int TextOut_Length;
-				char	*pMemDumpString;
+				TCHAR *pMemDumpString;
 
 				pMemDumpString = Memdump_DumpLine(pMemdumpWindow, j);	
 
-				TextOut_Length = strlen(pMemDumpString);
+				TextOut_Length = _tcslen(pMemDumpString);
 
 				if (TextOut_Length>pMemdumpWindow->WidthInChars)
 				{
@@ -644,7 +667,7 @@ long FAR PASCAL MemDumpWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 			MEMDUMP_WINDOW *pMemdumpWindow = (MEMDUMP_WINDOW *)GetWindowDataPtr(hwnd);
 
 			MemDump_Finish(pMemdumpWindow);
-			hMemDump = 0;
+			DebuggerData.hMemDump = 0;
 		}
 		break;
    }
@@ -670,12 +693,12 @@ void	Debugger_RegisterMemdumpClass(HWND hParent)
 	DebugWindowClass.hCursor = LoadCursor( NULL, IDC_ARROW );
 	DebugWindowClass.hbrBackground = GetStockObject(GRAY_BRUSH); //NULL; //GetStockObject(COLOR_APPWORKSPACE);
 	DebugWindowClass.lpszMenuName = NULL;
-	DebugWindowClass.lpszClassName = CPCEMU_DEBUG_MEMDUMP_CLASS;
+	DebugWindowClass.lpszClassName = _T(CPCEMU_DEBUG_MEMDUMP_CLASS);
 	DebugWindowClass.hIconSm = LoadIcon(NULL,IDI_APPLICATION);
 
 	if (RegisterClassEx(&DebugWindowClass)==0)
 	{
-		Debug_ErrorMessage("Failed to register class for memory dump window");
+		Debug_ErrorMessage(Messages[44]);
 	}
 }
 
@@ -683,12 +706,12 @@ void Debugger_OpenMemdump(HWND hParent)
 {
 	HINSTANCE hInstance = (HINSTANCE)GetWindowLong(hParent,GWL_HINSTANCE);
 
-	if (hMemDump==NULL)
+	if (DebuggerData.hMemDump==NULL)
 	{
-		hMemDump = CreateWindowEx(
+		DebuggerData.hMemDump = CreateWindowEx(
 			WS_EX_OVERLAPPEDWINDOW,
 			CPCEMU_DEBUG_MEMDUMP_CLASS,
-			"Memory Dump",
+			Messages[45],
 			WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_VSCROLL,
 			CW_USEDEFAULT, 
 			CW_USEDEFAULT,
@@ -699,13 +722,13 @@ void Debugger_OpenMemdump(HWND hParent)
 			hInstance,
 			NULL );
 
-		ShowWindow( hMemDump, TRUE);
-		UpdateWindow( hMemDump );
+		ShowWindow( DebuggerData.hMemDump, TRUE);
+		UpdateWindow( DebuggerData.hMemDump );
 	}
 	else
 	{
 		/* window already shown - make it visible */
-		SetWindowPos(hMemDump, HWND_TOP, 0,0,0,0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+		SetWindowPos(DebuggerData.hMemDump, HWND_TOP, 0,0,0,0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
 	}
 
 }
@@ -714,19 +737,17 @@ void Debugger_OpenMemdump(HWND hParent)
 
 #define CPCEMU_DEBUG_DISSASSEMBLE_CLASS "ARNOLD_DEBUG_DISSASSEMBLE_CLASS"
 
-HWND	hDissassemble = NULL;
-
 void	Debugger_SetDissassembleAddress(int Addr)
 {
-	if (hDissassemble!=NULL)
+	if (DebuggerData.hDissassemble!=NULL)
 	{
 		DISSASSEMBLE_WINDOW *pWindow;
 
-		pWindow = (DISSASSEMBLE_WINDOW *)GetWindowDataPtr(hDissassemble);
+		pWindow = (DISSASSEMBLE_WINDOW *)GetWindowDataPtr(DebuggerData.hDissassemble);
 
 		Dissassemble_SetAddress(pWindow, Addr);
 
-		ForceRedraw(hDissassemble);
+		ForceRedraw(DebuggerData.hDissassemble);
 	}
 }
 
@@ -741,12 +762,12 @@ void	DissassembleWindow_Render(DISSASSEMBLE_WINDOW *pDissassembleWindow, HDC hDC
 
 	for (i=0; i<pDissassembleWindow->WindowHeight; i++)
 	{
-		char *pDebugString;
+		TCHAR *pDebugString;
 		int		TextOut_Length;
 
 		pDebugString = Dissassemble_DissassembleNextLine(pDissassembleWindow);
 
-		TextOut_Length = strlen(pDebugString);
+		TextOut_Length = _tcslen(pDebugString);
 
 		if (TextOut_Length>pDissassembleWindow->WidthInChars)
 		{
@@ -781,9 +802,9 @@ long FAR PASCAL DissassembleWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPA
 			SetWindowDataPtr(hwnd, (void *)pDissassembleWindow);
 	
 			{
-				char	Title[256];
+				TCHAR	Title[256];
 	
-				sprintf(Title, "Dissassembly - %s", Dissassemble_GetViewName(pDissassembleWindow));
+				_stprintf(Title, Messages[46], Dissassemble_GetViewName(pDissassembleWindow));
 			
 				SetWindowText(hwnd,Title);
 			}
@@ -804,7 +825,7 @@ long FAR PASCAL DissassembleWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPA
 			ClientToScreen(hwnd, &point);
 
 			// display pop-up menu
-			TrackPopupMenu(GetSubMenu(hDissassemblePopupMenu,0),
+			TrackPopupMenu(GetSubMenu(DebuggerData.hDissassemblePopupMenu,0),
 				TPM_LEFTALIGN | TPM_RIGHTBUTTON,
 				point.x, point.y, 0, hwnd,
 				NULL);
@@ -1048,12 +1069,12 @@ long FAR PASCAL DissassembleWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPA
 			case 'V':
 			case 'v':
 			{
-				char	Title[256];
+				TCHAR	Title[256];
 		
 				Dissassemble_ToggleView(pDissassembleWindow);
 		
 
-				sprintf(Title, "Dissassembly - %s", Dissassemble_GetViewName(pDissassembleWindow));
+				_stprintf(Title, Messages[46], Dissassemble_GetViewName(pDissassembleWindow));
 				
 				SetWindowText(hwnd,Title);
 
@@ -1108,7 +1129,7 @@ long FAR PASCAL DissassembleWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPA
 			DISSASSEMBLE_WINDOW *pDissassembleWindow = (DISSASSEMBLE_WINDOW *)GetWindowDataPtr(hwnd);
 
 			Dissassemble_Finish(pDissassembleWindow);
-			hDissassemble = 0;
+			DebuggerData.hDissassemble = 0;
 		}
 		break;
 
@@ -1134,12 +1155,12 @@ void	Debugger_RegisterDissassemblerClass(HWND hParent)
 	DissassembleWindowClass.hCursor = LoadCursor(NULL, IDC_ARROW );
 	DissassembleWindowClass.hbrBackground = GetStockObject(GRAY_BRUSH); //NULL; //GetStockObject(COLOR_APPWORKSPACE);
 	DissassembleWindowClass.lpszMenuName = NULL;
-	DissassembleWindowClass.lpszClassName = CPCEMU_DEBUG_DISSASSEMBLE_CLASS;
+	DissassembleWindowClass.lpszClassName = _T(CPCEMU_DEBUG_DISSASSEMBLE_CLASS);
 	DissassembleWindowClass.hIconSm = LoadIcon(NULL,IDI_APPLICATION);
 
 	if (RegisterClassEx(&DissassembleWindowClass)==0)
 	{
-		Debug_ErrorMessage("Failed to register class for dissassembly window");
+		Debug_ErrorMessage(Messages[47]);
 	}
 }
 
@@ -1148,12 +1169,12 @@ void Debugger_OpenDissassemble(HWND hParent)
 {
 	HINSTANCE hInstance = (HINSTANCE)GetWindowLong(hParent,GWL_HINSTANCE);
 
-	if (hDissassemble==NULL)
+	if (DebuggerData.hDissassemble==NULL)
 	{
-		hDissassemble = CreateWindowEx(
+		DebuggerData.hDissassemble = CreateWindowEx(
 			WS_EX_OVERLAPPEDWINDOW,
-			CPCEMU_DEBUG_DISSASSEMBLE_CLASS,
-			"",
+			_T(CPCEMU_DEBUG_DISSASSEMBLE_CLASS),
+			_T(""),
 			WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_VSCROLL,
 			CW_USEDEFAULT, 
 			CW_USEDEFAULT,
@@ -1164,37 +1185,34 @@ void Debugger_OpenDissassemble(HWND hParent)
 			hInstance,
 			NULL );
 
-		ShowWindow( hDissassemble, TRUE);
-		UpdateWindow( hDissassemble );
+		ShowWindow( DebuggerData.hDissassemble, TRUE);
+		UpdateWindow( DebuggerData.hDissassemble );
 	}
 	else
 	{
 		/* window already shown - make it visible */
-		SetWindowPos(hDissassemble, HWND_TOP, 0,0,0,0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+		SetWindowPos(DebuggerData.hDissassemble, HWND_TOP, 0,0,0,0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
 	}
 
 }
-
-HWND	hDebuggerDialog = NULL;
-HWND	hParentHwnd;
 
 void	Debugger_Initialise(HWND hwnd)
 {
 	HINSTANCE hInstance = (HINSTANCE)GetWindowLong(hwnd, GWL_HINSTANCE);
 
 	/* initialise the dissasemble window list */
-	LinkList_InitialiseList(&pDissassemble_WindowList);
+	LinkList_InitialiseList(&DebuggerData.pDissassemble_WindowList);
 	/* initialise the memdump window list */
-	LinkList_InitialiseList(&pMemdump_WindowList);
+	LinkList_InitialiseList(&DebuggerData.pMemdump_WindowList);
 	
 	/* load mem-dump pop-up window */
-	hMemdumpPopupMenu = LoadMenu(hInstance, MAKEINTRESOURCE(IDR_MENU_MEMDUMP));
+	DebuggerData.hMemdumpPopupMenu = LoadMenu(hInstance, MAKEINTRESOURCE(IDR_MENU_MEMDUMP));
 	/* load dissassemble pop-up window */
-	hDissassemblePopupMenu = LoadMenu(hInstance, MAKEINTRESOURCE(IDR_MENU_DISSASSEMBLE));
+	DebuggerData.hDissassemblePopupMenu = LoadMenu(hInstance, MAKEINTRESOURCE(IDR_MENU_DISSASSEMBLE));
 	/* load mem-dump pop-up window */
-	hShowGfxPopupMenu = LoadMenu(hInstance, MAKEINTRESOURCE(IDR_MENU_SHOWASGFX));
+	DebuggerData.hShowGfxPopupMenu = LoadMenu(hInstance, MAKEINTRESOURCE(IDR_MENU_SHOWASGFX));
 	
-	hParentHwnd = hwnd;
+	DebuggerData.hParentHwnd = hwnd;
 
 	Debugger_RegisterDissassemblerClass(hwnd);
 	Debugger_RegisterMemdumpClass(hwnd);
@@ -1215,25 +1233,25 @@ void	Debugger_Close()
 	/* delete memdump window list */
 //	LinkList_DeleteList(pMemdump_WindowList);
 
-	if (hMemdumpPopupMenu!=NULL)
+	if (DebuggerData.hMemdumpPopupMenu!=NULL)
 	{
-		DestroyMenu(hMemdumpPopupMenu);
+		DestroyMenu(DebuggerData.hMemdumpPopupMenu);
 	}
 
 
-	if (hMemDump!=NULL)
+	if (DebuggerData.hMemDump!=NULL)
 	{
-		PostMessage(hMemDump, WM_CLOSE, 0,0);
+		PostMessage(DebuggerData.hMemDump, WM_CLOSE, 0,0);
 	}
 	
-	if (hDissassemble!=NULL)
+	if (DebuggerData.hDissassemble!=NULL)
 	{
-		PostMessage(hDissassemble, WM_CLOSE, 0,0);
+		PostMessage(DebuggerData.hDissassemble, WM_CLOSE, 0,0);
 	}
 
-	if (hSprite!=NULL)
+	if (DebuggerData.hSprite!=NULL)
 	{
-		PostMessage(hSprite, WM_CLOSE, 0,0);
+		PostMessage(DebuggerData.hSprite, WM_CLOSE, 0,0);
 	}
 }
 
@@ -1306,7 +1324,7 @@ void	UpdateEdit(HWND hwnd,int ID, int NotifyCode)
 	{
 		case EN_KILLFOCUS:
 		{
-			unsigned char HexValueText[16];
+			TCHAR HexValueText[16];
 			int Number;
 
 			GetDlgItemText(hwnd,ID,HexValueText,16);
@@ -1382,17 +1400,17 @@ BOOL CALLBACK  DebuggerDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 
 
 
-			case IDC_BUTTON_DEBUG_HOOKS:
-			{
-				Debugger_DebugHooks(hwnd);
-			}
-			return TRUE;
+//			case IDC_BUTTON_DEBUG_HOOKS:
+//			{
+//				Debugger_DebugHooks(hwnd);
+//			}
+//			return TRUE;
 
-			case IDC_WRITE_MEM:
-			{
-				Debug_WriteMemoryToDisk("memdump2.bin");	//BaseMemoryToDisk("memdump2.bin");
-			}
-			return TRUE;
+//			case IDC_WRITE_MEM:
+//			{
+//				Debug_WriteMemoryToDisk("memdump2.bin");	//BaseMemoryToDisk("memdump2.bin");
+//			}
+//			return TRUE;
 
 			case ID_VIEW_OPENCPCHARDWAREWINDOW:
 				{
@@ -1421,14 +1439,14 @@ BOOL CALLBACK  DebuggerDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 					Debugger_ShowGfx(hwnd);
 				}
 				return TRUE;
-			case IDC_REFRESH_DISPLAY:
-				{
-
-					// dump whole display to screen
-				Render_DumpDisplay();
-
-				}
-				return TRUE;
+//			case IDC_REFRESH_DISPLAY:
+//				{
+//
+//					// dump whole display to screen
+//				Render_DumpDisplay();
+//
+//				}
+//				return TRUE;
 
 			case IDC_EDIT_REG_AF:
 			case IDC_EDIT_REG_BC:
@@ -1482,7 +1500,7 @@ BOOL CALLBACK  DebuggerDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 				//Debugger_DestroyCRTCDialog();
 				DestroyWindow(hwnd);
 
-				hDebuggerDialog = NULL;
+				DebuggerData.hDebuggerDialog = NULL;
 			}
 			break;
 
@@ -1501,7 +1519,7 @@ BOOL CALLBACK  DebuggerDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 BOOL CALLBACK  EnterHexDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
 
-	char	HexValueText[64];
+	TCHAR	HexValueText[64];
 
     switch (iMsg)
     {
@@ -1587,24 +1605,24 @@ BOOL HexDialog(HWND hwnd, int *pValue)
 
 void	SetDlgHexWord(HWND hDialog, int Item, int Data)
 {
-	char	HexWord[5];
-	sprintf(HexWord,"%04x",Data & 0x0ffff);
+	TCHAR	HexWord[5];
+	_stprintf(HexWord,_T("%04x"),Data & 0x0ffff);
 
 	SetDlgItemText(hDialog,Item,HexWord);
 }
 
 void	SetDlgHexByte(HWND hDialog, int Item, int Data)
 {
-	char	HexByte[3];
-	sprintf(HexByte,"%02x",Data & 0x0ff);
+	TCHAR	HexByte[3];
+	_stprintf(HexByte,_T("%02x"),Data & 0x0ff);
 
 	SetDlgItemText(hDialog,Item, HexByte);
 }
 
 void	SetDlgHexDigit(HWND hDialog, int Item, int Data)
 {
-	char	HexByte[2];
-	sprintf(HexByte,"%01x",Data & 0x0f);
+	TCHAR	HexByte[2];
+	_stprintf(HexByte,_T("%01x"),Data & 0x0f);
 
 	SetDlgItemText(hDialog,Item, HexByte);
 }
@@ -1617,46 +1635,46 @@ void	SetDlgBinByte(HWND hDialog, int Item, int Data)
 
 void	Debugger_UpdateDebugDialog()
 {
-	if (hDebuggerDialog!=NULL)
+	if (DebuggerData.hDebuggerDialog!=NULL)
 	{
-	char	OutputString[64];
+	TCHAR	OutputString[64];
 	
 //	Z80_REGISTERS	*R;
 
 //	R = Z80_GetReg();
 
-	SetDlgHexWord(hDebuggerDialog,IDC_EDIT_REG_AF, Z80_GetReg(Z80_AF));
-	SetDlgHexWord(hDebuggerDialog,IDC_EDIT_REG_BC, Z80_GetReg(Z80_BC));
-	SetDlgHexWord(hDebuggerDialog,IDC_EDIT_REG_DE, Z80_GetReg(Z80_DE));
-	SetDlgHexWord(hDebuggerDialog,IDC_EDIT_REG_HL, Z80_GetReg(Z80_HL));
+	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_AF, Z80_GetReg(Z80_AF));
+	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_BC, Z80_GetReg(Z80_BC));
+	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_DE, Z80_GetReg(Z80_DE));
+	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_HL, Z80_GetReg(Z80_HL));
 	
-	SetDlgHexWord(hDebuggerDialog,IDC_EDIT_REG_PC, Z80_GetReg(Z80_PC));
-	SetDlgHexWord(hDebuggerDialog,IDC_EDIT_REG_SP, Z80_GetReg(Z80_SP));
+	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_PC, Z80_GetReg(Z80_PC));
+	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_SP, Z80_GetReg(Z80_SP));
 	
-	SetDlgHexWord(hDebuggerDialog,IDC_EDIT_REG_ALTAF, Z80_GetReg(Z80_AF2));
-	SetDlgHexWord(hDebuggerDialog,IDC_EDIT_REG_ALTHL, Z80_GetReg(Z80_HL2));
-	SetDlgHexWord(hDebuggerDialog,IDC_EDIT_REG_ALTDE, Z80_GetReg(Z80_DE2));
-	SetDlgHexWord(hDebuggerDialog,IDC_EDIT_REG_ALTBC, Z80_GetReg(Z80_BC2));
+	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_ALTAF, Z80_GetReg(Z80_AF2));
+	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_ALTHL, Z80_GetReg(Z80_HL2));
+	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_ALTDE, Z80_GetReg(Z80_DE2));
+	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_ALTBC, Z80_GetReg(Z80_BC2));
 	
-	SetDlgHexWord(hDebuggerDialog,IDC_EDIT_REG_IX, Z80_GetReg(Z80_IX));
-	SetDlgHexWord(hDebuggerDialog,IDC_EDIT_REG_IY, Z80_GetReg(Z80_IY));
+	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_IX, Z80_GetReg(Z80_IX));
+	SetDlgHexWord(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_IY, Z80_GetReg(Z80_IY));
 
 
-	SetDlgHexByte(hDebuggerDialog,IDC_EDIT_REG_I, Z80_GetReg(Z80_I));
+	SetDlgHexByte(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_I, Z80_GetReg(Z80_I));
 	
-	SetDlgHexByte(hDebuggerDialog,IDC_EDIT_REG_R, Z80_GetReg(Z80_R));
+	SetDlgHexByte(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_R, Z80_GetReg(Z80_R));
 
-	SetDlgHexDigit(hDebuggerDialog,IDC_EDIT_REG_IM, Z80_GetReg(Z80_IM));
+	SetDlgHexDigit(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_IM, Z80_GetReg(Z80_IM));
 	
-	SetDlgHexDigit(hDebuggerDialog,IDC_EDIT_REG_IFF1, Z80_GetReg(Z80_IFF1));
-	SetDlgHexDigit(hDebuggerDialog,IDC_EDIT_REG_IFF2, Z80_GetReg(Z80_IFF2));
+	SetDlgHexDigit(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_IFF1, Z80_GetReg(Z80_IFF1));
+	SetDlgHexDigit(DebuggerData.hDebuggerDialog,IDC_EDIT_REG_IFF2, Z80_GetReg(Z80_IFF2));
 
-	SetDlgItemText(hDebuggerDialog,IDC_STATIC_FLAGS, Debug_FlagsAsString());
+	SetDlgItemText(DebuggerData.hDebuggerDialog,IDC_STATIC_FLAGS, Debug_FlagsAsString());
 
 
 	memset(OutputString,0,sizeof(OutputString));
 	Debug_DissassembleInstruction(Z80_GetReg(Z80_PC), OutputString);
-	SetDlgItemText(hDebuggerDialog,IDC_STATIC_DISSASSEMBLY, OutputString);
+	SetDlgItemText(DebuggerData.hDebuggerDialog,IDC_STATIC_DISSASSEMBLY, OutputString);
 
 	Debugger_SetDissassembleAddress(Z80_GetReg(Z80_PC));
 
@@ -1664,31 +1682,29 @@ void	Debugger_UpdateDebugDialog()
 }
 
 
-extern BOOL Windowed;
-
 void	Debugger_OpenDebugDialog(void)
 {
-	if (!Windowed)
+	if (!AppData.Windowed)
 	{
 		CPCEMU_SetWindowed();
 	}
 	{
-		HWND hwnd = hParentHwnd;
+		HWND hwnd = DebuggerData.hParentHwnd;
 		HINSTANCE hInstance = (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE);
 
-		if (hDebuggerDialog==NULL)
+		if (DebuggerData.hDebuggerDialog==NULL)
 		{
-			hDebuggerDialog = CreateDialog (hInstance, MAKEINTRESOURCE(IDD_DIALOG_DEBUGGER), hwnd, DebuggerDialogProc);
+			DebuggerData.hDebuggerDialog = CreateDialog (hInstance, MAKEINTRESOURCE(IDD_DIALOG_DEBUGGER), hwnd, DebuggerDialogProc);
 
-			if (hDebuggerDialog!=NULL)
+			if (DebuggerData.hDebuggerDialog!=NULL)
 			{
 				HMENU hMenu;
 
-				ShowWindow(hDebuggerDialog,TRUE);
+				ShowWindow(DebuggerData.hDebuggerDialog,TRUE);
 
 				hMenu = LoadMenu(hInstance,MAKEINTRESOURCE(IDR_MENU2));
 
-				SetMenu(hDebuggerDialog,hMenu);
+				SetMenu(DebuggerData.hDebuggerDialog,hMenu);
 			
 				/* set default text sizes for controls */
 
@@ -1720,14 +1736,14 @@ void	Debugger_OpenDebugDialog(void)
 					for (i=0; i<(sizeof(Item_Size)>>1); i++)
 					{
 						SendMessage(
-							GetDlgItem(hDebuggerDialog, Item_Size[(i<<1)]),
+							GetDlgItem(DebuggerData.hDebuggerDialog, Item_Size[(i<<1)]),
 							EM_SETLIMITTEXT, Item_Size[(i<<1)+1], 0);
 					}
 				}
 			}
 		}
 
-		if (hDebuggerDialog!=NULL)
+		if (DebuggerData.hDebuggerDialog!=NULL)
 		{
 			Debugger_UpdateDebugDialog();
 			Debugger_UpdateCRTCInfo();
@@ -1737,10 +1753,10 @@ void	Debugger_OpenDebugDialog(void)
 
 void	Debugger_CloseDebugDialog()
 {
-	if (hDebuggerDialog)
+	if (DebuggerData.hDebuggerDialog)
 	{
-		DestroyWindow(hDebuggerDialog);
-		hDebuggerDialog = NULL;
+		DestroyWindow(DebuggerData.hDebuggerDialog);
+		DebuggerData.hDebuggerDialog = NULL;
 	}
 }
 
@@ -1889,13 +1905,13 @@ void	Debugger_ShowSprite(HWND hParent)
 {
 	HINSTANCE hInstance = (HINSTANCE)GetWindowLong(hParent,GWL_HINSTANCE);
 
-	if (hSprite==NULL)
+	if (DebuggerData.hSprite==NULL)
 	{
 		/* create window and show it */
-		hSprite = CreateWindowEx(
+		DebuggerData.hSprite = CreateWindowEx(
 			WS_EX_OVERLAPPEDWINDOW,
 			CPCEMU_DEBUG_SPRITE_CLASS,
-			"ASIC Hardware Sprites",
+			Messages[49],
 			WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_VSCROLL,
 			0, 
 			0,
@@ -1906,13 +1922,13 @@ void	Debugger_ShowSprite(HWND hParent)
 			hInstance,
 			NULL );
 
-		ShowWindow( hSprite, TRUE);
-		UpdateWindow( hSprite );
+		ShowWindow( DebuggerData.hSprite, TRUE);
+		UpdateWindow( DebuggerData.hSprite );
 	}
 	else
 	{
 		/* window already shown - make it visible */
-		SetWindowPos(hSprite, HWND_TOP, 0,0,0,0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+		SetWindowPos(DebuggerData.hSprite, HWND_TOP, 0,0,0,0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
 	}
 }
 
@@ -1938,7 +1954,7 @@ void	Debugger_RegisterSpriteClass(HWND hParent)
 
 	if (RegisterClassEx(&SpriteWindowClass)==0)
 	{
-		Debug_ErrorMessage("Failed to register class for dissassembly window");
+		Debug_ErrorMessage(Messages[48]);
 	}
 }
 
@@ -2036,13 +2052,13 @@ HWND hShowGfxToolbar = NULL;
 
 TBBUTTON ShowGfxToolbarButtons[] =
 {
-    TOOLBAR_BUTTON_ENTRY(0,ID_BUTTON_SET_ADDR),
-    TOOLBAR_BUTTON_ENTRY(1,ID_BUTTON_DECREASE_WIDTH),
-    TOOLBAR_BUTTON_ENTRY(2,ID_BUTTON_MODE0),
-    TOOLBAR_BUTTON_ENTRY(3,ID_BUTTON_MODE1),
-    TOOLBAR_BUTTON_ENTRY(4,ID_BUTTON_MODE2),
-	TOOLBAR_BUTTON_ENTRY(5,ID_BUTTON_MODE3),
-	TOOLBAR_BUTTON_ENTRY(6,ID_BUTTON_INCREASE_WIDTH),
+    TOOLBAR_BUTTON_ENTRY(0,ID_SHOWASGFX_SET_ADDR),
+    TOOLBAR_BUTTON_ENTRY(1,ID_SHOWASGFX_DECREASEWIDTH),
+    TOOLBAR_BUTTON_ENTRY(2,ID_SHOWASGFX_MODE_MODE0),
+    TOOLBAR_BUTTON_ENTRY(3,ID_SHOWASGFX_MODE_MODE1),
+    TOOLBAR_BUTTON_ENTRY(4,ID_SHOWASGFX_MODE_MODE2),
+	TOOLBAR_BUTTON_ENTRY(5,ID_SHOWASGFX_MODE_MODE3),
+	TOOLBAR_BUTTON_ENTRY(6,ID_SHOWASGFX_INCREASEWIDTH),
 };
 
 #define SHOWGFX_NUM_TOOLBAR_BUTTONS (sizeof(ShowGfxToolbarButtons)/sizeof(TBBUTTON))
@@ -2232,7 +2248,7 @@ long FAR PASCAL ShowGfxWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 		ClientToScreen(hwnd, &point);
 
 		// display pop-up menu
-		TrackPopupMenu(GetSubMenu(hShowGfxPopupMenu,0),
+		TrackPopupMenu(GetSubMenu(DebuggerData.hShowGfxPopupMenu,0),
 			TPM_LEFTALIGN | TPM_RIGHTBUTTON,
 			point.x, point.y, 0, hwnd,
 			NULL);
@@ -2379,11 +2395,11 @@ long FAR PASCAL ShowGfxWindowProc( HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM l
 				Debugger_RenderShowGfx(hwnd,hDC,pShowGfx);
 
 				{
-					char Text[256];
+					TCHAR Text[256];
 
-					sprintf(Text,"Addr: %04x Width: %02d", pShowGfx->BaseAddr & 0x0ffff, pShowGfx->WidthInBytes);
+					_stprintf(Text,_T("Addr: %04x Width: %02d"), pShowGfx->BaseAddr & 0x0ffff, pShowGfx->WidthInBytes);
 
-					TextOut(hDC, 0, 8, Text, strlen(Text));
+					TextOut(hDC, 0, 8, Text, _tcslen(Text));
 				}
 
 				SelectObject(hDC,hOldFont);
@@ -2442,7 +2458,7 @@ void	Debugger_ShowGfx(HWND hParent)
 		hShowGfx = CreateWindowEx(
 			WS_EX_OVERLAPPEDWINDOW,
 			CPCEMU_DEBUG_SHOWGFX_CLASS,
-			"Memory as Graphics",
+			Messages[50],
 			WS_OVERLAPPEDWINDOW | WS_VSCROLL,
 			0, 
 			0,
@@ -2494,7 +2510,7 @@ void	Debugger_RegisterShowGfxClass(HWND hParent)
 
 	if (RegisterClassEx(&ShowGfxWindowClass)==0)
 	{
-		Debug_ErrorMessage("Failed to register class for ShowGfx window");
+		Debug_ErrorMessage(Messages[51]);
 	}
 }
 
@@ -2743,9 +2759,9 @@ void	Debugger_Setup()
 */
 
 #define ErrorMessage(ErrorText) \
-	MessageBox(GetActiveWindow(),ErrorText,"Emulator Error",MB_OK)
+	MessageBox(GetActiveWindow(),ErrorText,Messages[52],MB_OK)
 
-void	DEBUG_DisplayError(char *pMessage)
+void	DEBUG_DisplayError(TCHAR *pMessage)
 {
 		ErrorMessage(pMessage);
 }
@@ -2764,7 +2780,7 @@ void	Debugger_DestroyASICDialog()
 	}
 }
 
-
+#if 0
 BOOL CALLBACK  ASICDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
 
@@ -2777,11 +2793,11 @@ BOOL CALLBACK  ASICDialogProc (HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lPara
 
 				hListView = GetDlgItem(hwnd, IDC_LIST1);
 
-				MyListView_AddColumn(hListView, "Sprite No.", 0);
-				MyListView_AddColumn(hListView, "X", 1);
-				MyListView_AddColumn(hListView, "Y", 2);
-				MyListView_AddColumn(hListView, "X Mag", 3);
-				MyListView_AddColumn(hListView, "Y Mag", 4);
+				MyListView_AddColumn(hListView, Messages[53], 0);
+				MyListView_AddColumn(hListView,_T("X"), 1);
+				MyListView_AddColumn(hListView,_T("Y"), 2);
+				MyListView_AddColumn(hListView,_T("X Mag"), 3);
+				MyListView_AddColumn(hListView,_T("Y Mag"), 4);
 
 
 
@@ -2819,8 +2835,8 @@ void	ShowASICDialog(HWND hwnd)
 		ShowWindow(hASICDialog,TRUE);
 	}
 }
-
-
+#endif
+#if 0
 HWND hDebugHooksDialog = NULL;
 
 //#include "gdebug.c"
@@ -2920,7 +2936,7 @@ BOOL CALLBACK  DebugHooksConditionsDialogProc(HWND hwnd, UINT iMsg, WPARAM wPara
 
 
 
-HWND	OpenConditionListDialog(HWND hParent, char *DialogTitleText)
+HWND	OpenConditionListDialog(HWND hParent, TCHAR *DialogTitleText)
 {
 	HWND hDialog;
 
@@ -3052,28 +3068,28 @@ BOOL CALLBACK  DebugHooksDialogProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM 
 					case IDC_BUTTON_MEMORY_READ:
 					{
 						OpenConditionListDialog(hwnd,
-								"Memory Read Conditions");
+								Messages[54]);
 					}
 					return TRUE;
 
 					case IDC_BUTTON_MEMORY_WRITE:
 					{
 						OpenConditionListDialog(hwnd,
-								"Memory Write Conditions");
+								Messages[55]);
 					}
 					return TRUE;
 
 					case IDC_BUTTON_IO_READ:
 					{
 						OpenConditionListDialog(hwnd,
-								"IO Read Conditions");
+								Messages[56]);
 					}
 					return TRUE;
 
 					case IDC_BUTTON_IO_WRITE:
 					{
 						OpenConditionListDialog(hwnd,
-								"IO Write Conditions");
+								Messages[57]);
 					}
 					return TRUE;
 				}
@@ -3104,7 +3120,7 @@ void	Debugger_DebugHooks(HWND hwnd)
 		Debugger_UpdateDebugHooksDialog();
 	}
 }
-
+#endif
 /******************** RENDERING STUFF TO WINDOW **************************/
 
 
@@ -3124,13 +3140,13 @@ POINT	TextCoordsToPixelCoords(int X, int Y)
 	return PixelCoords;
 } 
 
-void	PrintString(int X, int Y, char *pString, int nMax)
+void	PrintString(int X, int Y, TCHAR *pString, int nMax)
 {
 	int Count;
 
 	POINT PlotPoint;
 
-	Count = strlen(pString);
+	Count = _tcslen(pString);
 
 	if (Count>nMax)
 	{
@@ -3143,7 +3159,7 @@ void	PrintString(int X, int Y, char *pString, int nMax)
 		PlotPoint.y, pString,Count);
 }
 
-static char DisplayString[256];
+static TCHAR DisplayString[256];
 
 void	TextWindow_Ready(HWND hwnd, PAINTSTRUCT *pPaintStruct)
 {
@@ -3224,13 +3240,13 @@ void	CPC_Info_Display()
 		X=0;
 		Y=0;
 		
-		sprintf(DisplayString, "PSG");
+		_stprintf(DisplayString,_T("PSG"));
 
 		PrintString(X,Y, DisplayString,10);
 
 		for (i=0; i<16; i++)
 		{
-			sprintf(DisplayString, "%1x: %02x",i, PSG_GetRegisterData(i));
+			_stprintf(DisplayString,_T("%1x: %02x"),i, PSG_GetRegisterData(i));
 
 			PrintString(X, Y+2+i, DisplayString,10);
 		
@@ -3245,7 +3261,7 @@ void	CPC_Info_Display()
 		X = 10;
 		Y = 0;
 
-		sprintf(DisplayString,"GA PENS");
+		_stprintf(DisplayString,Messages[58]);
 
 		PrintString(X, Y, DisplayString,10);
 		
@@ -3253,11 +3269,11 @@ void	CPC_Info_Display()
 		{
 			if (i!=16)
 			{
-				sprintf(DisplayString, "%1x: %02x",i, GateArray_GetPaletteColour(i));
+				_stprintf(DisplayString,_T("%1x: %02x"),i, GateArray_GetPaletteColour(i));
 			}
 			else
 			{
-				sprintf(DisplayString, "B: %02x",GateArray_GetPaletteColour(i));
+				_stprintf(DisplayString,_T("B: %02x"),GateArray_GetPaletteColour(i));
 			}
 
 			PrintString(X, Y+2+i, DisplayString,10);
@@ -3272,36 +3288,36 @@ void	CPC_Info_Display()
 		X = 20;
 		Y = 0;
 
-		sprintf(DisplayString,"GA");
+		_stprintf(DisplayString,_T("GA"));
 		PrintString(X,Y, DisplayString,10);
 
 
-		sprintf(DisplayString,"0x000: %02x PPR", GateArray_GetSelectedPen());
+		_stprintf(DisplayString,_T("0x000: %02x PPR"), GateArray_GetSelectedPen());
 		PrintString(X,Y+2, DisplayString,10);
 
 		DebugItem__AddNewItem(X+7,Y+2,2);
 
 
-		//sprintf(DisplayString,"0x040: %02x PMEM", GateArray_GetSelectedPen());
+		//_stprintf(DisplayString,_T("0x040: %02x PMEM"), GateArray_GetSelectedPen());
 		//PrintString(X,Y+3, DisplayString);
 
-		sprintf(DisplayString,"0x080: %02x MRER", GateArray_GetMultiConfiguration());
+		_stprintf(DisplayString,_T("0x080: %02x MRER"), GateArray_GetMultiConfiguration());
 		PrintString(X,Y+4, DisplayString,10);
 
 		DebugItem__AddNewItem(X+7,Y+4,2);
 
 
-		sprintf(DisplayString,"0x0c0: %02x RAM", GateArray_GetRamConfiguration());
+		_stprintf(DisplayString,_T("RAM: %02x RAM"), PAL_GetRamConfiguration());
 		PrintString(X,Y+5, DisplayString,10);
 
 		DebugItem__AddNewItem(X+7,Y+5,2);
 
-		sprintf(DisplayString, "ILC  : %02x", GateArray_GetInterruptLineCount());
+		_stprintf(DisplayString,_T("ILC  : %02x"), GateArray_GetInterruptLineCount());
 		PrintString(X,Y+6, DisplayString, 9);
 
 		DebugItem__AddNewItem(X+7, Y+6,2);
 
-		sprintf(DisplayString, "VSS  : %02x", GateArray_GetVsyncSynchronisationCount());
+		_stprintf(DisplayString,_T("VSS  : %02x"), GateArray_GetVsyncSynchronisationCount());
 		PrintString(X,Y+7, DisplayString, 9);
 
 		DebugItem__AddNewItem(X+7, Y+7,2);
@@ -3340,15 +3356,15 @@ void	CPCPLUS_Info_Display()
 			for (dma_channel=0; dma_channel<3; dma_channel++)
 			{
 
-				sprintf(DisplayString,"DMA%1x", dma_channel);
+				_stprintf(DisplayString,_T("DMA%1x"), dma_channel);
 				PrintString(X, Y, DisplayString, 20);
 				Y+=2;
 
-				sprintf(DisplayString,"Addr: %04x", ASIC_DMA_GetChannelAddr(dma_channel));
+				_stprintf(DisplayString,Messages[59], ASIC_DMA_GetChannelAddr(dma_channel));
 				PrintString(X, Y, DisplayString, 20);
 				DebugItem__AddNewItem(X+6,Y,4);
 				Y++;
-				sprintf(DisplayString,"Prescale: %02x", ASIC_DMA_GetChannelPrescale(dma_channel));
+				_stprintf(DisplayString,Messages[60], ASIC_DMA_GetChannelPrescale(dma_channel));
 				PrintString(X, Y, DisplayString, 20);
 				DebugItem__AddNewItem(X+10,Y,2);
 				Y++;
@@ -3362,12 +3378,12 @@ void	CPCPLUS_Info_Display()
 		X = 20;
 		Y = 0;
 
-		sprintf(DisplayString,"PALETTE RGB444");
+		_stprintf(DisplayString,Messages[61]);
 		PrintString(X, Y, DisplayString,20);
 		
 		for (i=0; i<16; i++)
 		{
-			sprintf(DisplayString, "%02d: %01x%01x%01x  %02d: %01x%01x%01x", 
+			_stprintf(DisplayString,_T("%02d: %01x%01x%01x  %02d: %01x%01x%01x"), 
 				i, ASIC_GetRed(i), ASIC_GetGreen(i), ASIC_GetBlue(i),
 				(i+16), ASIC_GetRed(i+16),ASIC_GetGreen(i+16), ASIC_GetBlue(i+16));
 
@@ -3385,30 +3401,30 @@ void	CPCPLUS_Info_Display()
 		X = 40;
 		Y = 0;
 
-		sprintf(DisplayString,"PRI:    %02x",ASIC_GetPRI());
+		_stprintf(DisplayString,_T("PRI:    %02x"),ASIC_GetPRI());
 		PrintString(X,Y,DisplayString,10);
 
 		DebugItem__AddNewItem(X+8,Y,2);
 
-		sprintf(DisplayString,"SPLT:   %02x",ASIC_GetSPLT());
+		_stprintf(DisplayString,_T("SPLT:   %02x"),ASIC_GetSPLT());
 		PrintString(X,Y+1,DisplayString,10);
 
 		DebugItem__AddNewItem(X+8,Y+1,2);
 
 
-		sprintf(DisplayString,"SSA:  %04x",ASIC_GetSSA());
+		_stprintf(DisplayString,_T("SSA:  %04x"),ASIC_GetSSA());
 		PrintString(X,Y+2,DisplayString,10);
 
 		DebugItem__AddNewItem(X+6,Y+2,4);
 
 
-		sprintf(DisplayString,"SSCR:   %02x",ASIC_GetSSCR());
+		_stprintf(DisplayString,_T("SSCR:   %02x"),ASIC_GetSSCR());
 		PrintString(X,Y+3,DisplayString,10);
 
 		DebugItem__AddNewItem(X+8,Y+3,2);
 
 
-		sprintf(DisplayString,"IVR:    %02x",ASIC_GetIVR());
+		_stprintf(DisplayString,_T("IVR:    %02x"),ASIC_GetIVR());
 		PrintString(X,Y+4, DisplayString,10);
 
 		DebugItem__AddNewItem(X+8,Y+4,2);
@@ -3420,14 +3436,14 @@ void	CPCPLUS_Info_Display()
 		Y = 0;
 		if (ASIC_GetUnLockState())
 		{
-			PrintString(X, Y, "UNLOCKED",8);
+			PrintString(X, Y, Messages[62],8);
 		}
 		else
 		{
-			PrintString(X, Y, "LOCKED  ",8);
+			PrintString(X, Y, Messages[63],8);
 		}
 
-		sprintf(DisplayString,"RMR2:   %02x",ASIC_GetSecondaryRomMapping());
+		_stprintf(DisplayString,_T("RMR2:   %02x"),ASIC_GetSecondaryRomMapping());
 		PrintString(X,Y+1,DisplayString,10);
 		DebugItem__AddNewItem(X+8,Y+1,2);
 	}
@@ -3438,15 +3454,15 @@ void	CPCPLUS_Info_Display()
 
 		for (i=0; i<16; i++)
 		{
-			sprintf(DisplayString,"X  : %04x",ASIC_GetSpriteX(i));
+			_stprintf(DisplayString,_T("X  : %04x"),ASIC_GetSpriteX(i));
 			PrintString(X,Y,DisplayString,10);
 			DebugItem__AddNewItem(X+5,Y,4);
 
-			sprintf(DisplayString,"Y  : %04x",ASIC_GetSpriteY(i));
+			_stprintf(DisplayString,_T("Y  : %04x"),ASIC_GetSpriteY(i));
 			PrintString(X+10,Y,DisplayString,10);
 			DebugItem__AddNewItem(X+5+10,Y,4);
 
-			sprintf(DisplayString,"Mag: %02x",ASIC_GetSpriteMagnification(i));
+			_stprintf(DisplayString,_T("Mag: %02x"),ASIC_GetSpriteMagnification(i));
 			PrintString(X+20,Y,DisplayString,10);
 			DebugItem__AddNewItem(X+5+20,Y,2);
 			Y++;		
@@ -3475,7 +3491,7 @@ void	CRTC_Info_Display()
 		
 		for (i=0; i<18; i++)
 		{
-			sprintf(DisplayString,"R%02d: %02x", i, CRTC_GetRegisterData(i));
+			_stprintf(DisplayString,_T("R%02d: %02x"), i, CRTC_GetRegisterData(i));
 			PrintString(X,Y+i, DisplayString,10);
 	
 			DebugItem__AddNewItem(X+5,Y+i,3);
@@ -3491,46 +3507,46 @@ void	CRTC_Info_Display()
 
 		pCRTC_State = CRTC_GetInternalState();
 
-		sprintf(DisplayString,"HC: %02x", pCRTC_State->HCount);
+		_stprintf(DisplayString,_T("HC: %02x"), pCRTC_State->HCount);
 		PrintString(X,Y, DisplayString,10);
 		DebugItem__AddNewItem(X+4,Y,2);
 
 		Y++;
 
 		
-		sprintf(DisplayString,"LC: %02x", pCRTC_State->LineCounter);
+		_stprintf(DisplayString,_T("LC: %02x"), pCRTC_State->LineCounter);
 		PrintString(X,Y, DisplayString,10);
 		DebugItem__AddNewItem(X+4,Y,2);
 		Y++;
 
-		sprintf(DisplayString,"RC: %02x", pCRTC_State->RasterCounter);
+		_stprintf(DisplayString,_T("RC: %02x"), pCRTC_State->RasterCounter);
 		PrintString(X,Y, DisplayString,10);
 		DebugItem__AddNewItem(X+4,Y,2);
 		Y++;
 
-		sprintf(DisplayString,"HS-WIDTH: %02x", pCRTC_State->HorizontalSyncWidth);
+		_stprintf(DisplayString,_T("HS-WIDTH: %02x"), pCRTC_State->HorizontalSyncWidth);
 		PrintString(X,Y, DisplayString,10);
 		DebugItem__AddNewItem(X+10,Y,2);
 		Y++;
 	
-		sprintf(DisplayString,"VS-WIDTH: %02x", pCRTC_State->VerticalSyncWidth);
+		_stprintf(DisplayString,_T("VS-WIDTH: %02x"), pCRTC_State->VerticalSyncWidth);
 		PrintString(X,Y, DisplayString,10);
 		DebugItem__AddNewItem(X+10,Y,2);
 		Y++;
 		
-		sprintf(DisplayString,"HS-C: %02x", pCRTC_State->HorizontalSyncCount);
+		_stprintf(DisplayString,_T("HS-C: %02x"), pCRTC_State->HorizontalSyncCount);
 		PrintString(X,Y, DisplayString,10);
 		DebugItem__AddNewItem(X+6,Y,2);
 		Y++;
 
-		sprintf(DisplayString,"VS-C: %02x", pCRTC_State->VerticalSyncCount);
+		_stprintf(DisplayString,_T("VS-C: %02x"), pCRTC_State->VerticalSyncCount);
 		PrintString(X,Y, DisplayString,10);
 		DebugItem__AddNewItem(X+6,Y,2);
 		Y++;
-//		sprintf(DisplayString, "ILC: %02x",pCRTC_State->GA_State.InterruptLineCount);
+//		_stprintf(DisplayString,_T("ILC: %02x"),pCRTC_State->GA_State.InterruptLineCount);
 //		PrintString(X,Y, DisplayString);
 //		Y++;
-		//sprintf(DisplayString, "LAV: %0d",CRTC_State.MonitorState.LinesAfterVsync);
+		//_stprintf(DisplayString,_T("LAV: %0d"),CRTC_State.MonitorState.LinesAfterVsync);
 		//PrintString(X,Y, DisplayString);
 /*
 	SetDlgHexByte(hCRTCDialog,IDC_EDIT_CRTC_HSYNCSTATE, CRTC_State.Flags & CRTC_HS_FLAG);
@@ -3767,12 +3783,12 @@ void	Debugger_RegisterCPCInfoClass(HWND hParent)
 	DebugWindowClass.hCursor = LoadCursor( NULL, IDC_ARROW );
 	DebugWindowClass.hbrBackground = GetStockObject(GRAY_BRUSH); //NULL; //GetStockObject(COLOR_APPWORKSPACE);
 	DebugWindowClass.lpszMenuName = NULL;
-	DebugWindowClass.lpszClassName = CPCEMU_DEBUG_CPCINFO_CLASS;
+	DebugWindowClass.lpszClassName = _T(CPCEMU_DEBUG_CPCINFO_CLASS);
 	DebugWindowClass.hIconSm = LoadIcon(NULL,IDI_APPLICATION);
 
 	if (RegisterClassEx(&DebugWindowClass)==0)
 	{
-		Debug_ErrorMessage("Failed to register class for memory dump window");
+		Debug_ErrorMessage(Messages[64]);
 	}
 }
 
@@ -3786,7 +3802,7 @@ void Debugger_OpenCPCInfo(HWND hParent)
 		hCPCInfo = CreateWindowEx(
 			WS_EX_OVERLAPPEDWINDOW,
 			CPCEMU_DEBUG_CPCINFO_CLASS,
-			"CPC Info",
+			_T("CPC Info"),
 			WS_OVERLAPPEDWINDOW | WS_VISIBLE,
 			CW_USEDEFAULT, 
 			CW_USEDEFAULT,
@@ -3836,12 +3852,12 @@ void	Debugger_RegisterCPCPLUSInfoClass(HWND hParent)
 	DebugWindowClass.hCursor = LoadCursor( NULL, IDC_ARROW );
 	DebugWindowClass.hbrBackground = GetStockObject(GRAY_BRUSH); //NULL; //GetStockObject(COLOR_APPWORKSPACE);
 	DebugWindowClass.lpszMenuName = NULL;
-	DebugWindowClass.lpszClassName = CPCEMU_DEBUG_CPCPLUSINFO_CLASS;
+	DebugWindowClass.lpszClassName = _T(CPCEMU_DEBUG_CPCPLUSINFO_CLASS);
 	DebugWindowClass.hIconSm = LoadIcon(NULL,IDI_APPLICATION);
 
 	if (RegisterClassEx(&DebugWindowClass)==0)
 	{
-		Debug_ErrorMessage("Failed to register class for memory dump window");
+		Debug_ErrorMessage(Messages[64]);
 	}
 }
 
@@ -3854,7 +3870,7 @@ void Debugger_OpenCPCPlusInfo(HWND hParent)
 		hCPCPLUSInfo = CreateWindowEx(
 			WS_EX_OVERLAPPEDWINDOW,
 			CPCEMU_DEBUG_CPCPLUSINFO_CLASS,
-			"CPC PLUS Info",
+			_T("CPC PLUS Info"),
 			WS_OVERLAPPEDWINDOW | WS_VISIBLE,
 			CW_USEDEFAULT, 
 			CW_USEDEFAULT,
@@ -3905,12 +3921,12 @@ void	Debugger_RegisterCRTCInfoClass(HWND hParent)
 	DebugWindowClass.hCursor = LoadCursor( NULL, IDC_ARROW );
 	DebugWindowClass.hbrBackground = GetStockObject(GRAY_BRUSH); //NULL; //GetStockObject(COLOR_APPWORKSPACE);
 	DebugWindowClass.lpszMenuName = NULL;
-	DebugWindowClass.lpszClassName = CPCEMU_DEBUG_CRTCINFO_CLASS;
+	DebugWindowClass.lpszClassName = _T(CPCEMU_DEBUG_CRTCINFO_CLASS);
 	DebugWindowClass.hIconSm = LoadIcon(NULL,IDI_APPLICATION);
 
 	if (RegisterClassEx(&DebugWindowClass)==0)
 	{
-		Debug_ErrorMessage("Failed to register class for memory dump window");
+		Debug_ErrorMessage(Messages[64]);
 	}
 }
 
@@ -3924,7 +3940,7 @@ void Debugger_OpenCRTCInfo(HWND hParent)
 		hCRTCInfo = CreateWindowEx(
 			WS_EX_OVERLAPPEDWINDOW,
 			CPCEMU_DEBUG_CRTCINFO_CLASS,
-			"CRTC Info",
+			_T("CRTC Info"),
 			WS_OVERLAPPEDWINDOW | WS_VISIBLE,
 			CW_USEDEFAULT, 
 			CW_USEDEFAULT,

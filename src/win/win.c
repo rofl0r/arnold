@@ -19,7 +19,9 @@
  */
 
 /* Compile options needed: */ 
-#include <windows.h> 
+#include "precomp.h"
+
+//#include <windows.h> 
 #include "win.h"
 
 static BOOL	ScrollLock_InitialState = FALSE;

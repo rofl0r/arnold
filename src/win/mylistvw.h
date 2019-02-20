@@ -22,8 +22,9 @@
 
 #include <windows.h>
 
-void	MyListView_AddItem(HWND hListView, char *ItemText, int ColumnIndex, int RowIndex,void *);
-void	MyListView_AddColumn(HWND hListView, char *ColumnTitle, int ColumnIndex);
+void MyListView_AddItemWithIcon(HWND hListView, TCHAR *ItemText, int ColumnIndex, int RowIndex, void *pData, int iIcon);
+void	MyListView_AddItem(HWND hListView, TCHAR *ItemText, int ColumnIndex, int RowIndex,void *);
+void	MyListView_AddColumn(HWND hListView, TCHAR *ColumnTitle, int ColumnIndex);
 
 
 

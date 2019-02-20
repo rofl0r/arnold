@@ -21,7 +21,7 @@
 #define __TZX_TAPE_IMAGE_HEADER_INCLUDED__
 
 /* insert and validate a tape image */
-BOOL	TapeImage_Insert(char *);
+int TapeImage_Insert(const unsigned char *, const unsigned long );
 /* remove a tape image */
 void	TapeImage_Remove(void);
 /* rewind tape to start */
@@ -31,10 +31,21 @@ void	TapeImage_RewindToStart(void);
 int		TapeImage_GetBit(int);
 void	TapeImage_Update(int);
 void	TapeImage_Init(void);
-void	TapeImage_PlayStatus(BOOL);
 
-void	TZX_Write_Initialise(char *);
-void	TZX_Write(unsigned long, unsigned long);
-void	TZX_Write_End();
+//void	TZX_Write_Initialise(char *);
+//void	TZX_Write(unsigned long, unsigned long);
+//void	TZX_Write_End();
+
+const char *TapeImage_GetBlockDescription(int BlockID);
+int		TapeImage_GetCurrentBlock(void);
+int		TapeImage_GetNumBlocks(void);
+int		TapeImage_GetBlockID(int BlockIndex);
+
+
+typedef struct 
+{
+	unsigned char *pBlockPtr;
+
+} tzx_block_info;
 
 #endif

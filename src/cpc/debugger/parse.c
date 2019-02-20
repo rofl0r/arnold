@@ -49,7 +49,7 @@ typedef enum
 
 } EQUATION_ELEMENT_ID;
 
-typedef struct EQUATION_ELEMENT
+typedef struct
 {
 	EQUATION_ELEMENT_ID Type;
 	int Value;
@@ -57,7 +57,7 @@ typedef struct EQUATION_ELEMENT
 
 
 
-typedef struct PARSE
+typedef struct
 {
 	unsigned char *pString;
 } PARSE;
@@ -76,7 +76,7 @@ typedef enum
 } EQUATION_OPERATOR_ID;
 
 
-typedef struct PARSE_LOOKUP
+typedef struct
 {
 	int ID;
 	char *pString;
@@ -96,7 +96,7 @@ PARSE_LOOKUP	Operators[]=
 	{EQUATION_OPERATOR_CLOSE_BRACKET,")"}
 };
 
-typedef struct REVERSE_POLISH_OPERAND_PRIORITY
+typedef struct
 {
 	int	OperatorID;
 	int OperatorPriority;

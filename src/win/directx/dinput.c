@@ -18,7 +18,9 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#define WIN32_LEAN_AND_MEAN
+#include "../precomp.h"
+
+//#define WIN32_LEAN_AND_MEAN
 #define INITGUID
 #define DIRECTINPUT_VERSION 0x0300
 #include <dinput.h>
@@ -36,6 +38,7 @@ static void DI_CloseKeyboard(void);
 static void	DI_InitMouse();
 static void DI_CloseMouse(void);
 
+static HINSTANCE hModule = NULL;
 
 #define DI_VERSION	0x0300
 
@@ -43,9 +46,30 @@ static void DI_CloseMouse(void);
 
 BOOL	DI_Init(HINSTANCE hInstance)
 {
-	
-	if (DirectInputCreate(hInstance,/*DIRECTINPUT_VERSION*/DI_VERSION,&pDirectInput,NULL)!=DI_OK)
+
+	/* TROELS BEGIN */
+   typedef HRESULT (WINAPI* PFNDIRECTINPUTCREATEA)(HINSTANCE, DWORD, LPDIRECTINPUTA *, LPUNKNOWN);
+   typedef HRESULT (WINAPI* PFNDIRECTINPUTCREATEW)(HINSTANCE, DWORD, LPDIRECTINPUTW *, LPUNKNOWN);
+   #ifdef UNICODE
+   #define PFNDIRECTINPUTCREATE PFNDIRECTINPUTCREATEW
+   #define FNNAME "DirectInputCreateW"
+   #else
+   #define PFNDIRECTINPUTCREATE PFNDIRECTINPUTCREATEA
+   #define FNNAME "DirectInputCreateA"
+   #endif // !UNICODE
+   PFNDIRECTINPUTCREATE pfn;
+   
+   if (hModule == NULL) hModule = LoadLibrary(_T("dinput.dll"));
+   pfn = (PFNDIRECTINPUTCREATE)GetProcAddress(hModule, FNNAME);
+   if (pfn == NULL)
 		return FALSE;
+	if ((*pfn)(hInstance,/*DIRECTINPUT_VERSION*/DI_VERSION,&pDirectInput,NULL)!=DI_OK)
+		return FALSE;
+/* TROELS END */
+
+
+//	if (DirectInputCreate(hInstance,/*DIRECTINPUT_VERSION*/DI_VERSION,&pDirectInput,NULL)!=DI_OK)
+//		return FALSE;
 
 	DI_InitKeyboard();
 
@@ -95,6 +119,8 @@ void	DI_CloseKeyboard()
 
 		// release it
 		IDirectInputDevice_Release(pKeyboardDevice);
+
+		pKeyboardDevice = NULL;
 	}
 }
 
@@ -145,6 +171,8 @@ void	DI_CloseMouse()
 		IDirectInputDevice_Unacquire(pMouseDevice);
 
 		IDirectInputDevice_Release(pMouseDevice);
+	
+		pMouseDevice = NULL;
 	}
 }
 

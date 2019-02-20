@@ -27,7 +27,7 @@ int		DS_GetSampleRate();
 int		DS_GetSampleBits();
 int		DS_GetSampleChannels();
 void	DS_Close();
-void	DS_Init(HWND);
+BOOL	DS_Init(HWND);
 void	DS_WriteBufferForSoundPlayback(char *pBuf,int BuffSize);
 BOOL		DS_LockAudioBuffer(unsigned char **, unsigned long *, unsigned char **, unsigned long *, int);
 void	DS_UnLockAudioBuffer(void);

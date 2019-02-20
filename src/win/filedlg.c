@@ -26,7 +26,7 @@
 
 #include "filedlg.h"
 
-void InitFileDlg(HWND hwnd, OPENFILENAME *ofn, char *DefExt, char *Filter, DWORD Flags)
+void InitFileDlg(HWND hwnd, OPENFILENAME *ofn, TCHAR *DefExt, TCHAR *Filter, DWORD Flags)
 	{
 	ofn->lStructSize		= sizeof(OPENFILENAME);
 	ofn->hwndOwner			= hwnd;
@@ -52,7 +52,7 @@ void InitFileDlg(HWND hwnd, OPENFILENAME *ofn, char *DefExt, char *Filter, DWORD
 	return;
 	}
 
-BOOL GetFileNameFromDlg(HWND hwnd, OPENFILENAME *ofn, char *SuggestName, char *Title, char *Buffer, char *Directory)
+BOOL GetFileNameFromDlg(HWND hwnd, OPENFILENAME *ofn, TCHAR *SuggestName, TCHAR *Title, TCHAR *Buffer, TCHAR *Directory)
 	{
 	ofn->hwndOwner		= hwnd;
 	ofn->lpstrFile		= Buffer;
@@ -64,7 +64,7 @@ BOOL GetFileNameFromDlg(HWND hwnd, OPENFILENAME *ofn, char *SuggestName, char *T
 	}
 
 
-BOOL GetSaveNameFromDlg(HWND hwnd, OPENFILENAME *ofn, char *SuggestName, char *Title, char *Buffer, char *Directory)
+BOOL GetSaveNameFromDlg(HWND hwnd, OPENFILENAME *ofn, TCHAR *SuggestName, TCHAR *Title, TCHAR *Buffer, TCHAR *Directory)
 	{
 	ofn->hwndOwner		= hwnd;
 	ofn->lpstrFile		= Buffer;

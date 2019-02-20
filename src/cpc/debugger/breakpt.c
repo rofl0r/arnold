@@ -24,13 +24,13 @@
 
 #include "breakpt.h"
 
-typedef struct BREAKPOINT
+typedef struct _BREAKPOINT
 {
 	/* breakpoint address */
 	int Address;
 	
 	/* next breakpoint */
-	struct BREAKPOINT *pNext;
+	struct _BREAKPOINT *pNext;
 } BREAKPOINT;
 
 static BREAKPOINT *pFirstBreakpoint = NULL;

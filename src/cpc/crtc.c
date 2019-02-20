@@ -28,6 +28,7 @@
 /* THIS CODE IS QUITE SLOW AND COMPLEX, IT WOULD BE GOOD TO SPEED IT UP A LOT AND FIX MORE BUGS IN IT */
 void	CRTC_MonitorReset(void);
 
+#define SIMPLE_MONITOR_EMULATION
 #define HD6845S
 /*#define WIP */
 
@@ -37,33 +38,16 @@ void	CRTC_MonitorReset(void);
 #include "asic.h"
 #include "z80/z80.h"
 #include "cpc.h"
-#include "debugmain.h"
-#include "cpcdefs.h"
+
 #include "garray.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <memory.h>
-#include <string.h>
+
+#include "headers.h"
+
 
 #define LESS_MULTS 
 
 
 /*******************************************************/
-#ifdef CRTC_DEBUG
-static char DebugString[256];
-extern DEBUG_HANDLE CRTC_Debug;
-
-static BOOL     CRTC_DebugActive = FALSE;
-
-void    CRTC_SetDebug(BOOL State)
-{
-        Debug_Enable(CRTC_Debug,State);
-
-        CRTC_DebugActive = Debug_Active(CRTC_Debug);
-}
-
-static unsigned long NopCountOfLastWrite=0;
-#endif
 
 /*******************************************************/
 
@@ -1364,47 +1348,6 @@ static void             CRTC_DoLineChecksCRTC2(void)
 void    CRTC_WriteData(unsigned int Data)
 {
 	     int CRTC_RegIndex = CRTC_InternalState.CRTC_Reg & 0x1f;
-
-
-#ifdef CRTC_DEBUG
-        if (CRTC_DebugActive)
-        {
-			int NewNopCount = CPC_GetNopCount();
-			int NopsPassed = NewNopCount - NopCountOfLastWrite;
-
-			int NoOfLines = NopsPassed/(CRTCRegisters[0]+1);
-			int NoOfCharLines = NoOfLines/(CRTCRegisters[9]+1);
-			int NoOfChars = NopsPassed - (NoOfLines*(CRTCRegisters[0]+1));
-
-			/* i've done this so I can edit it in Pico on Linux */
-			sprintf(DebugString, "**\r\nNops: %04d\r\n",NopsPassed);
-			sprintf(DebugString,"%s No Of Chars: %04d\r\n",
-				DebugString,
-				NoOfChars);
-			sprintf(DebugString,"%s No Of Lines: %04d\r\n",
-				DebugString,
-				NoOfLines);
-			sprintf(DebugString,"%s No Of Char Lines: %04d\r\n",
-				DebugString,
-				NoOfCharLines);
-			sprintf(DebugString,"%s Register: %04d Data: %04d\r\n",
-				DebugString,
-				CRTC_RegIndex, 
-				Data & 0x0ff);
-			sprintf(DebugString,"%s HC: %04d LC: %04d RC: %04d\r\n", 
-				DebugString,
-				CRTC_InternalState.HCount, 
-				CRTC_InternalState.LineCounter, 
-				CRTC_InternalState.RasterCounter);
-
-			sprintf(DebugString,"%s MA: %04x\r\n**\r\n", 
-				DebugString,
-				CRTC_InternalState.MALine);
-
-                Debug_WriteString(CRTC_Debug, DebugString);
-                NopCountOfLastWrite = NewNopCount;
-        }
-#endif
 
 
         /* store in backup set, used to change CRTC type */
@@ -3590,7 +3533,7 @@ void CRTC_DoCycles(int Cycles)
     int i;
 
 	/* update light pen */
-	CRTC_LightPen_Update(Cycles);
+//	CRTC_LightPen_Update(Cycles);
 
 
 	for (i=Cycles-1; i>=0; i--)
@@ -3972,11 +3915,6 @@ void    CRTC_Reset(void)
         int i;
 
 
-#ifdef CRTC_DEBUG
-		NopCountOfLastWrite=0;
-#endif
-
-
 		CRTC_InternalState.DontRender = TRUE;
 
 		/* vsync counter not active */
@@ -4066,10 +4004,54 @@ void	CRTC_LightPen_Trigger(int XPos, int YPos)
 	LightPen_Strobe = 1;
 
 }
-#endif
 
-void	CRTC_LightPen_Trigger(unsigned long Nops)
+void	CRTC_LightPen_Trigger(int X, int Y)
 {
+	unsigned long Nops;
+	unsigned long MonitorLine;
+	unsigned long LinesToTrigger;
+	unsigned long MonitorX;
+	unsigned long CharsToTrigger;
+
+	/* get current monitor line we are on. */
+	MonitorLine = CRTC_InternalState.Monitor_State.MonitorScanLineCount;
+
+	/* work out number of complete lines until the trigger should occur */
+	if (Y>MonitorLine)
+	{
+		LinesToTrigger = Y - MonitorLine;
+	}
+	else
+	{
+		LinesToTrigger = (312 - MonitorLine) + Y;
+	}
+	
+	Nops = (LinesToTrigger<<6);
+
+	MonitorX = CRTC_InternalState.Monitor_State.MonitorHorizontalCount;
+
+	X = (X>>(4-1)) + X_CRTC_CHAR_OFFSET;
+
+	if (X>MonitorX)
+	{
+		CharsToTrigger = X - MonitorX;
+	}
+	else
+	{
+		CharsToTrigger = (64 - MonitorX) + X;
+	}
+
+	Nops += (CharsToTrigger>>1);
+	
+		
+/*		unsigned long Nops;
+
+		Nops = (YPos<<6) + (XPos>>5) + ((8*10)*64);
+*/
+//		CRTC_LightPen_Trigger(Nops);
+
+	
+	
 	LightPen_Strobe = 1;
 
 	ClocksToLightPenTrigger = Nops;
@@ -4101,4 +4083,4 @@ void	CRTC_LightPen_Update(unsigned long NopsPassed)
 
 	}
 }
-
+#endif

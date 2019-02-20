@@ -24,34 +24,23 @@
         forces to side 0.
 
 */
-
-#define BE_SAFE
-
-/*#define INTERNAL */
+#include "../fdd.h"
 #include "diskimg.h"
 #include "dsk.h"
 #include "extdsk.h"
 #include "iextdsk.h"
 #include "../host.h"
-#include "../cpcdefs.h"
+#include "../device.h"
+#include "../cpc.h"
 
 static DISKIMAGE_UNIT   Drives[4];
 
-static void DiskImage_ImageRecognised(int DriveID,int Type,char *Filename, unsigned char *pDiskImage, unsigned long DiskImageSize)
+static void DiskImage_ImageRecognised(int DriveID,int Type)
 {
         DISKIMAGE_UNIT  *pDrive=&Drives[DriveID];
 
         pDrive->Flags |= DISKIMAGE_DISK_INSERTED;
-        pDrive->Type = Type;
-
-        if (Filename!=NULL)
-        {
-                pDrive->Filename = (char *)malloc(strlen(Filename)+1);
-                memcpy(pDrive->Filename,Filename,strlen(Filename)+1);
-        }
-
-        pDrive->pDiskImage = pDiskImage;
-        pDrive->DiskImageSize = DiskImageSize;
+        pDrive->nImageType = Type;
 }
 
 void    DiskImage_Initialise(void)
@@ -62,109 +51,77 @@ void    DiskImage_Initialise(void)
 void    DiskImage_Finish(void)
 {
         DiskImage_RemoveDisk(0);
+		FDD_InsertDisk(0,FALSE);
 
         DiskImage_RemoveDisk(1);
+		FDD_InsertDisk(1,FALSE);
 }
 
 /*********************************************************************************/
 
+int		DiskImage_InsertUnformattedDisk(int DriveID)
+{
+	/* remove existing disk */
+	DiskImage_RemoveDisk(DriveID);
+
+    DiskImage_ImageRecognised(DriveID,DISK_IMAGE_TYPE_UNDEFINED);
+                            
+    ExtDskInternal_Initialise(&Drives[DriveID]);
+ 
+	Drives[DriveID].Flags |= DISKIMAGE_DISK_DIRTY;
+
+	FDD_InsertDisk(DriveID, TRUE);
+	return TRUE;
+}
 
 /* install a disk image into the drive */
-int     DiskImage_InsertDisk(int DriveID, int Type, char *Filename)
+
+/* pDiskImage is pointer to disk image data loaded from host */
+/* DiskImageLength is length of data loaded from host */
+/* assumes therefore that disc image data is contained in a single file */
+int     DiskImage_InsertDisk(int DriveID, const unsigned char *pDiskImage, const unsigned long DiskImageLength)
 {
-        unsigned char   *pDiskImage = NULL;
-        unsigned long DiskImageLength = 0;
+ 	/* validate disk image */
+	if (Dsk_Validate(pDiskImage, DiskImageLength))
+	{
+		/* standard dsk */
+		DiskImage_RemoveDisk(DriveID);
 
-        /* if disk inserted, remove it */
-        if (Drives[DriveID].Flags & DISKIMAGE_DISK_INSERTED)
-                DiskImage_RemoveDisk(DriveID);
+		/* valid */
+		DiskImage_ImageRecognised(DriveID,DISK_IMAGE_TYPE_STANDARD);
 
-        if (Type == DISK_UNFORMATTED)
-        {
-                /* valid */
-                DiskImage_ImageRecognised(DriveID,INTERNAL_DISK_IMAGE,Filename,pDiskImage, DiskImageLength);
-                                
-                ExtDskInternal_Initialise(&Drives[DriveID]);
-                return TRUE;
-        }
-        else
-        {
-                /* load disk image file to memory */
-                if (!(Host_LoadFile(Filename, &pDiskImage, &DiskImageLength)))
-                {
-                        return FALSE;
-                }
-                else
-                {
-                        /* image loaded */
+		ExtDskInternal_Dsk2ExtDskInternal(&Drives[DriveID],pDiskImage, DiskImageLength);
 
-                }
+		FDD_InsertDisk(DriveID, TRUE);
+		return ARNOLD_STATUS_OK;
+	}
+	else
+	if (ExtDsk_Validate(pDiskImage,DiskImageLength))
+	{
+		/* extdsk */
+		DiskImage_RemoveDisk(DriveID);
 
-                /* detect DSK type using header bytes */
-                if (memcmp(pDiskImage,"MV - CPC",8)==0)
-                {
-                        /* standard disk image .DSK */
-                        
-                        /* validate disk image */
-                        if (Dsk_Validate(Filename))
-                        {
-        #ifndef INTERNAL
-                        
-                                /* valid */
-                                DiskImage_ImageRecognised(DriveID,STANDARD_DISK_IMAGE,Filename,pDiskImage, DiskImageLength);
-                        
-                                /* initialise disk image */
-                                Dsk_Initialise(&Drives[DriveID]);
-        #else
-                                
-                                /* valid */
-                                DiskImage_ImageRecognised(DriveID,STANDARD_DISK_IMAGE,Filename,pDiskImage, DiskImageLength);
-                        
-                                ExtDskInternal_Dsk2ExtDskInternal(&Drives[DriveID]);
+		DiskImage_ImageRecognised(DriveID,DISK_IMAGE_TYPE_EXTENDED);
 
-                                Drives[DriveID].Type = INTERNAL_DISK_IMAGE;
+		ExtDskInternal_ExtDsk2ExtDskInternal(&Drives[DriveID],pDiskImage, DiskImageLength);
 
-                                if (pDiskImage!=NULL)
-                                        free(pDiskImage);
-        #endif          
-                                
-                                return TRUE;
-                        }
-                }
-        
-                if (memcmp(pDiskImage,"EXTENDED",8)==0)
-                {
-                        /* extended disk image .DSK */
+		FDD_InsertDisk(DriveID, TRUE);
+		return ARNOLD_STATUS_OK;
+	}
+	else
+	if (Dif_Validate(pDiskImage,DiskImageLength))
+	{
+		/* dif */
+		DiskImage_RemoveDisk(DriveID);
 
-                        /* validate disk image */
-                        if (ExtDsk_Validate(Filename))
-                        {
-                                /* valid */
-        #ifndef INTERNAL
-                                DiskImage_ImageRecognised(DriveID,EXTENDED_DISK_IMAGE,Filename,pDiskImage, DiskImageLength);
-                                
-                                /* initialise extended disk image */
-                                ExtDsk_Initialise(&Drives[DriveID]);
-        #else
-                                DiskImage_ImageRecognised(DriveID,EXTENDED_DISK_IMAGE,Filename,pDiskImage, DiskImageLength);
+		DiskImage_ImageRecognised(DriveID,DISK_IMAGE_TYPE_DIF);
 
-                                ExtDskInternal_ExtDsk2ExtDskInternal(&Drives[DriveID]);
+		ExtDskInternal_Dif2ExtDskInternal(&Drives[DriveID],pDiskImage,DiskImageLength);
 
-                                Drives[DriveID].Type = INTERNAL_DISK_IMAGE;
-
-                                if (pDiskImage!=NULL)
-                                        free(pDiskImage);
-        #endif
-
-                                return TRUE;
-                        }
-                }
-
-                /* not recognised or not valid */
-                free(pDiskImage);
-        }
-
-        return FALSE;
+		FDD_InsertDisk(DriveID, TRUE);
+		return ARNOLD_STATUS_OK;
+	}
+    return ARNOLD_STATUS_UNRECOGNISED;
 }
 
 /* remove a disk image from the drive */
@@ -172,49 +129,12 @@ void    DiskImage_RemoveDisk(int DriveID)
 {
         DISKIMAGE_UNIT  *pDrive=&Drives[DriveID];
 
-        if (pDrive->Type!=0)
-         {
-                switch (pDrive->Type)
-                {
-                        case STANDARD_DISK_IMAGE:
-                        {
-                                
-                
-                                Dsk_Free(pDrive);
-                
-								/* close the file */
-                                if (pDrive->pDiskImage!=NULL)
-                                        free(pDrive->pDiskImage);
+         ExtDskInternal_Free(pDrive);
 
-                                break;
-                        }
-                
-                case EXTENDED_DISK_IMAGE:
-                {
-
-                        ExtDsk_Free(pDrive);
-
-                        
-                        /* close the file */
-                        if (pDrive->pDiskImage!=NULL)
-                                free(pDrive->pDiskImage);
-
-                        break;
-                }
-
-                case INTERNAL_DISK_IMAGE:
-                        ExtDskInternal_Free(pDrive);
-                        break;
-
-                }
-        }
-
-        /* free filename */
-        if (pDrive->Filename!=NULL)
-                free(pDrive->Filename);
-        
         /* initialise drive */
         memset(pDrive,0,sizeof(DISKIMAGE_UNIT));
+
+		FDD_InsertDisk(DriveID,FALSE);
 }
 
 /**********************************************************************/
@@ -224,50 +144,15 @@ int             DiskImage_GetSectorsPerTrack(int DriveID, int PhysicalTrack,int 
 {
         DISKIMAGE_UNIT  *pDrive=&Drives[DriveID];
 
-#ifdef BE_SAFE
-        if (pDrive->NumSides==1)
-        {
-                PhysicalSide = 0;
-        }
-#endif
-
-        switch (pDrive->Type)
-        {
-                case STANDARD_DISK_IMAGE:
-                        return Dsk_GetSectorsPerTrack(pDrive,PhysicalTrack,PhysicalSide);
-                case EXTENDED_DISK_IMAGE:
-                        return ExtDsk_GetSectorsPerTrack(pDrive,PhysicalTrack,PhysicalSide);
-                case INTERNAL_DISK_IMAGE:
-                        return ExtDskInternal_GetSectorsPerTrack(pDrive, PhysicalTrack, PhysicalSide);
-        }
-
-        return 0;
+		return ExtDskInternal_GetSectorsPerTrack(pDrive, PhysicalTrack, PhysicalSide);
 }
 
-/* get a ID from physical track, physical side and fill in FDC_CHRN structure with details */
-void    DiskImage_GetID(int DriveID, int PhysicalTrack,int PhysicalSide, int Index, FDC_CHRN *pCHRN)
+/* get a ID from physical track, physical side and fill in CHRN structure with details */
+void    DiskImage_GetID(int DriveID, int PhysicalTrack,int PhysicalSide, int Index, CHRN *pCHRN)
 {
         DISKIMAGE_UNIT  *pDrive=&Drives[DriveID];
-
-#ifdef BE_SAFE
-        if (pDrive->NumSides==1)
-        {
-                PhysicalSide = 0;
-        }
-#endif
-        switch (pDrive->Type)
-        {
-        case STANDARD_DISK_IMAGE:
-                Dsk_GetID(pDrive, PhysicalTrack, PhysicalSide,Index, pCHRN);
-                return;
-
-        case EXTENDED_DISK_IMAGE:
-                ExtDsk_GetID(pDrive, PhysicalTrack,PhysicalSide,Index, pCHRN);
-                return;
-        case INTERNAL_DISK_IMAGE:
-                ExtDskInternal_GetID(pDrive, PhysicalTrack, PhysicalSide, Index, pCHRN);
-                return;
-        }
+       
+		ExtDskInternal_GetID(pDrive, PhysicalTrack, PhysicalSide, Index, pCHRN);
 }
 
 /* get a sector of data from the disk image */
@@ -275,136 +160,64 @@ void    DiskImage_GetSector(int DriveID, int PhysicalTrack, int PhysicalSide, in
 {
         DISKIMAGE_UNIT  *pDrive = &Drives[DriveID];
 
-#ifdef BE_SAFE
-        if (pDrive->NumSides==1)
-        {
-                PhysicalSide = 0;
-        }
-#endif
-
-        switch (pDrive->Type)
-        {
-                case STANDARD_DISK_IMAGE:
-                        Dsk_GetSector(pDrive,PhysicalTrack,PhysicalSide,Index,pData);
-                        return;
-                case EXTENDED_DISK_IMAGE:
-                        ExtDsk_GetSector(pDrive,PhysicalTrack,PhysicalSide, Index,pData);
-                        return;
-                case INTERNAL_DISK_IMAGE:
-                        ExtDskInternal_GetSector(pDrive, PhysicalTrack, PhysicalSide, Index, pData);
-                        return;
-        }
+        ExtDskInternal_GetSector(pDrive, PhysicalTrack, PhysicalSide, Index, pData);
 }
 
 /* write a sector of data to the disk image */
-void    DiskImage_PutSector(int DriveID, int PhysicalTrack, int PhysicalSide, int Index, char *pData)
+void    DiskImage_PutSector(int DriveID, int PhysicalTrack, int PhysicalSide, int Index, char *pData, int Mark)
 {
         DISKIMAGE_UNIT *pDrive = &Drives[DriveID];
 
         pDrive->Flags |= DISKIMAGE_DISK_DIRTY;
 
-#ifdef BE_SAFE
-        if (pDrive->NumSides==1)
-        {
-                PhysicalSide = 0;
-        }
-#endif
-
-        switch (pDrive->Type)
-        {
-                case STANDARD_DISK_IMAGE:
-                        Dsk_PutSector(pDrive, PhysicalTrack, PhysicalSide, Index, pData);
-                        return;
-                case EXTENDED_DISK_IMAGE:
-                        ExtDsk_PutSector(pDrive, PhysicalTrack, PhysicalSide, Index, pData);
-                        return;
-                case INTERNAL_DISK_IMAGE:
-                        ExtDskInternal_PutSector(pDrive, PhysicalTrack, PhysicalSide, Index, pData);
-                        return;
-        }
+	    ExtDskInternal_PutSector(pDrive, PhysicalTrack, PhysicalSide, Index, pData,Mark);
 }
 
 
 /* write a sector of data to the disk image */
-void    DiskImage_AddSector(int DriveID, int PhysicalTrack, int PhysicalSide, FDC_CHRN *pCHRN, int FillerByte)
+void    DiskImage_AddSector(int DriveID, int PhysicalTrack, int PhysicalSide, CHRN *pCHRN, int FormatN,int FillerByte)
 {
         DISKIMAGE_UNIT *pDrive = &Drives[DriveID];
 
         pDrive->Flags |= DISKIMAGE_DISK_DIRTY;
 
-#ifdef BE_SAFE
-        if (pDrive->NumSides==1)
-        {
-                PhysicalSide = 0;
-        }
-#endif
-
-        switch (pDrive->Type)
-        {
-                case STANDARD_DISK_IMAGE:
-                        return;
-                case EXTENDED_DISK_IMAGE:
-                        return;
-                case INTERNAL_DISK_IMAGE:
-                        ExtDskInternal_AddSector(pDrive, PhysicalTrack, PhysicalSide, pCHRN, FillerByte);
-                        return;
-
-        }
+        ExtDskInternal_AddSector(pDrive, PhysicalTrack, PhysicalSide, pCHRN, FormatN,FillerByte);
 }
 
 void	DiskImage_EmptyTrack(int DriveID, int PhysicalTrack, int PhysicalSide)
 {
-        DISKIMAGE_UNIT *pDrive = &Drives[DriveID];
+    DISKIMAGE_UNIT *pDrive = &Drives[DriveID];
 
-        pDrive->Flags |= DISKIMAGE_DISK_DIRTY;
+    pDrive->Flags |= DISKIMAGE_DISK_DIRTY;
 
-#ifdef BE_SAFE
-        if (pDrive->NumSides==1)
-        {
-                PhysicalSide = 0;
-        }
-#endif
-
-        switch (pDrive->Type)
-        {
-                case STANDARD_DISK_IMAGE:
-                        return;
-                case EXTENDED_DISK_IMAGE:
-                        return;
-                case INTERNAL_DISK_IMAGE:
-                        ExtDskInternal_EmptyTrack(pDrive, PhysicalTrack, PhysicalSide);
-                        return;
-
-        }
+    ExtDskInternal_EmptyTrack(pDrive, PhysicalTrack, PhysicalSide);
 }
 	
 
 BOOL    DiskImage_IsImageDirty(int DriveID)
 {
-        DISKIMAGE_UNIT  *pDrive = &Drives[DriveID];
+    DISKIMAGE_UNIT  *pDrive = &Drives[DriveID];
 
-        if (pDrive->Flags & DISKIMAGE_DISK_DIRTY)
-        {
-                return TRUE;
-        }
+    if (pDrive->Flags & DISKIMAGE_DISK_DIRTY)
+    {
+            return TRUE;
+    }
 
-        return FALSE;
+    return FALSE;
 }
 
-void    DiskImage_WriteImage(int DriveID)
+unsigned long DiskImage_CalculateOutputSize(int DriveID)
 {
-        DISKIMAGE_UNIT  *pDrive = &Drives[DriveID];
+	DISKIMAGE_UNIT  *pDrive = &Drives[DriveID];
 
-        switch (pDrive->Type)
-        {
-        case STANDARD_DISK_IMAGE:
-                Dsk_WriteImage(pDrive);
-                return;
-        case EXTENDED_DISK_IMAGE:
-                ExtDsk_WriteImage(pDrive);
-                return;
-        case INTERNAL_DISK_IMAGE:
-                ExtDskInternal_WriteImage(pDrive);
-                return;
-        }
+	return ExtDskInternal_CalculateOutputDataSize(pDrive);
 }
+
+
+void    DiskImage_GenerateOutputData(unsigned char *pBuffer, int DriveID)
+{
+       DISKIMAGE_UNIT  *pDrive = &Drives[DriveID];
+		
+	   ExtDskInternal_GenerateOutputData(pBuffer, pDrive);
+}
+

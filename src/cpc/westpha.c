@@ -23,8 +23,6 @@ PLEASE COULD THEY CONTACT ME SO I CAN WRITE A PROGRAM TO DUMP THE INFORMATION AN
 AN IDEA OF WHAT SHOULD HAPPEN! */
 #include "cpc.h"
 #include "westpha.h"
-#include <memory.h>
-#include <string.h>
 
 /* NOP count before changing to next state */
 static int StateCount;

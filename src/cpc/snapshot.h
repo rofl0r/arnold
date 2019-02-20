@@ -20,12 +20,11 @@
 #ifndef __SNAPSHOT_HEADER_INCLUDED__
 #define __SNAPSHOT_HEADER_INCLUDED__
 
-
 #include "cpcglob.h"
 
 #define SNAPSHOT_HEADER_TEXT "MV - SNA"
 
-typedef struct SNAPSHOT_HEADER
+typedef struct
 {
 	char	SnapshotID[8];
 	char	pad0[8];
@@ -89,7 +88,12 @@ typedef struct SNAPSHOT_HEADER
 } SNAPSHOT_HEADER;
 
 
-BOOL	Snapshot_Load(char *);
-BOOL	Snapshot_Save(char *,int,int);
+int Snapshot_Insert(const unsigned char *, const unsigned long);
+
+/* calculates an estimated output file size. It is estimated because the final version
+may be compressed */
+unsigned long Snapshot_CalculateOutputSize(int SnapshotSizeInK, int Version);
+
+void Snapshot_GenerateOutputData(unsigned char *pBuffer, int SnapshotSizeInK, int Version);
 
 #endif

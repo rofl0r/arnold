@@ -22,22 +22,22 @@
 
 #include "cpcglob.h"
 #include "riff.h"
-#include "expbuf.h"
 
 /* handle a V3 chunk on reading */
-void	SnapshotV3_HandleChunk(RIFF_CHUNK *pCurrentChunk,unsigned long Size);
+void SnapshotV3_HandleChunk(RIFF_CHUNK *pCurrentChunk,unsigned long Size);
 /* write the V3 CPC+ chunk */
-void	SnapshotV3_WriteCPCPlusChunk(simple_expanding_buffer *buffer);
+unsigned char *SnapshotV3_CPCPlus_WriteChunk(unsigned char *buffer);
 
 /* begin a chunk */
-void	SnapshotV3_BeginChunk(simple_expanding_buffer *buffer, unsigned long ChunkName);
+unsigned char *SnapshotV3_BeginChunk(unsigned char *buffer, unsigned long ChunkName);
 
 /* write data to chunk */
-void	SnapshotV3_WriteDataToChunk(simple_expanding_buffer *buffer, unsigned char *pData, unsigned long Length);
+unsigned char *SnapshotV3_WriteDataToChunk(unsigned char *buffer, unsigned char *pData, unsigned long Length);
 
 /* end a chunk */
-void	SnapshotV3_EndChunk(simple_expanding_buffer *buffer);
+void SnapshotV3_EndChunk();
 
+unsigned long SnapshotV3_CPCPlus_CalculateOutputSize();
 
 #endif
 

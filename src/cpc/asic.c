@@ -43,16 +43,15 @@
 
 /* 9:3:1 summing, green:red:blue */
 
+#include "headers.h"
+
 #include "asic.h"
 #include "render.h"
 #include "cpcglob.h"    
 #include "crtc.h"
-#include "multface.h"
 #include "cpc.h"
-#include "host.h"
 #include "yiq.h"
 #include "z80/z80.h"
-#include "cpcdefs.h"
 #include "endian.h"
 #include "riff.h"
 
@@ -64,23 +63,6 @@ void    ASIC_DMA_DisableChannels(unsigned char Data);
 
 #define ASIC_UNUSED_RAM_DATA 0x0b0
 
-
-#include <string.h>
-#include "debugmain.h"
-
-#ifdef ASIC_DEBUGGING
-extern char DebugString[256];
-extern DEBUG_HANDLE ASIC_Debug;
-
-static BOOL             ASIC_DebugEnable = TRUE;
-
-void    ASIC_SetDebug(BOOL State)
-{
-        Debug_Enable(ASIC_Debug, State);
-
-        ASIC_DebugEnable = Debug_Active(ASIC_Debug);
-}
-#endif
 
 /* for colour/greyscale monitor support */
 static RGBCOLOUR ASIC_DisplayColours[4096];
@@ -112,7 +94,7 @@ unsigned char ASIC_GetSPLT(void)
 	return (unsigned char)ASIC_Data.ASIC_RasterSplitLine;
 }
 
-unsigned long ASIC_GetSSA(void)
+unsigned short ASIC_GetSSA(void)
 {
 	return ASIC_Data.ASIC_SecondaryScreenAddress.Addr_W;
 }
@@ -205,7 +187,8 @@ static unsigned short	CPCToASICColours[32]=
 };
 
 static unsigned char    *CartridgePages[32];                    /* pointer to cartridge pages */
-
+static unsigned long	NumCartridgeBlocks;
+static unsigned char	*CartridgeBlocks[32];
 
 static const int ASIC_EnableSequence[]=
 {
@@ -360,12 +343,6 @@ void    ASIC_EnableDisable(int Data)
                     {
                             /* unlock asic */
 
-#ifdef ASIC_DEBUGGING
-		              if (ASIC_DebugEnable)
-			          {
-				                Debug_WriteString(ASIC_Debug,"Asic enabled\r\n");
-					  }
-#endif
 						ASIC_Data.Flags |= ASIC_ENABLED;	
 
 						CRTC_SetRenderFunction(RENDER_MODE_ASIC_FEATURES);
@@ -459,13 +436,6 @@ void    ASIC_Reset(void)
 {
         int     i;
 
-#ifdef ASIC_DEBUGGING
-        if (ASIC_DebugEnable)
-        {
-                Debug_WriteString(ASIC_Debug,"Doing Reset\r\n");
-        }
-#endif
-
         ASIC_Data.Flags |= (ASIC_ENABLED);
 		
         /* disable all sprites */
@@ -518,13 +488,7 @@ void    ASIC_Reset(void)
 
 /* CHECK! */
 /*		ASIC_SetSecondaryRomMapping(0x0a0); */
-/* ram state on reset */
-#ifdef ASIC_DEBUGGING
-        if (ASIC_DebugEnable)
-        {
-                Debug_WriteString(ASIC_Debug,"End Of Reset\r\n");
-        }
-#endif
+
 }
 
 
@@ -536,12 +500,14 @@ void    ASIC_InitCart(void)
         for (i=0; i<32; i++)
         {
                 CartridgePages[i] = NULL;
-        }
+		  		CartridgeBlocks[i] = NULL;
+		}	
+		NumCartridgeBlocks = 0;
 }
 
 /* check if cartridge file is valid, return TRUE if it is, else
 false */
-BOOL    Cartridge_ValidateCartridge(unsigned char *pData, int FileSize)
+BOOL    Cartridge_ValidateCartridge(const unsigned char *pData, int FileSize)
 {
         RIFF_CHUNK *pHeader = (RIFF_CHUNK *)pData;
         unsigned char *pChunkData;
@@ -646,105 +612,141 @@ int             Cartridge_CalcCartSizeInBlocks(int NoOfBlocks)
         return NoOfBlocks+1;
 }
 
-BOOL    Cartridge_Load(char *Filename)
+
+int Cartridge_AttemptInsert(unsigned char *pCartridgeData, unsigned long CartridgeLength)
 {
-        unsigned long CartridgeLength;
-        unsigned char *pNewCartridge;
+	int Status;
 
-        /* load cartridge data */
-        Host_LoadFile(Filename, &pNewCartridge, &CartridgeLength);
-        
-        if (pNewCartridge!=NULL)
-        {
-                /* check cartridge is valid */
-                if (Cartridge_ValidateCartridge(pNewCartridge, CartridgeLength))
-                {
-                        /* cartridge is valid */
-                        int HighestBlockIndex = 0;
-                        int CartSizeInBlocks = 0;
+	Status = Cartridge_Insert(pCartridgeData, CartridgeLength);
+	if (Status==ARNOLD_STATUS_OK)
+	{
+		/* if cartridge was inserted ok, then auto-start it */
+		Cartridge_Autostart();
+	}
 
-                        /* get cartridge data blocks */
-                        RIFF_CHUNK *pHeader = (RIFF_CHUNK *)pNewCartridge;
-                        int i;
-
-                        /* remove old one if it is present */   
-                        Cartridge_Remove();
-
-                        for (i=0; i<32; i++)
-                        {
-                                unsigned long CartBlockChunkName = RIFF_FOURCC_CODE('c','b',((i/10)+'0'),((i % 10)+'0'));
-                                RIFF_CHUNK *pChunk;
-
-                                /* find cart block chunk */
-                                pChunk = Riff_FindNamedSubChunk(pHeader, CartBlockChunkName);
-
-                                if (pChunk!=NULL)
-                                {
-                                        /* found cart block chunk */
-
-                                        unsigned char *pChunkData = Riff_GetChunkDataPtr(pChunk);
-                                        
-                                        CartridgePages[i] = pChunkData;
-        
-                                        HighestBlockIndex  = i;
-                                }
-                                else
-                                {
-                                        CartridgePages[i] = NULL;
-                                }
-                        }
-
-                        /* the following code works out the size of the cart,
-                        and then fills in the NULL pointers with other pointers
-                        to repeat the data */
-
-                        CartSizeInBlocks = Cartridge_CalcCartSizeInBlocks(HighestBlockIndex);
-
-                        /* convert highest block index, into highest block index
-                        that is a power of 2 */
-                        
-                        /* fill in missing cart pages */
-                        for (i=0; i<32; i++)
-                        {
-                                if (CartridgePages[i] == NULL)
-                                {
-                                        CartridgePages[i] = CartridgePages[i & (CartSizeInBlocks-1)];
-                                }
-                        }
-
-                        pCartridge = pNewCartridge;
-
-                        /* cartridge loaded ok */
-
-                        /* are we in CPC+ mode? */
-                        if (CPC_GetHardware()!=CPC_HW_CPCPLUS)
-                        {
-                            /* no. set type to CPC+ (6128), and reset it */
-                            CPC_SetCPCType(CPC_TYPE_6128PLUS);
-                        }
-						
-                        /* already in CPC+ mode, just reset */
-                        CPC_Reset();
-
-                        return TRUE;    
-                }
-                else
-                {
-                        free(pNewCartridge);
-                }
-        }
-
-        return FALSE;
+	return Status;
 }
+
+int		Cartridge_Insert(const unsigned char *pCartridgeData, const unsigned long CartridgeDataLength)
+{
+    unsigned long CartridgeLength;
+    const unsigned char *pCartridge;
+  
+	pCartridge = pCartridgeData;
+	CartridgeLength = CartridgeDataLength;
+
+    if (pCartridge!=NULL)
+    {
+        /* check cartridge is valid */
+        if (Cartridge_ValidateCartridge(pCartridge, CartridgeLength))
+        {
+            /* cartridge is valid */
+			int HighestBlockIndex = 0;
+            int CartSizeInBlocks = 0;
+
+            /* get cartridge data blocks */
+            RIFF_CHUNK *pHeader = (RIFF_CHUNK *)pCartridge;
+            int i;
+
+			NumCartridgeBlocks = 0;
+
+            /* remove old one if it is present */   
+            Cartridge_Remove();
+
+            for (i=0; i<32; i++)
+            {
+                unsigned long CartBlockChunkName = RIFF_FOURCC_CODE('c','b',((i/10)+'0'),((i % 10)+'0'));
+                RIFF_CHUNK *pChunk;
+
+                /* find cart block chunk */
+                pChunk = Riff_FindNamedSubChunk(pHeader, CartBlockChunkName);
+
+                if (pChunk!=NULL)
+                {
+                    /* found cart block chunk */
+                    unsigned char *pChunkData = Riff_GetChunkDataPtr(pChunk);
+					unsigned long ChunkLength = Riff_GetChunkLength(pChunk);
+					unsigned long CopyLength;
+
+					CartridgeBlocks[NumCartridgeBlocks] = malloc(16384);
+
+					CopyLength = 16384;
+					if (ChunkLength<CopyLength)
+						CopyLength = ChunkLength;
+
+					if (CartridgeBlocks[NumCartridgeBlocks]!=NULL)
+					{
+						memcpy(CartridgeBlocks[NumCartridgeBlocks],pChunkData,CopyLength); 
+					}
+
+                    CartridgePages[i] = CartridgeBlocks[NumCartridgeBlocks];
+
+					NumCartridgeBlocks++;
+
+                    HighestBlockIndex  = i;
+	            }
+            }
+
+            /* the following code works out the size of the cart,
+            and then fills in the NULL pointers with other pointers
+            to repeat the data */
+
+            CartSizeInBlocks = Cartridge_CalcCartSizeInBlocks(HighestBlockIndex);
+
+            /* convert highest block index, into highest block index
+            that is a power of 2 */
+            
+            /* fill in missing cart pages */
+            for (i=0; i<32; i++)
+            {
+                if (CartridgePages[i] == NULL)
+                {
+                    CartridgePages[i] = CartridgeBlocks[i & (CartSizeInBlocks-1)];
+                }
+            }
+
+            return ARNOLD_STATUS_OK;    
+        }
+    }
+
+    return ARNOLD_STATUS_INVALID;
+}
+
+void Cartridge_Autostart()
+{
+    /* are we in CPC+ mode? */
+    if (CPC_GetHardware()!=CPC_HW_CPCPLUS)
+    {
+		/* set CPC+ hardware */
+		CPC_SetHardware(CPC_HW_CPCPLUS); 
+    }
+	
+    /* already in CPC+ mode, just reset */
+    CPC_Reset();
+}
+
 
 void    Cartridge_Remove(void)
 {
-        if (pCartridge!=NULL)
-        {
-                free(pCartridge);
-                pCartridge = NULL;
-        }
+	int i;
+
+	for (i=0; i<32; i++)
+	{
+		if (CartridgeBlocks[i]!=NULL)
+		{
+			/* free block */
+			free(CartridgeBlocks[i]);
+			CartridgeBlocks[i] = NULL;
+
+		}
+	}
+
+	for (i=0; i<32; i++)
+	{
+		CartridgePages[i] = NULL;
+	}
 }
+
 
 INLINE static void    ASIC_SetMemPointers(unsigned char **pReadRamPtr, unsigned char **pWriteRamPtr)
 {
@@ -883,98 +885,104 @@ unsigned char ASIC_GetSpritePixel(int SpriteIndex, int X, int Y)
         return (unsigned char)(pSpriteData[(Y<<4) + X] & 0x0f);
 }
 
- unsigned long ASIC_BuildDisplayReturnMaskWithPixels(int Line, int HCount, /*int MonitorHorizontalCount,*/ /*int ActualY,*/ int *pPixels)
+static BOOL ASIC_IsSpriteOnLine(ASIC_SPRITE_RENDER_INFO *pRenderInfo, unsigned long Line)
 {
-        /* based on line we can find which HW sprites are here */
+	unsigned long DeltaLines;
 
-        int     i;
-		unsigned char   *pSpriteGraphics;
+	/* calculate delta lines */
+	/* sprite coordinate range is &000-&1ff */
+	DeltaLines = (Line - pRenderInfo->y) & 0x01ff;
+		
+	return (DeltaLines<pRenderInfo->HeightInLines);
+}
 
-        unsigned long GraphicsMask = 0;
+unsigned long ASIC_BuildDisplayReturnMaskWithPixels(int Line, int HCount, /*int MonitorHorizontalCount,*/ /*int ActualY,*/ int *pPixels)
+{
+	/* based on line we can find which HW sprites are here */
 
-        if ((ASIC_Data.SpriteEnableMask!=0) && (ASIC_Data.SpriteEnableMaskOnLine!=0))
-        {
-                /* HCount * 16 */
-                int Column = HCount<<4;
+	unsigned long GraphicsMask = 0;
 
-                {
-                        /* do each sprite in turn (from highest to lowest priority) */
-                        for (i=0; i<16; i++)
+	if ((ASIC_Data.SpriteEnableMask & ASIC_Data.SpriteEnableMaskOnLine)!=0)
+	{
+		int     i;
+		ASIC_SPRITE_RENDER_INFO *pRenderInfo = &ASIC_Data.SpriteInfo[0];
+
+		/* do each sprite in turn (from highest to lowest priority) */
+		for (i=0; i<16; i++)
+		{
+			/* is sprite active on this line? */
+			if (ASIC_Data.SpriteEnableMaskOnLine & (1<<i))
+			{
+				/* sprite is active on this line */
+				unsigned long DeltaColumns;
+
+				/* calculate delta columns */
+				/* sprite coordinate range is &000-&3ff, and this corresponds to hcount of &00-&3f */
+				DeltaColumns = (HCount - pRenderInfo->MinColumn) & 0x03f;
+					
+				/* if column delta is within width in columns; this sprite is visible
+				at this hcount */
+				if (DeltaColumns<pRenderInfo->WidthInColumns)
+				{
+					unsigned char   *pSpriteGraphics;
+					int                     SpriteX,SpriteY;
+					int                     j, SprY;
+					int                     XStart;
+
+		            pSpriteGraphics = ASIC_Data.ASIC_Ram + (i<<8);
+  
+                    SpriteY = (Line - pRenderInfo->y) & 0x01ff;
+
+                    if (DeltaColumns==0)
+                    {
+						XStart = pRenderInfo->x & 0x0f;
+						SpriteX = 0;
+                    }
+                    else
+                    {
+						SpriteX = ((HCount<<4) - pRenderInfo->x) & 0x03ff;
+						XStart = 0;
+                    }
+
+                    SprY = SpriteY>>ASIC_Data.SpriteInfo[i].YMagShift;
+
+                    /* rendering 16 pixels in one go = 1 CRTC char width */
+                    for (j=XStart; j<16; j++)
+                    {
+                        /* if no pixel rendered here */
+                        if ((GraphicsMask & (1<<j))==0)
                         {
-                                if (ASIC_Data.SpriteEnableMaskOnLine & (1<<i))
-                                {
-                                        pSpriteGraphics = ASIC_Data.ASIC_Ram + (i<<8);
-
-                                        {
-                                                if ((Column>=ASIC_Data.SpriteInfo[i].SpriteXColumnMin) && (Column<=ASIC_Data.SpriteInfo[i].SpriteXColumnMax))
-                                                {
-                                                        /* column and line is within sprite range */
-
-                                                        /* need to work out X and Y pixel position of sprite */
-
-                                                        int                     SpriteX,SpriteY;
-                                                        int                     j, SprY;
-                                                        int                     XStart;
-
-                                                        SpriteY = Line - ASIC_Data.SpriteInfo[i].SpriteMinYPixel;
-
-                                                        if (Column == ASIC_Data.SpriteInfo[i].SpriteXColumnMin)
-                                                        {
-                                                                XStart = ASIC_Data.SpriteInfo[i].SpriteMinXPixel & 0x0f;
-                                                                SpriteX = 0;
-                                                        }
-                                                        else
-                                                        {
-                                                                SpriteX = Column - ASIC_Data.SpriteInfo[i].SpriteMinXPixel;
-                                                                XStart = 0;
-                                                        }
-
-                                                        SprY = SpriteY>>ASIC_Data.SpriteInfo[i].YMagShift;
+							unsigned short    SprX;
 
 
-                                                        {
-                                                                /* rendering 16 pixels in one go = 1 CRTC char width */
-                                                                for (j=XStart; j<16; j++)
-                                                                {
-                                                                        /* if no pixel rendered here */
-                                                                        if ((GraphicsMask & (1<<j))==0)
-                                                                        {
-                                                                                signed short    SprX;
+							SprX = (unsigned short)((SpriteX+(j-XStart))>>ASIC_Data.SpriteInfo[i].XMagShift);
 
-                                                                        
-                                                                                SprX = (signed short)((SpriteX+(j-XStart))>>ASIC_Data.SpriteInfo[i].XMagShift);
-                                                                                
-                                                                                /* if removed mainly renders but on last char appears to leave garbage */
-                                                                                if (SprX<16)
-                                                                                {
-                                                                                        int     Colour;
+                            if (SprX<16)
+                            {
+                                    int     Colour;
 
-                                                                                        Colour = (pSpriteGraphics[(SprY<<4) | SprX] & 0x0f);
-                                                                                
-                                                                                        if (Colour!=0)
-                                                                                        {
-                                                                                            
-                                                                                                pPixels[j] = Colour+16;
-                                                                                                /* mark this pixel as used */
-                                                                                                GraphicsMask |= (1<<j);
-                                                                                        }
-                                                                                }
-                                                                        }
-                                                                }
+                                    Colour = (pSpriteGraphics[(SprY<<4) | SprX] & 0x0f);
+                            
+                                    if (Colour!=0)
+                                    {
+                                        
+                                            pPixels[j] = Colour+16;
+                                            /* mark this pixel as used */
+                                            GraphicsMask |= (1<<j);
+                                    }
+                            }
+                        }
+	                }
 
-                                                                /* if all are used, quit */
-                                                                if (GraphicsMask == 0x00000ffff)
-                                                                        break;
-                                                        }
-                                                }
-                                        }
-                                }
-                                
-           				}
-                }
-        }
-
-        return (GraphicsMask ^ 0x0ffff);
+                    /* if all are used, quit */
+                    if (GraphicsMask == 0x00000ffff)
+                            break;
+				}
+            }
+			pRenderInfo++;
+		}
+	}
+    return (GraphicsMask ^ 0x0ffff);
 }
 
 
@@ -1188,12 +1196,6 @@ void    ASIC_AcknowledgeInterrupt()
 
 
 
-#ifdef ASIC_DEBUGGING
-void    ASIC_WriteRamDebug(int Addr,int Data)
-{
-}
-#endif
-
 static void ASIC_SetupSpriteRenderInfo(int SpriteIndex)
 {
         /* write sprite info */
@@ -1226,22 +1228,20 @@ static void ASIC_SetupSpriteRenderInfo(int SpriteIndex)
 
                 /* get sprite min coordinates */
 
-                /* get sprite data - intel only */
-                pRenderInfo->SpriteMinXPixel = (signed short)(ASIC_Data.Sprites[SpriteIndex].SpriteX.SpriteX_W);
-                pRenderInfo->SpriteMinYPixel = (signed short)(ASIC_Data.Sprites[SpriteIndex].SpriteY.SpriteY_W);
+                pRenderInfo->x = (unsigned short)(ASIC_Data.Sprites[SpriteIndex].SpriteX.SpriteX_W);
+                pRenderInfo->y = (unsigned short)(ASIC_Data.Sprites[SpriteIndex].SpriteY.SpriteY_W);
                 
                 /* get sprite max coordinates */
-                pRenderInfo->SpriteMaxXPixel = (short)(pRenderInfo->SpriteMinXPixel + (1<<(XMag-1+4)));
-                pRenderInfo->SpriteMaxYPixel = (short)(pRenderInfo->SpriteMinYPixel + (1<<(YMag-1+4)));	
+//                pRenderInfo->SpriteMaxXPixel = (unsigned short)(/*pRenderInfo->SpriteMinXPixel +*/ (1<<(XMag-1+4)));
+                pRenderInfo->HeightInLines = (1<<(YMag-1+4));	
 
-                /* each column is actually a CRTC char wide - 16 pixels */                      
-                pRenderInfo->SpriteXColumnMin = (short)(pRenderInfo->SpriteMinXPixel & 0x0fff0);
-                pRenderInfo->SpriteXColumnMax = (short)(pRenderInfo->SpriteMaxXPixel & 0x0fff0);
+				pRenderInfo->WidthInColumns = ((pRenderInfo->x & 0x0f) + 15 + (1<<(XMag-1+4)))>>4;
+				pRenderInfo->MinColumn = (pRenderInfo->x>>4) & 0x03f;
 
                 ASIC_Data.SpriteEnableMask |= (1<<SpriteIndex);
                 
                 /* active on this line? */
-                if ((CurrentLine>=pRenderInfo->SpriteMinYPixel) && (CurrentLine<pRenderInfo->SpriteMaxYPixel))
+				if (ASIC_IsSpriteOnLine(pRenderInfo, CurrentLine))
                 {
                         /* say it's active in the mask */
                         ASIC_Data.SpriteEnableMaskOnLine |= (1<<SpriteIndex);
@@ -1254,7 +1254,7 @@ static void ASIC_SetupSpriteRenderInfo(int SpriteIndex)
                 ASIC_Data.SpriteEnableMask &= ~(1<<SpriteIndex);
 
                 /* active on this line */
-                if ((CurrentLine>=pRenderInfo->SpriteMinYPixel) && (CurrentLine<pRenderInfo->SpriteMaxYPixel))
+//				if (ASIC_IsSpriteOnLine(pRenderInfo, CurrentLine))
                 {
                         /* say it's active in the mask */
                         ASIC_Data.SpriteEnableMaskOnLine &= ~(1<<SpriteIndex);
@@ -1292,14 +1292,7 @@ void    ASIC_WriteRam(int Addr,int Data)
 {
         if ((Addr & 0x0c000)!=0x04000)
                 return;
-        
-#ifdef ASIC_DEBUGGING
-        if (ASIC_DebugEnable)
-        {
-                ASIC_WriteRamDebug(Addr,Data);
-        }
-#endif
-
+       
 		Addr = Addr & 0x03fff;
 
         if ((Addr & 0x0f000)==0x00000)	
@@ -1334,26 +1327,30 @@ void    ASIC_WriteRam(int Addr,int Data)
 
                         case 1:
                         {
-							if (ASIC_Data.Sprites[SpriteIndex].SpriteX.SpriteX_B.h == Data)
+							/* if bit 0 = 1 and bit 1 = 1, then reading this byte will return 0x0ff */
+							/* otherwise bit 7-2 are forced to zero */
+							
+							unsigned char LocalData = Data & 0x03;
+							unsigned char PokeData;
+
+							PokeData = LocalData;
+							if (PokeData==3)
+							{
+								PokeData = 0x0ff;
+							}
+
+							/* change value in ram and mirror */
+							ASIC_Data.ASIC_Ram[Addr] = (ASIC_Data.ASIC_Ram[Addr+4] = PokeData);
+
+							/* move this ahead if possible to speed things up a bit */
+							if (ASIC_Data.Sprites[SpriteIndex].SpriteX.SpriteX_B.h == LocalData)
 							{
 								return;
 							}
-							{
-//								unsigned char LocalData = Data;	// & 0x03;
 
-
-//								if (LocalData==3)
-//								{
-//									LocalData=0x0ff;
-//								}
-
-								/* set X coordinate high byte */
-								ASIC_Data.Sprites[SpriteIndex].SpriteX.SpriteX_B.h = (signed char)Data;   
-								
-								/* change value in ram and mirror */
-								ASIC_Data.ASIC_Ram[Addr] = (ASIC_Data.ASIC_Ram[Addr+4] = Data);
-
-							}
+							/* set X coordinate high byte */
+							ASIC_Data.Sprites[SpriteIndex].SpriteX.SpriteX_B.h = LocalData;   
+	
                         }
                         break;
 
@@ -1374,28 +1371,35 @@ void    ASIC_WriteRam(int Addr,int Data)
 
                         case 3:
                         {
-							if (ASIC_Data.Sprites[SpriteIndex].SpriteY.SpriteY_B.h == Data)
+
+							/* if bit 0 = 1 then reading this byte will return 0x0ff */
+							/* otherwise bit 7-1 are forced to zero */
+
+							unsigned char LocalData = Data & 0x01;
+							unsigned char PokeData;
+                       
+							PokeData = LocalData;
+							if (PokeData!=0)
+							{
+								PokeData=0x0ff;
+							}
+
+							ASIC_Data.ASIC_Ram[Addr] = (ASIC_Data.ASIC_Ram[Addr+4] = PokeData);
+
+
+							/* watch out if this is moved; if bit 0 is set, then 0x0ff must be poked into
+							ASIC ram!*/
+							if (ASIC_Data.Sprites[SpriteIndex].SpriteY.SpriteY_B.h == LocalData)
 							{
 								return;
 							}
-							{
-//								unsigned char LocalData = Data;	// & 0x01;
 
-                            
-//								/* change value and mirror */
-//								if (LocalData==1)
-//								{
-//									LocalData=0x0ff;
-//								}
+							/* set Y coordinate high byte */
+							ASIC_Data.Sprites[SpriteIndex].SpriteY.SpriteY_B.h = (unsigned char)LocalData;   
+ 
 
-								/* set Y coordinate high byte */
-								ASIC_Data.Sprites[SpriteIndex].SpriteY.SpriteY_B.h = (signed char)Data;   
-
-
-								ASIC_Data.ASIC_Ram[Addr] = (ASIC_Data.ASIC_Ram[Addr+4] = Data);
-							}
                         }
-                        break;
+						break;
 
 
 						default:
@@ -1881,21 +1885,26 @@ void	ASIC_GenerateSpriteActiveMaskForLine(int Line)
 
         CurrentLine = Line;
 
-        /* do each sprite in turn */
-        for (i=15; i>=0; i--)
-        {
-                /* enabled ? */
-                if (ASIC_Data.SpriteEnableMask & EnableTestMask)	
-                {
-                        /* active on this line */
-                        if ((Line>=ASIC_Data.SpriteInfo[i].SpriteMinYPixel) && (Line<ASIC_Data.SpriteInfo[i].SpriteMaxYPixel))
-                        {
-                                /* say it's active in the mask */
-                                SpriteActiveMask |= EnableTestMask;
-                        }
-                }
+		{
+			ASIC_SPRITE_RENDER_INFO *pRenderInfo = &ASIC_Data.SpriteInfo[15];
+
+			/* do each sprite in turn */
+			for (i=15; i>=0; i--)
+			{
+				/* enabled ? */
+				if (ASIC_Data.SpriteEnableMask & EnableTestMask)	
+				{
+					/* active on this line */
+					if (ASIC_IsSpriteOnLine(pRenderInfo, CurrentLine))
+					{
+							/* say it's active in the mask */
+							SpriteActiveMask |= EnableTestMask;
+					}
+				}
         
-			EnableTestMask = EnableTestMask>>1;
+				pRenderInfo--;
+				EnableTestMask = EnableTestMask>>1;
+			}
 		}
 
         /* return mask */

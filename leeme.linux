@@ -1,0 +1,111 @@
+ARNOLD
+======
+
+Notas acerca de la versión Linux
+=================================
+
+Requisitos
+----------
+
+Para utilizar Arnold necesitas:
+- un sistema rápido
+- X-Windows (16-bit de profundidad, 24-bit o 32-bit)
+- para la versión SDL necesitas tener libsdl instalada.
+  Puedes obtenerla de http://www.libsdl.org/
+- para la versión GTK+ necesitas libgtk y libgdk instaladas.
+  Puedes obtenerlas de http://www.gtk.org/
+
+Esta versión es más básica comparada con la versión Windows.
+Algunas de las características de la versión Windows no han sido todavía
+hechas disponibles en la versión Unix. Por favor, se paciente.
+
+IMPORTANTE: Aunque SDL y GTK+ son opcionales, deberías utilizar ambos
+antes de instalar Arnold. La versión sin SDL tiene varios problemas
+gráficos, no tiene sonido y su IMHO no es muy útil. Para compilar una versión con
+GTK+ y SDL necesitarás tener todos los ficheros de cabecera de GTK+ y SDL
+instalados además de las librerías. Si usas una distribución basada en RPM,
+instala gdk-devel, gtk+-devel y sdl-devel además de
+los RPMs que no son de desarrollo. Puede que quieras además compilar tu propia versión de
+SDL, porque las versiones RPM suelen ser muy antiguas. Yo uso actualmente
+1.2.2, por lo que no se si versiones anteriores funcionan. No tengas miedo de compilar
+SDL. Es realmente muy fácil.
+
+Kevin Thacker ha compilado y testeado Arnold/Linux con Redhat Linux
+v7.0 en un Pentium II. Yo programo en un Athlon 1,2GHz con RedHat
+v7.1. La salida de sonido SDL es muy nueva y solo se ha probado en mi sistema. Yo
+utilizo ALSA para la salida de sonido y también tengo instalado los parches del kernel de Latencia-Baja
+de Robert M. Love. El Sonido podría fallar en otros sistemas,
+por lo que por favor decirme si os funciona. Incluso si funciona bien. ;-)
+
+Compilación
+-----------
+
+cd arnold/src
+./configure
+make
+
+Por favor, comprueba la configuración antes de construir Arnold. Si no se encuentran
+GTK+ y SDL, probablemente no tienes los RPM de desarrollo
+(o las librerías, especialmente en el caso de SDL). Si quieres ver si Arnold funciona
+normalmente adelante, pero si quieres todas las características, por favor
+instala GTK+ y SDL con todos los ficheros de cabecera y empieza de nuevo.
+
+Uso
+---
+
+cd arnold
+./arnold
+
+Con la versión GTK/SDL verás una ventana donde puedes elegir abrir una
+imagen de disco (para las unidades A o B), Reiniciar el ordenador o Salir.
+
+En la versión SDL puedes también elegir una precisión de renderizado diferente y el modo a pantalla completa.
+
+F1 = reiniciar
+F2 = intercambiar los modos a pantalla completa y ventana.
+Hay varias opciones disponibles en la linea de comandos:
+
+-drivea <filename>      = especifica una imagen de disco a insertar en la unidad A
+-driveb <filename>      = especifica una imagen de disco a insertar en la unidad B
+-cart <filename>        = especifica cartucho CPC+ a insertar
+                          (reinicia en modo CPC+ si no es el seleccionado)
+-frameskip <number>     = especifica el salto de frame (0=ninguno, 1=dibuja un frame,
+                          pierde un frame, dibuja un frame etc
+-crtctype <number>      = especifica tipo de CRTC a utilizar en la emulación
+                          (0=hd6845s/um6845, 1=um6845r, 2=mc6845, 3=CPC+ ASIC)
+-tape <filename>        = especifica imagen de cinta .tzx/.cdt a utilizar
+-cpctype <number>       = especifica tipo de CPC (0=cpc464, 1=cpc664, 2=cpc6128,
+                          3=cpc464+,4=cpc6128+,5=kc compact)
+-snapshot <filename>    = especifica fichero de captura (.sna) para auto-empezar
+
+Para esta versión, los ficheros con las ROMs deben estar en un subdirectorio dentro
+del directorio donde está el ejecutable:
+
+e.g.
+
+arnold
+roms/...
+
+Errores conocidos
+-----------------
+
+La emulación de teclado es incorrecta en teclados no US (o UK?).
+Yo utilizo un teclado alemán, por lo que arreglaré esto pronto.
+Mientras tanto juega a algunos bonitos juegos CPC de la vieja escuela o mira algunas demos.
+;-)
+
+Por favor, ten en cuenta que esta versión está en desarrollo. Hay realmente otros errores.
+De todas formas las notificaciones son siempre bienvenidas.
+
+Últimas palabras
+----------------
+
+Gracias a Kevin Thacker por empezar Arnold, haciendo la versión C y la versión Linux
+y distribuyendo todo bajo la GPL. Sin una versión Linux inicial
+yo nunca habría empezado con esto.
+
+pásalo bien,
+Andreas Micklei <nurgle@cpcszene.de> <nurgle@gmx.de>
+19-Enero-2002
+
+

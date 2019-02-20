@@ -24,7 +24,7 @@
 #pragma pack(1)
 #endif
 
-typedef struct BMP_RGBQUAD
+typedef struct
 {
 	unsigned char Blue;
 	unsigned char Green;
@@ -32,7 +32,7 @@ typedef struct BMP_RGBQUAD
 	unsigned char Reserved;
 } BMP_RGBQUAD;
 
-typedef struct BMP_HEADER
+typedef struct
 {
 	unsigned short	Type;
 	unsigned long	Size;
@@ -41,7 +41,7 @@ typedef struct BMP_HEADER
 	unsigned long	OffsetBits;
 } BMP_HEADER;
 
-typedef struct BMP_INFO_HEADER
+typedef struct
 {
 	unsigned long Size;
 	unsigned long Width;
@@ -60,10 +60,17 @@ typedef struct BMP_INFO_HEADER
 #pragma pack()
 #endif
 
-BMP_HEADER *BitmapUtil_New(int Depth, int Width, int Height);
-void	BitmapUtil_Delete(BMP_HEADER *);
-void	BitmapUtil_Write(BMP_HEADER *, char *);
-void	BitmapUtil_WritePixelRGB(BMP_HEADER *pBMP, unsigned int X, unsigned int Y, unsigned char r, unsigned char g, unsigned char b);
+/* calculate size to allocate for bitmap data in memory */
+unsigned long BMP_CalculateAllocSize(int Width, int Height);
+/* setup internal structures */
+void BMP_Setup(BMP_HEADER *pBMP, int Width, int Height);
+
+/* converts data in BMP_HEADER and BMP_INFO_HEADER into appropiate endianness
+ready for file to be saved to disc */
+void BMP_SetupForSave(BMP_HEADER *pBMP);
+
+/* helper function to write to bitmap in memory */
+void	BMP_WritePixelRGB(BMP_HEADER *pBMP, unsigned int X, unsigned int Y, unsigned char r, unsigned char g, unsigned char b);
 
 
 #endif

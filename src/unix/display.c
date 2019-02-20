@@ -20,6 +20,7 @@
 /* display */
 #ifndef HAVE_SDL
 #include "display.h"
+#include "../cpc/messages.h"
 
 Display *display;
 Window window;
@@ -184,7 +185,7 @@ void    XWindows_SetDisplayWindowed(int Width, int Height, int Depth)
 	if (XMatchVisualInfo(display, myscreen, 8, PseudoColor,
 &myvisual))
 	{
-		printf("8-bit paletted!\r\n");
+		printf(Messages[104]);
 		XWindows_GotVisual(Width, Height);
 	}
 	else
@@ -282,7 +283,7 @@ void	XWindows_SwapGraphicsBuffers(void)
 
 if(XPutImage(display,window,gc,image,0,0,0,0,image->width,image->height)!=0)
 {
-	printf("some error occured");
+	printf(Messages[105]);
 }
 
 	XFlush(display);	//GC(display, gc);

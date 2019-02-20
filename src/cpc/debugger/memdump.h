@@ -50,7 +50,7 @@ typedef enum
 #define MEMDUMP_VIEW_FIRST		MEMDUMP_VIEW_BYTES
 #define MEMDUMP_VIEW_LAST		MEMDUMP_VIEW_WORDS
 
-typedef struct MEMDUMP_WINDOW
+typedef struct
 {
 	/* dimensions of window in chars */
 	int WidthInChars;

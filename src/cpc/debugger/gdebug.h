@@ -55,13 +55,13 @@ typedef enum
 	DEBUG_CMP_NOT_EQUAL			/* not equal to value */
 } DEBUG_CMP_TYPE;
 
-typedef struct DEBUG_CMP_SUB_STRUCT
+typedef struct
 {
 	DEBUG_CMP_TYPE Comparison;					/* comparison type */
 	int Value1, Value2;				/* values to compare against */
 } DEBUG_CMP_SUB_STRUCT;
 
-typedef struct DEBUG_CMP_STRUCT
+typedef struct
 {
 	int Enabled;							/* TRUE if enabled, FALSE if disabled */
 	int CompareWhat;						/* describes which details to look at */
@@ -69,17 +69,17 @@ typedef struct DEBUG_CMP_STRUCT
 	DEBUG_CMP_SUB_STRUCT	DataCompare;	/* compare details for data */
 } DEBUG_CMP_STRUCT;
 
-typedef struct DEBUG_CMP_LIST_NODE
+typedef struct _DEBUG_CMP_LIST_NODE
 {
 	/* pointers to next and previous nodes */
-	struct DEBUG_CMP_LIST_NODE *pPrev;
-	struct DEBUG_CMP_LIST_NODE *pNext;
+	struct _DEBUG_CMP_LIST_NODE *pPrev;
+	struct _DEBUG_CMP_LIST_NODE *pNext;
 
 	/* comparison info */
 	DEBUG_CMP_STRUCT  Comparison;
 } DEBUG_CMP_LIST_NODE;
 
-typedef struct DEBUG_CMP_LIST_HEADER
+typedef struct
 {
 	int Enabled;						/* enable comparison checking on this list */
 
@@ -163,7 +163,7 @@ void	Debug_SetDebuggerRefreshCallback(void (*pRefresh)(void));
 
 #include "memdump.h"
 
-typedef struct SEARCH_DATA
+typedef struct
 {
 	int				FoundAddress;
 	unsigned char *pSearchString;

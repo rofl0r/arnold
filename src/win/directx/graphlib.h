@@ -20,22 +20,6 @@
 #ifndef __GRAPHICS_LIB__
 #define __GRAPHICS_LIB__
 
-#include <windows.h>
-#include <ddraw.h>
-
-//#ifndef TRUE
-//#define TRUE (1==1)
-//#endif
-
-//#ifndef FALSE
-//#define FALSE (1==0)
-//#endif
-
-//#ifndef _BOOL
-//#define _BOOL
-//typedef int BOOL;
-//#endif
-
 typedef struct 
 {
 	int	BPP;
@@ -44,29 +28,11 @@ typedef struct
 	int BlueBPP, BlueMask, BlueShift;
 } MODE_DETAILS;
 
-#define GRAPHICS_FULLSCREEN	0x0002
-#define GRAPHICS_WINDOWED	0x0001
-
-int		UserInitialise(void);
-void	MainLoop(void);
-void	UserExit(void);
-
-BOOL	SetVideoMode(int,int,int,int);
-void	ClearScreen(void);
-void	Flip(void);
-void	ShowString(int,int,char *);
-BOOL	IsKeyPressed(int);
-BOOL    DebounceIsKeyPressed(int);
-BOOL	SetupDirect3D();
-BOOL	DoRender3D(int RenderHeight,int RenderWidth);
-BOOL	CreateTextureMap();
-void	SetUserMessageHandler(BOOL (*)(HWND,UINT,WPARAM,LPARAM));
-
-//void	PlotPixel16(DDSURFACEDESC *pSurface, int X,int Y, int Colour);
-
-void	RegisterDialog(HWND handleDialog);
-
-void	ExamineMode(MODE_DETAILS *pModeDetails);
-
+typedef struct
+{
+	int Width;
+	int Height;
+	int Depth;
+} DISPLAY_MODE;
 
 #endif

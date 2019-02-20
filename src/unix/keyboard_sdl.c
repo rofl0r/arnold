@@ -17,6 +17,8 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
+#include "../cpc/messages.h"
+
 
 // table to map KeySym values to CPC Key values
 int	KeySymToCPCKey[SDLK_LAST];
@@ -66,10 +68,10 @@ void	HandleKey(SDL_KeyboardEvent *theEvent)
 		if ( keycode <= SDLK_LAST ) {
 			theKeyPressed = KeySymToCPCKey[keycode];
 			if (theKeyPressed == CPC_KEY_NULL)
-				printf("Null key: <%04x>\n", keysym->sym);
+				printf(Messages[86], keysym->sym);
 		} else {
 			theKeyPressed = CPC_KEY_NULL;
-			printf("Unknown key: <%04x>\n", keysym->sym);
+			printf(Messages[87], keysym->sym);
 		}
 
 		// set or release key depending on state	
@@ -163,7 +165,7 @@ void	sdl_InitialiseJoysticks()
 	int numJoys = 0;
 
 	numJoys = SDL_NumJoysticks();
-	fprintf(stderr, "Found %i Joysticks\n", numJoys);
+	fprintf(stderr, Messages[88], numJoys);
 	if (numJoys > 0) {
 		SDL_JoystickEventState(SDL_ENABLE);
 		joystick1 = SDL_JoystickOpen(0);
@@ -177,6 +179,7 @@ void	sdl_EnableJoysticks(BOOL state)
 {
 	SDL_JoystickEventState((state == TRUE) ? SDL_ENABLE : SDL_DISABLE);
 }
+
 
 // forward declarations
 void	sdl_InitialiseKeyboardMapping_qwertz();

@@ -19,18 +19,19 @@
  */
 #include "arnold.h"
 #include "cpc.h"
-#include "cpcdefs.h"
 #include "audioevent.h"
 #include "host.h"
-#include "debugmain.h"
 #include "z80/z80.h"
-#include "config.h"
+#include "fdd.h"
 
 #define FRAME_SKIP_MIN	0
 #define FRAME_SKIP_MAX	10
 
+#ifndef CPC_NODEBUGGER
 #include "debugger/gdebug.h"
+#endif
 
+BOOL bWin = TRUE;
 
 #ifdef SHOW_TIME
 
@@ -88,7 +89,16 @@ void	CPC_DoFrameFunc(void)
 	throttle speed at 100% */
 	Host_Throttle();
 
-	FDD_UpdateLEDState();
+
+    /* disc drive light indicator*/
+    if (FDD_GetLEDState(0)!=0)
+    {
+       Host_DoDriveLEDIndicator(0, TRUE);
+    }
+    else
+    {
+       Host_DoDriveLEDIndicator(0, FALSE);
+    }
 
 /*	Host_ProcessSystemEvents(); */
 
@@ -244,10 +254,10 @@ void	CPCEmulation_InitialiseDefaultSetup(void)
 	CPC_SetCRTCType(0);
 
 	/* set initial CPC type */
-	CPC_SetCPCType(CPC_TYPE_CPC6128);
+//	CPC_SetCPCType(CPC_TYPE_CPC6128);
 
 	/* set initial printer output method */
-	Printer_SetOutputMethod(PRINTER_OUTPUT_TO_DIGIBLASTER);
+//	Printer_SetOutputMethod(PRINTER_OUTPUT_TO_DIGIBLASTER);
 
 	/* set monitor to colour */
     CPC_SetMonitorType(CPC_MONITOR_COLOUR);
@@ -259,47 +269,6 @@ void	CPCEmulation_InitialiseDefaultSetup(void)
 void	CPC_ResetTiming(void)
 {
 	NopCountToDate = NOPS_PER_MONITOR_SCREEN;
-}
-
-BOOL CPCEmulation_Initialise(void)
-{
-
-	Debug_Init();
-
-	DebugMain_Initialise();
-
-	/* disable debugger */
-	CPCEmulation_EnableDebugger(FALSE);
-
-	/* attempt to initialise CPC core - initialised */
-	if (CPC_Initialise())
-	{
-		/* load cpc 464 config */
-	/*	Config_LoadConfiguration("cpc464"); */
-		/* load cpc 664 config */
-	/*	Config_LoadConfiguration("cpc664"); */
-		/* load cpc 6128 config */
-	/*	Config_LoadConfiguration("cpc6128"); */
-		/* load cpc 464+ config */
-	/*	Config_LoadConfiguration("464+"); */
-		/* load cpc 6128+ config */
-	/*	Config_LoadConfiguration("6128+"); */
-		/* load kc compact config */
-	/*	Config_LoadConfiguration("kc-compact"); */
-
-		/* initialise z80 emulation */
-		Z80_Init();
-
-		/* set acknowledge interrupt callback function */
-/*		Z80_SetUserAckInterruptFunction(CPC_AcknowledgeInterrupt); */
-
-		/* CPC initialised, so set default setup */
-		CPCEmulation_InitialiseDefaultSetup();
-
-		return TRUE;
-	}
-
-	return FALSE;
 }
 
 
@@ -356,6 +325,9 @@ void	CPCEmulation_EnableDebugger(BOOL State)
 	DebuggerIsActive = State;
 }
 
+extern BOOL DoNotScanKeyboard;
+//extern BOOL ConsoleBreak;
+
 void	CPCEmulation_Run(void)
 {
 	BOOL doBreak = FALSE;
@@ -366,9 +338,11 @@ void	CPCEmulation_Run(void)
 		int LocalNopCountToDate;
 
 		/* execute the instruction */
-/*		NopCount = Z80_ExecuteInstruction(); */
+#ifdef CPC_NODEBUGGER
+		NopCount = Z80_ExecuteInstruction(); 
+#else
 		NopCount = Debugger_Execute(); 
-
+#endif
 		/* update CPC nop count - used for other hardware */
 		CPC_UpdateNopCount(NopCount);
 
@@ -386,19 +360,12 @@ void	CPCEmulation_Run(void)
 				CRTC_DoCycles(NopsToFrameEnd);	
 		
 			/* execute functions when a frame has been completed */
-
-
-		#ifdef AY_OUTPUT
-			/* if enabled, writes PSG registers to temp file */
-			YMOutput_WriteRegs();
-		#endif
-
 			/* Frame Skip Control code */
 
 			/* update frame skip */
 			CurrentFrameIndex++;
 
-			if (CurrentFrameIndex==FrameSkip+1)
+			if(bWin) if (CurrentFrameIndex==FrameSkip+1)
 			{
 				CurrentFrameIndex = 0;
 				
@@ -414,9 +381,9 @@ void	CPCEmulation_Run(void)
 			throttle speed at 100% */
 			Host_Throttle();
 
-			FDD_UpdateLEDState();
-
-			doBreak = Host_ProcessSystemEvents(); 
+         if (bWin)
+         {
+			 doBreak = Host_ProcessSystemEvents(); 
 
 
 			/* dont render */
@@ -434,7 +401,11 @@ void	CPCEmulation_Run(void)
 					CRTC_SetRenderState(DontRender);
 				}
 			}
-
+		}
+		 else
+		 {
+//			 doBreak = ConsoleBreak;
+		 }
 	#ifdef SHOW_TIME
 			/* works out the speed of the emulation based on the previous 10 
 			frames. This method stores a frame time in ms for each frame in
@@ -483,14 +454,14 @@ void	CPCEmulation_Run(void)
 	#endif
 /*			CPC_DoFrameFunc(); */
 		
-			if (LocalNopCountToDate!=0)
+			if(bWin) if (LocalNopCountToDate!=0)
 				CRTC_DoCycles(-LocalNopCountToDate);
 		
 			/* a whole screen has been timed */
 			LocalNopCountToDate += NOPS_PER_MONITOR_SCREEN;
 
 		}
-		else
+		else //if (bWin) this doesn't work :(
 		{
 			/* update CRTC for NopCount cycles */
 			CRTC_DoCycles(NopCount);
@@ -500,16 +471,18 @@ void	CPCEmulation_Run(void)
 	}
 }
 
+
 void	CPCEmulation_Finish(void)
 {
+ AudioActiveFlag = FALSE; /* TROELS */
 	CPC_Finish();
 	
 	Render_Finish();
 
-	DebugMain_Finish();
-
+#ifndef CPC_NODEBUGGER
 	Debug_Finish();
-}
+#endif
+}	
 
 BOOL	CPCEmulation_CheckEndianness(void)
 {

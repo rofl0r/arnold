@@ -21,24 +21,46 @@
 #include <commctrl.h>
 #include "mylistvw.h"
 
-
-void	MyListView_AddItem(HWND hListView, char *ItemText, int ColumnIndex, int RowIndex, void *pData) 
+void MyListView_AddItemWithIcon(HWND hListView, TCHAR *ItemText, int ColumnIndex, int RowIndex, void *pData, int iIcon)
 {
 	LV_ITEM	ListViewItem;
+	int ColumnWidth;
+	int ItemWidth;
+
+	HWND hHeader;
+
+	hHeader = ListView_GetHeader(hListView);
+
+	if (ColumnIndex == (Header_GetItemCount(hHeader)-1))
+	{
+		RECT itemRect;
+		RECT headerRect;
+
+		// get rect of last column in header
+		Header_GetItemRect(hHeader, (Header_GetItemCount(hHeader)-1), &itemRect);
+
+		GetClientRect(hHeader,&headerRect);
+
+		ItemWidth= headerRect.right - itemRect.left;
+	}
+	else
+	{
+		ItemWidth = ListView_GetStringWidth(hListView, ItemText) + (GetSystemMetrics(SM_CXEDGE)<<1)+(4<<1);
+	}
+	
+	ColumnWidth = ListView_GetColumnWidth(hListView,ColumnIndex);
 
 	ListViewItem.mask = LVIF_TEXT;
+	
+	if (iIcon!=-1)
+	{
+		ListViewItem.mask |= LVIF_IMAGE;
+		ListViewItem.iImage = iIcon;
+	}
+
 	ListViewItem.iItem = RowIndex;
 	ListViewItem.iSubItem = ColumnIndex;
-	ListViewItem.state = 0;
-	ListViewItem.stateMask = 0; 
-
-
 	ListViewItem.pszText = ItemText;
-	
-	ListViewItem.cchTextMax = 0;
-	ListViewItem.iImage = 0;
-	ListViewItem.lParam = 0;
-	pData;
 
 	if (ColumnIndex == 0)
 	{
@@ -46,22 +68,35 @@ void	MyListView_AddItem(HWND hListView, char *ItemText, int ColumnIndex, int Row
 		ListViewItem.lParam = (LPARAM)pData;
 
 		ListView_InsertItem(hListView, &ListViewItem);
-
+	}
+	else
+	{
+		ListView_SetItem(hListView, &ListViewItem);
 	}
 
-	ListView_SetItem(hListView, &ListViewItem);
+	if (ItemWidth>ColumnWidth)
+		ListView_SetColumnWidth(hListView, ColumnIndex, ItemWidth);
+
+
+
+
+}
+
+void	MyListView_AddItem(HWND hListView, TCHAR *ItemText, int ColumnIndex, int RowIndex, void *pData) 
+{
+	MyListView_AddItemWithIcon(hListView, ItemText, ColumnIndex, RowIndex, pData, -1);
 }
 
 
 /* add a column to a list view control */
-void	MyListView_AddColumn(HWND hListView, char *ColumnTitle, int ColumnIndex)
+void	MyListView_AddColumn(HWND hListView, TCHAR *ColumnTitle, int ColumnIndex)
 {
 	LV_COLUMN	ListViewColumn;
 
 	int StringWidth = ListView_GetStringWidth(hListView, ColumnTitle);
 
 	ListViewColumn.mask = LVCF_TEXT | LVCF_WIDTH;
-	ListViewColumn.cx = StringWidth + (GetSystemMetrics(SM_CXEDGE)<<1);
+	ListViewColumn.cx = StringWidth + (GetSystemMetrics(SM_CXEDGE)<<1)+(4<<1);
 	ListViewColumn.pszText = ColumnTitle;
 	ListViewColumn.cchTextMax = 0;
 	ListViewColumn.iSubItem = 0;

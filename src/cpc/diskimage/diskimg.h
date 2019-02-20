@@ -20,56 +20,47 @@
 #ifndef __DSKIMG_HEADER_INCLUDED__
 #define __DSKIMG_HEADER_INCLUDED__
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "../headers.h"
 #include "../cpcglob.h"	
 
 #include "../device.h"
 
-#define STANDARD_DISK_IMAGE	0x0001
-#define EXTENDED_DISK_IMAGE	0x0002
-
-#define INTERNAL_DISK_IMAGE 0x0003
+enum
+{
+	DISK_IMAGE_TYPE_UNDEFINED,	/* not created from any image type */
+	DISK_IMAGE_TYPE_STANDARD,	/* image opened from DSK */
+	DISK_IMAGE_TYPE_EXTENDED,	/* image opened from EDSK */
+	DISK_IMAGE_TYPE_DIF,		/* image opened from DIF */
+};
 
 #define DISKIMAGE_DISK_INSERTED	0x0001
 #define DISKIMAGE_DISK_DIRTY	0x0002
 
-#define DISK_UNFORMATTED	0x0001
-#define DISK_FORMATTED		0x0002
-
-typedef struct DISKIMAGE_UNIT
+typedef struct
 {
 	int	Flags;
-	int Type;
-	char	*Filename;
+	int nImageType;				/* type of image this was inserted from */
 	unsigned char 	*pDiskImage;
-	unsigned long	DiskImageSize;
-	int		NumTracks;
-	int		NumSides;
-	int		TrackSize;
-	char	Header[256];
-	int		*pTrackSize;
-	int		TrackOffset;
-	int		SectorOffset;
-	int		CurrentTrack;
-	int		CurrentSide;
 } DISKIMAGE_UNIT;
 
 void	DiskImage_Initialise(void);
 void	DiskImage_Finish(void);
-
+int		DiskImage_InsertUnformattedDisk(int DriveID);
 BOOL	DiskImage_IsImageDirty(int DriveID);
-void	DiskImage_WriteImage(int);
 
-int	DiskImage_InsertDisk(int,int,char *);
+int DiskImage_InsertUnformatted(int);
+int	DiskImage_InsertDisk(int,const unsigned char *, const unsigned long);
 void DiskImage_RemoveDisk(int);
 
 int		DiskImage_GetSectorsPerTrack(int,int,int);
-void	DiskImage_GetID(int,int, int, int, FDC_CHRN *);
+void	DiskImage_GetID(int,int, int, int, CHRN *);
 void	DiskImage_GetSector(int, int, int, int, char *);
-void	DiskImage_PutSector(int, int, int, int, char *);
-void	DiskImage_AddSector(int, int, int, FDC_CHRN *,int);
+void	DiskImage_PutSector(int, int, int, int, char *,int);
+void	DiskImage_AddSector(int, int, int, CHRN *,int,int);
 void	DiskImage_EmptyTrack(int DriveID, int PhysicalTrack, int PhysicalSide);
+int Dif_Validate(const unsigned char *pDiskImage, const unsigned long DiskImageLength);
+
+unsigned long DiskImage_CalculateOutputSize(int DriveID);
+void    DiskImage_GenerateOutputData(unsigned char *pBuffer, int nDrive);
 
 #endif

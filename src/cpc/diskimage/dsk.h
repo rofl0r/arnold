@@ -20,14 +20,13 @@
 #ifndef __DSK_HEADER_INCLUDED__
 #define __DSK_HEADER_INCLUDED__
 
-#include <stdio.h>
-#include <stdlib.h>
+#include "../headers.h"
 #include "../cpcglob.h"	
 #include "diskimg.h"
 
 #include "../device.h"
 
-typedef struct	DSKCHRN
+typedef struct
 {
 	unsigned char	C;
 	unsigned char	H;
@@ -39,7 +38,7 @@ typedef struct	DSKCHRN
 	unsigned char	pad1;
 } DSKCHRN;
 
-typedef struct	DSKTRACKHEADER	
+typedef struct
 {
 	char	TrackHeader[12];
 	char	pad0[4];
@@ -53,7 +52,7 @@ typedef struct	DSKTRACKHEADER
 	DSKCHRN	SectorIDs[29];
 } DSKTRACKHEADER;
 
-typedef struct DSKHEADER
+typedef struct
 {
 	char	     DskHeader[34];
 	char	     DskCreator[14];
@@ -64,16 +63,6 @@ typedef struct DSKHEADER
 	char		pad0[255-4-14-33];
 } DSKHEADER;
 
-int	Dsk_Initialise(DISKIMAGE_UNIT *);
-void	Dsk_Free(DISKIMAGE_UNIT *);
+int		Dsk_Validate(const unsigned char *pDiskImage, const unsigned long DiskImageSize);
 
-int	Dsk_GetSectorsPerTrack(DISKIMAGE_UNIT *,int,int);
-void Dsk_GetID(DISKIMAGE_UNIT *,int,int,int, FDC_CHRN *);	
-
-void Dsk_GetSector(DISKIMAGE_UNIT *,int,int,int,char *);
-void Dsk_PutSector(DISKIMAGE_UNIT *,int,int,int,char *);
-
-int		Dsk_Validate(char *pFilename);
-
-void	Dsk_WriteImage(DISKIMAGE_UNIT *);
 #endif

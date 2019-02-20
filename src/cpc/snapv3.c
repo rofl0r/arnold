@@ -20,64 +20,75 @@
 /* Snapshot V3 format as used by No$CPC v1.8 */
 
 #include "cpcglob.h"
-#include "cpcdefs.h"
 #include "snapv3.h"
 #include "riff.h"
-#include <stdlib.h>
-#include "host.h"
 #include "cpc.h"
 #include "z80/z80.h"
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* start of chunk */
 static	unsigned long SnapshotV3_ChunkLength;
+static	RIFF_CHUNK	*pRiffChunk;
 
 /* begin a chunk */
-void	SnapshotV3_BeginChunk(simple_expanding_buffer *buffer, unsigned long ChunkName)
+unsigned char *SnapshotV3_BeginChunk(unsigned char *buffer, unsigned long ChunkName)
 {
-		RIFF_CHUNK ChunkHeader;
+	RIFF_CHUNK ChunkHeader;
 
-		/* setup initial header */
-		ChunkHeader.ChunkName = ChunkName;
-		ChunkHeader.ChunkLength = 0;
+	/* setup initial header */
+	ChunkHeader.ChunkName = ChunkName;
+	ChunkHeader.ChunkLength = 0;
 
-		/* write into buffer */
-		simple_expanding_buffer_write(buffer, (unsigned char *)&ChunkHeader, sizeof(RIFF_CHUNK));
+	/* write into buffer */
+	pRiffChunk = (RIFF_CHUNK *)buffer;
+	memcpy(buffer, (unsigned char *)&ChunkHeader, sizeof(RIFF_CHUNK));
+	buffer+=sizeof(RIFF_CHUNK);
 
-		/* reset chunk length */
-		SnapshotV3_ChunkLength = 0;
+	/* reset chunk length */
+	SnapshotV3_ChunkLength = 0;
+
+	return buffer;
 }
 
 /* write data to chunk */
-void	SnapshotV3_WriteDataToChunk(simple_expanding_buffer *buffer, unsigned char *pData, unsigned long Length)
+unsigned char *SnapshotV3_WriteDataToChunk(unsigned char *buffer, unsigned char *pData, unsigned long Length)
 {
 	/* write data to buffer and update length */
-	SnapshotV3_ChunkLength += simple_expanding_buffer_write(buffer, pData, Length);
+	memcpy(buffer, pData, Length);
+	SnapshotV3_ChunkLength+=Length;
+
+	buffer+=Length;
+
+	return buffer;
 }
 
 /* end a chunk */
-void	SnapshotV3_EndChunk(simple_expanding_buffer *buffer)
+void SnapshotV3_EndChunk(void)
 {
 	/* calc pointer to header */
-	RIFF_CHUNK *pHeader = (RIFF_CHUNK *)((unsigned long)buffer->pBuffer + buffer->Used - SnapshotV3_ChunkLength - sizeof(RIFF_CHUNK));
+	RIFF_CHUNK *pHeader = (RIFF_CHUNK *)(pRiffChunk);
 
 	/* write length into header */
 	Riff_SetChunkLength(pHeader, SnapshotV3_ChunkLength);
 }
 
-void	SnapshotV3_WriteByte(simple_expanding_buffer *buffer, unsigned char ByteData)
+unsigned char *SnapshotV3_WriteByte(unsigned char *buffer, unsigned char ByteData)
 {
-	SnapshotV3_WriteDataToChunk(buffer, &ByteData, 1);
+	return SnapshotV3_WriteDataToChunk(buffer, &ByteData, 1);
 }
 
-void	SnapshotV3_WriteWord(simple_expanding_buffer *buffer, unsigned short WordData)
+unsigned char *SnapshotV3_WriteWord(unsigned char *buffer, unsigned short WordData)
 {
 	unsigned char ByteData;
 
 	ByteData = WordData & 0x0ff;
-	SnapshotV3_WriteDataToChunk(buffer, &ByteData,1);
+	buffer = SnapshotV3_WriteByte(buffer, ByteData);
 	ByteData = (WordData>>8) & 0x0ff;
-	SnapshotV3_WriteDataToChunk(buffer, &ByteData,1);
+	buffer = SnapshotV3_WriteByte(buffer,ByteData);
+
+	return buffer;
 }
 
 
@@ -92,7 +103,6 @@ void	SnapshotV3_HandleChunk(RIFF_CHUNK *pCurrentChunk,unsigned long Size)
 		case RIFF_FOURCC_CODE('C','P','C','+'):
 		{
 			unsigned char *pChunkData = Riff_GetChunkDataPtr(pCurrentChunk);
-			unsigned char *pASICRam = ASIC_GetRamPtr();
 			unsigned long ASICRamOffset;
 			int i;
 
@@ -247,16 +257,61 @@ void	SnapshotV3_HandleChunk(RIFF_CHUNK *pCurrentChunk,unsigned long Size)
 	}
 }
 
+/* calculate size of CPC Plus chunk */
+unsigned long SnapshotV3_CPCPlus_CalculateOutputSize()
+{
+	unsigned long nChunkLength;
 
+	/* chunk header */
+	nChunkLength = sizeof(RIFF_CHUNK);
 
-void	SnapshotV3_WriteCPCPlusChunk(simple_expanding_buffer *buffer)
+	/* sprite data */
+	nChunkLength += ((16*16*16)>>1);
+
+	/* sprite attributes */
+	nChunkLength += (8*16);
+
+	/* palettes */
+	nChunkLength += (32*2);
+
+	/* misc */
+	nChunkLength += 6;
+
+	/* unused */
+	nChunkLength +=2;
+
+	/* analogue inputs */
+	nChunkLength+=8;
+
+	/* dma */
+	nChunkLength+=(3*4);
+
+	/* unused */
+	nChunkLength+=3;
+
+	/* dcsr */
+	nChunkLength++;
+
+	/* dma internal */
+	nChunkLength +=(3*7);
+
+	/* secondary rom mapping */
+	nChunkLength ++;
+
+	/* lock state */
+	nChunkLength ++;
+
+	return nChunkLength;
+}
+
+unsigned char *SnapshotV3_CPCPlus_WriteChunk(unsigned char *buffer)
 {
 	unsigned char *pASICRamPtr;
 	unsigned char *pPtr;
 	int i;
 
 	pASICRamPtr = ASIC_GetRamPtr();
-	SnapshotV3_BeginChunk(buffer, RIFF_FOURCC_CODE('C','P','C','+'));
+	buffer = SnapshotV3_BeginChunk(buffer, RIFF_FOURCC_CODE('C','P','C','+'));
 
 	pPtr = &pASICRamPtr[0x04000-0x04000];
 
@@ -272,75 +327,76 @@ void	SnapshotV3_WriteCPCPlusChunk(simple_expanding_buffer *buffer)
 		pPtr+=2;
 		
 		/* write to snapshot */
-		SnapshotV3_WriteByte(buffer, PackedPixels);
+		buffer = SnapshotV3_WriteByte(buffer, PackedPixels);
 	}
 
 	/* sprite attributes */
 	for (i=0; i<16; i++)
 	{
-		SnapshotV3_WriteWord(buffer, ASIC_GetSpriteX(i));
-		SnapshotV3_WriteWord(buffer, ASIC_GetSpriteY(i));
-		SnapshotV3_WriteByte(buffer, ASIC_GetSpriteMagnification(i));
-		SnapshotV3_WriteByte(buffer, 0);
-		SnapshotV3_WriteByte(buffer, 0);
-		SnapshotV3_WriteByte(buffer, 0);
+		buffer = SnapshotV3_WriteWord(buffer, ASIC_GetSpriteX(i));
+		buffer = SnapshotV3_WriteWord(buffer, ASIC_GetSpriteY(i));
+		buffer = SnapshotV3_WriteByte(buffer, ASIC_GetSpriteMagnification(i));
+		buffer = SnapshotV3_WriteByte(buffer, 0);
+		buffer = SnapshotV3_WriteByte(buffer, 0);
+		buffer = SnapshotV3_WriteByte(buffer, 0);
 	}
 
 	/* palettes */
 	pPtr = &pASICRamPtr[0x06400-0x04000];
-	SnapshotV3_WriteDataToChunk(buffer, pPtr, (32*2));
+	buffer = SnapshotV3_WriteDataToChunk(buffer, pPtr, (32*2));
 
 	/* misc */
-	SnapshotV3_WriteByte(buffer, ASIC_GetPRI());
-	SnapshotV3_WriteByte(buffer, ASIC_GetSPLT());
-	SnapshotV3_WriteWord(buffer, ASIC_GetSSA());
-	SnapshotV3_WriteByte(buffer, ASIC_GetSSCR());
-	SnapshotV3_WriteByte(buffer, ASIC_GetIVR());
+	buffer = SnapshotV3_WriteByte(buffer, ASIC_GetPRI());
+	buffer = SnapshotV3_WriteByte(buffer, ASIC_GetSPLT());
+	buffer = SnapshotV3_WriteWord(buffer, ASIC_GetSSA());
+	buffer = SnapshotV3_WriteByte(buffer, ASIC_GetSSCR());
+	buffer = SnapshotV3_WriteByte(buffer, ASIC_GetIVR());
 
 	/* unused */
-	SnapshotV3_WriteWord(buffer, 0);
+	buffer = SnapshotV3_WriteWord(buffer, 0);
 
 	/* analogue inputs */
 	for (i=0; i<8; i++)
 	{
-		SnapshotV3_WriteByte(buffer, ASIC_GetAnalogueInput(i));
+		buffer = SnapshotV3_WriteByte(buffer, ASIC_GetAnalogueInput(i));
 	}
 
 	/* DMA */
 	for (i=0; i<3; i++)
 	{
-		SnapshotV3_WriteWord(buffer, ASIC_DMA_GetChannelAddr(i));
-		SnapshotV3_WriteByte(buffer, ASIC_DMA_GetChannelPrescale(i));
-		SnapshotV3_WriteByte(buffer, 0);
+		buffer = SnapshotV3_WriteWord(buffer, ASIC_DMA_GetChannelAddr(i));
+		buffer = SnapshotV3_WriteByte(buffer, ASIC_DMA_GetChannelPrescale(i));
+		buffer = SnapshotV3_WriteByte(buffer, 0);
 	}
 	/* unused */
-	SnapshotV3_WriteWord(buffer, 0);
-	SnapshotV3_WriteByte(buffer, 0);
+	buffer = SnapshotV3_WriteWord(buffer, 0);
+	buffer = SnapshotV3_WriteByte(buffer, 0);
 
 	/* DCSR */
-	SnapshotV3_WriteByte(buffer, ASIC_GetDCSR());
+	buffer = SnapshotV3_WriteByte(buffer, ASIC_GetDCSR());
 
 	/* DMA internal */
 	for (i=0; i<3*7; i++)
 	{
-		SnapshotV3_WriteByte(buffer, 0);
+		buffer = SnapshotV3_WriteByte(buffer, 0);
 	}
 
 	/* secondary rom mapping */
-	SnapshotV3_WriteByte(buffer, (ASIC_GetSecondaryRomMapping() & 0x01f)|0x0a0);
+	buffer = SnapshotV3_WriteByte(buffer, (ASIC_GetSecondaryRomMapping() & 0x01f)|0x0a0);
 	
 	/* lock state */
 	if (ASIC_GetUnLockState())
 	{
 		/* unlocked */
-		SnapshotV3_WriteByte(buffer, 1);
+		buffer = SnapshotV3_WriteByte(buffer, 1);
 	}
 	else
 	{
-		SnapshotV3_WriteByte(buffer, 0);
+		buffer = SnapshotV3_WriteByte(buffer, 0);
 	}
 
-	SnapshotV3_EndChunk(buffer);
+	SnapshotV3_EndChunk();
 
+	return buffer;
 }
 

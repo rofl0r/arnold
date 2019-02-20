@@ -41,7 +41,7 @@
 #define GA_VSYNC_FLAG	0x0002
 #define GA_INT_SYNC_FLAG	0x0003
 
-typedef struct GA_INTERNAL_STATE
+typedef struct
 {
 	unsigned char GA_Flags;
 	unsigned char GA_HSyncWidth;
@@ -58,7 +58,7 @@ typedef struct GA_INTERNAL_STATE
 #define MONITOR_VSYNC_SYNC	0x0002
 #define MONITOR_IN_HSYNC	0x0003
 
-typedef struct MONITOR_INTERNAL_STATE
+typedef struct
 {
 	/* number of scan-lines after start of VSYNC */
 	int LinesAfterVsync;
@@ -79,7 +79,7 @@ typedef struct MONITOR_INTERNAL_STATE
 } MONITOR_INTERNAL_STATE;
 
 /* used by the code */
-typedef struct CRTC_INTERNAL_STATE
+typedef struct
 {
 	unsigned long CRTC_Flags;
 	unsigned long CRTC_HalfHtotFlags;
@@ -217,7 +217,7 @@ enum
 
 #define CRTC_RENDER_STAGE_START_NEW_LINE 0x0001
 #define CRTC_RENDER_STAGE_START_NEW_FRAME 0x0002
-typedef struct CRTC_RENDER_STAGE
+typedef struct
 {
 	unsigned long MA;
 	unsigned long Count;
@@ -226,7 +226,7 @@ typedef struct CRTC_RENDER_STAGE
 } CRTC_RENDER_STAGE;
 
 
-void	CRTC_LightPen_Trigger(unsigned long Nops);
+void	CRTC_LightPen_Trigger(unsigned long X, unsigned long Y);
 void	CRTC_LightPen_Update(unsigned long Cycles);
 
 #endif

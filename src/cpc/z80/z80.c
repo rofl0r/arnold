@@ -7514,11 +7514,14 @@ ADD_PC(2);
 R.Flags |= Z80_CHECK_INTERRUPT_FLAG;
 return Cycles;
 }
+
+//extern void Z80_InterceptChain(const Z80_REGISTERS*);
 /***************************************************************************/
 int Z80_ExecuteInstruction(void)
 {
 unsigned long Opcode;
 unsigned long Cycles;
+//Z80_InterceptChain(&R);
 Opcode = Z80_RD_OPCODE_BYTE(0);
 Opcode = Opcode & 0x0ff;
 switch (Opcode)

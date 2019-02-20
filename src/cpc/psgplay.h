@@ -22,8 +22,6 @@
 
 
 #include "cpcglob.h"
-#include "cpcdefs.h"
-
 
 typedef struct
 {

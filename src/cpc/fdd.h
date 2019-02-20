@@ -20,42 +20,56 @@
 #ifndef __FDD_HEADER_INCLUDED__
 #define __FDD_HEADER_INCLUDED__
 
+#include "cpcglob.h"
 
-/* fdd has a disc present */
-/*#define FDD_FLAGS_DISK_PRESENT	0x080 */
+/* FDD functions */
+void	FDD_InitialiseAll();
+void	FDD_Initialise(int);
+void	FDD_TurnDisk(int);
+void	FDD_InsertDisk(int,int);
+BOOL	FDD_IsDiskPresent(int);
 
+int		FDD_LED_GetState(unsigned long Drive);
+void	FDD_LED_SetState(unsigned long Drive, int LedState);
 
-/* write protected */
-#define FDD_FLAGS_WRITE_PROTECTED 0x040
 /* head is positioned at track 0 */
 #define FDD_FLAGS_HEAD_AT_TRACK_0 0x001
-/* disk present */
+/* disk inserted into drive */
 #define FDD_FLAGS_DISK_PRESENT	0x002
-/* drive active */
-#define FDD_FLAGS_DRIVE_ACTIVE 0x004
+/* drive is enabled */
+#define FDD_FLAGS_DRIVE_ENABLED 0x004
+/* drive is double sided */
+#define FDD_FLAGS_DOUBLE_SIDED 0x008
+/* drive is ready */
+#define FDD_FLAGS_DRIVE_READY 0x010
+/* write protected */
+#define FDD_FLAGS_WRITE_PROTECTED 0x040
+/* motor state */
+#define FDD_FLAGS_MOTOR_STATE 0x020
+/* index flag */
+#define FDD_FLAGS_DRIVE_INDEX 0x080
+/* led is on */
+#define FDD_FLAGS_LED_ON 0x0100
 
-typedef struct FDD
+typedef struct
 {
 	/* flags */
 	unsigned long Flags;
-
-/*	BOOL	WriteProtected; */			/* true if write protected */
-/*	BOOL	DiskPresent; */			/* true if disc inserted */
-/*	BOOL	DriveActive; */
-
-	unsigned long PhysicalSide;
-
 	/* current track drive is on */
 	unsigned long CurrentTrack;
-	/* total number of tracks the head can move.
-	On a 3" drive the maximum number is 43 */
+	/* total number of tracks the head can move. */
 	unsigned long NumberOfTracks;
-
-	int		CurrentIDIndex;			/* current id index */
-
+	
+	/* temp here until more accurate emulation is done */
+	unsigned long CurrentIDIndex;			/* current id index */
 } FDD;
 
+FDD		*FDD_GetDrive(int DriveIndex);
+/* get flags */
+unsigned long FDD_GetFlags(int DriveIndex);
+/* set motor state */
+void	FDD_SetMotorState(int DriveIndex, int State);
 
-
+void	FDD_PerformStep(unsigned long DriveIndex, signed int StepDirection);
 
 #endif

@@ -20,14 +20,14 @@
 #ifndef __EXTDSK_HEADER_INCLUDE__
 #define __EXTDSK_HEADER_INCLUDE__
 
-#include <stdio.h>
-#include <stdlib.h>
+
+#include "../headers.h"
 #include "../cpcglob.h"	
 #include "diskimg.h"
 
 #include "../device.h"
 
-typedef struct	EXTDSKCHRN
+typedef struct
 {
 	unsigned char	C;
 	unsigned char	H;
@@ -39,7 +39,7 @@ typedef struct	EXTDSKCHRN
 	unsigned char	SectorSizeHigh;
 } EXTDSKCHRN;
 
-typedef struct	EXTDSKTRACKHEADER	
+typedef struct
 {
 	char	TrackHeader[12];
 	char	pad0[4];
@@ -53,7 +53,7 @@ typedef struct	EXTDSKTRACKHEADER
 	EXTDSKCHRN	SectorIDs[29];
 } EXTDSKTRACKHEADER;
 
-typedef struct EXTDSKHEADER
+typedef struct
 {
 	char		DskHeader[34];
 	char		DskCreator[14];
@@ -65,16 +65,5 @@ typedef struct EXTDSKHEADER
 } EXTDSKHEADER;
 	
 
-int	ExtDsk_Initialise(DISKIMAGE_UNIT *);
-void ExtDsk_Free(DISKIMAGE_UNIT *);
-
-BOOL	ExtDsk_Validate(char *Filename);
-
-int	ExtDsk_GetSectorsPerTrack(DISKIMAGE_UNIT *,int,int);
-void ExtDsk_GetID(DISKIMAGE_UNIT *,int,int,int,FDC_CHRN *);
-
-void ExtDsk_GetSector(DISKIMAGE_UNIT *,int,int,int,char *);
-void ExtDsk_PutSector(DISKIMAGE_UNIT *,int,int,int,char *);
-
-void	ExtDsk_WriteImage(DISKIMAGE_UNIT *);
+int		ExtDsk_Validate(const unsigned char *pDiskImage, const unsigned long DiskImageSize);
 #endif

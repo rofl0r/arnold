@@ -20,7 +20,6 @@
 #ifndef __SAMPLE_LOAD_HEADER_INCLUDED__
 #define __SAMPLE_LOAD_HEADER_INCLUDED__
 
-#include "cpcdefs.h"
 #include "host.h"
 
 /* size of buffer to read spooled data into */
@@ -31,11 +30,12 @@ typedef enum
 {
 	SAMPLE_TYPE_NONE = 0,
 	SAMPLE_TYPE_VOC,
-	SAMPLE_TYPE_WAV
+	SAMPLE_TYPE_WAV,
+	SAMPLE_TYPE_CSW
 } SAMPLE_TYPE_ID;
 
 
-typedef struct SAMPLE_AUDIO_STREAM
+typedef struct
 {
 	/* The following is for playback of the data */
 
@@ -77,7 +77,7 @@ typedef struct SAMPLE_AUDIO_STREAM
 } SAMPLE_AUDIO_STREAM;
 
 
-unsigned char Sample_GetDataByteTimed(unsigned long PreviousNopCount, unsigned long NextNopCount);
+unsigned char Sample_GetDataByteTimed(unsigned long NopsPassed);
 unsigned char Sample_GetByte(SAMPLE_AUDIO_STREAM *pAudioStream);
 void	Sample_ReadData(SAMPLE_AUDIO_STREAM *pAudioStream, unsigned char *pStart, unsigned long Size);
 void	Sample_SkipData(SAMPLE_AUDIO_STREAM *pAudioStream, unsigned long Size);

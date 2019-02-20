@@ -21,7 +21,6 @@
 #define __PSG_HEADER_INCLUDED__
 
 #include "cpcglob.h"
-#include "cpcdefs.h"
 #include "psgplay.h"
 
 #define PSG_MIXER_IO_B_INPUT_ENABLE 0x080

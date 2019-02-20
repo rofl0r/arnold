@@ -53,11 +53,11 @@ typedef unsigned short WORD;
 
 //#define DEBUGGING
 
-#define	MAXCURDIR 1024
+#define MAXCURDIR 1024
 char	currentDir[MAXCURDIR];
 
-BOOL	LoadFile(char *, unsigned char **, unsigned long *);
-BOOL	SaveFile(char *,char *,int);
+BOOL	LoadFile(char *, char **, unsigned long *);
+BOOL	SaveFile(char *,char *,unsigned long);
 
 #endif
 

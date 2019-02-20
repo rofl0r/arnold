@@ -7,6 +7,21 @@
 #define FILENAME	"arnold"
 #define MAXPARAMS	10
 
+char *messages[]=
+{
+	"Select a file to edit",
+	"Could not execute %s: ",
+}
+
+char *messages_spanish[]=
+{
+	"Por favor, seleccione un fichero para editar.",
+	"No se pudo ejecutar %s: ",
+};
+
+char **Messages = messages;
+
+
 char *parameters[MAXPARAMS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 GtkWidget *file_selector;
@@ -21,7 +36,7 @@ void launchimage(GtkWidget *widget, gpointer data) {
 void create_file_selection(void) {
 	/* Create the selector */
 	file_selector = gtk_file_selection_new(
-		"Please select a file for editing.");
+		Messages[0]);
 	gtk_signal_connect(GTK_OBJECT(GTK_FILE_SELECTION(file_selector)
 		->ok_button), "clicked", GTK_SIGNAL_FUNC (launchimage), NULL);
 
@@ -46,6 +61,6 @@ int main(int argc, char **argv) {
 
 launch(char **params) {
 	execvp(FILENAME, params);
-	fprintf(stderr, "Could not execute %s: ", FILENAME);
+	fprintf(stderr, Messages[1], FILENAME);
 	perror(NULL);
 }

@@ -28,7 +28,7 @@ enum
 	Z8536_STATE_1
 } Z8536_STATES;
 
-typedef struct Z8536
+typedef struct
 {
 	unsigned char State;
 	unsigned char PointerRegister;

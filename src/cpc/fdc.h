@@ -20,27 +20,76 @@
 #ifndef __FDC_HEADER_INCLUDED__
 #define __FDC_HEADER_INCLUDED__
 
-#include <stdio.h>
+//#include <stdio.h>
 #include "cpcglob.h"
 #include "device.h"
 
-/* FDD functions */
-void	FDD_InitialiseAll();
-void	FDD_Initialise(int);
-void	FDD_MotorControl(int);
-void	FDD_TurnDisk(int);
-void	FDD_InsertDisk(int,int);
-BOOL	FDD_IsDiskPresent(int);
 
-int		FDD_GetLEDState(void);
-void	FDD_UpdateLEDState(void);
+/* FDC defines */
 
-BOOL FDD_GetMotorState(void);
+#define FDC_COMMAND_MULTI_TRACK						0x080
+#define FDC_COMMAND_MFM								0x040
+#define FDC_COMMAND_SKIP							0x020
+#define FDC_COMMAND_WORD							0x01f
+#define FDC_COMMAND_HEAD_ADDRESS					0x004
+#define FDC_COMMAND_UNIT_STANDARD					0x003
+#define FDC_COMMAND_UNIT_CPC						0x001
+
+/* Main Status Register defines */
+#define FDC_MSR_DATA_REQUEST						0x080
+#define FDC_MSR_DATA_FLOW_DIRECTION					0x040
+#define FDC_MSR_EXECUTION_PHASE						0x020
+#define FDC_MSR_BUSY								0x010
+#define FDC_MSR_FDD_3_BUSY							0x008
+#define FDC_MSR_FDD_2_BUSY							0x004
+#define FDC_MSR_FDD_1_BUSY							0x002
+#define FDC_MSR_FDD_0_BUSY							0x001
+
+
+/* Status Register 0 (ST0) defines */
+#define FDC_ST0_INTERRUPT_CODE1						0x080
+#define FDC_ST0_INTERRUPT_CODE0						0x040
+#define FDC_ST0_SEEK_END							0x020
+#define FDC_ST0_EQUIPMENT_CHECK						0x010
+#define FDC_ST0_NOT_READY							0x008
+#define FDC_ST0_HEAD_ADDRESS						0x004
+#define FDC_ST0_UNIT_SELECT1						0x002
+#define FDC_ST0_UNIT_SELECT0						0x001
+
+/* Status Register 1 (ST1) defines */
+#define FDC_ST1_END_OF_CYLINDER						0x080
+#define FDC_ST1_UNUSED_BIT6							0x040
+#define FDC_ST1_DATA_ERROR							0x020
+#define FDC_ST1_OVERRUN								0x010
+#define FDC_ST1_UNUSED_BIT3							0x008
+#define FDC_ST1_NO_DATA								0x004
+#define FDC_ST1_NOT_WRITEABLE						0x002
+#define FDC_ST1_MISSING_ADDRESS_MARK				0x001
+
+/* Status Register 2 (ST2) defines */
+#define FDC_ST2_UNUSED_BIT7							0x080
+#define FDC_ST2_CONTROL_MARK						0x040
+#define FDC_ST2_DATA_ERROR_IN_DATA_FIELD			0x020
+#define FDC_ST2_WRONG_CYLINDER						0x010
+#define FDC_ST2_SCAN_EQUAL_HIT						0x008
+#define FDC_ST2_SCAN_NOT_SATISFIED					0x004
+#define FDC_ST2_BAD_CYLINDER						0x002
+#define FDC_ST2_MISSING_ADDRESS_MARK_IN_DATA_FIELD	0x001
+
+/* Status Register 3 (ST3) defines */
+#define FDC_ST3_FAULT								0x080
+#define FDC_ST3_WRITE_PROTECTED						0x040
+#define FDC_ST3_READY								0x020
+#define FDC_ST3_TRACK_0								0x010
+#define FDC_ST3_TWO_SIDE							0x008
+#define FDC_ST3_HEAD_ADDRESS						0x004
+#define FDC_ST3_UNIT_SELECT1						0x002
+#define FDC_ST3_UNIT_SELECT0						0x001
 
 
 /* FDC functions */
-void	FDC_Reset(void);
-void	FDC_WriteDataRegister(int);
+void				FDC_Reset(void);
+void				FDC_WriteDataRegister(int);
 unsigned int		FDC_ReadDataRegister(void);
 unsigned int		FDC_ReadMainStatusRegister(void);
 
@@ -64,24 +113,22 @@ enum
 };
 
 
-
-typedef struct NEC765
+typedef struct
 {
 	unsigned long Flags;
 
-	unsigned long ST0;
-	unsigned long ST1;
-	unsigned long ST2;
-	unsigned long ST3;
+	unsigned char ST0;
+	unsigned char ST1;
+	unsigned char ST2;
+	unsigned char ST3;
 
+	CHRN chrn;
+
+	/* drive output from FDC */
 	unsigned long CurrentDrive;
+	/* side output from FDC */
 	unsigned long CurrentSide;
 
-	/* drive and side we are actually accessing */
-	struct FDD *drive;
-	unsigned long PhysicalDrive;
-	unsigned long PhysicalSide;
-	unsigned long PhysicalTrack;
 
 /*	unsigned long MainStatusRegister; */
 
@@ -96,13 +143,13 @@ typedef struct NEC765
 	unsigned long NCN;
 
 	/* present cylinder numbers of all 4 drives */
-	unsigned long PCN[4];
+	unsigned char PCN[4];
 
 	/* fdc state */
-	unsigned long LowLevelState;
+	int LowLevelState;
 
-	unsigned long HighLevelState;
-	unsigned long PushedHighLevelState;
+	int HighLevelState;
+	int PushedHighLevelState;
 
 	void	(*CommandHandler)(int);
 
@@ -121,57 +168,31 @@ typedef struct NEC765
 	unsigned long ExecutionNoOfBytes;
 	char *ExecutionBuffer;
 
-	unsigned long MainStatusRegister;
-	unsigned long DataRegister;
-
-	unsigned long CommandBytes[8];
 	unsigned long CommandByteIndex;
 	unsigned long CommandBytesRemaining;
 
 	unsigned long StoredDelay;
 
-	unsigned long SectorCounter;
-
-	unsigned char *pTrackPtr;
-	unsigned char *pTrackStart;
-	unsigned char *pTrackEnd;
 
 	unsigned short CRC;
-} NEC765;
 
+	unsigned char MainStatusRegister;
+	unsigned char DataRegister;
+	unsigned char SectorCounter;
+	unsigned char CommandBytes[12];
+} NEC765;
 
 typedef void (*FDC_COMMAND_FUNCTION)(int);
 
-typedef struct DRIVE_STATUS
-{
-	int		CurrentTrack;			/* Current Track head is over */
-	int		CurrentIDIndex;			/* current id index */
-	int		CurrentSide;
-	BOOL	WriteProtected;			/* true if write protected */
-	BOOL	DiskPresent;			/* true if disc inserted */
-	int		PhysicalSide;
-	BOOL	DriveActive;
-} DRIVE_STATUS;
-
-typedef struct	FDC_COMMAND
+typedef struct
 {
 	int			NoOfCommandBytes;
 	FDC_COMMAND_FUNCTION	CommandHandler;
 } FDC_COMMAND;
 
-typedef struct CHRN
-{
-	int		C;
-	int		H;
-	int		R;
-	int		N;
-	int		ST1;
-	int		ST2;
-} CHRN;
-
+/* snapshot functions */
 unsigned char FDC_GetMainStatusRegister(void);
 unsigned char FDC_GetDataRegister(void);
-
 void	FDC_SetMainStatusRegister(unsigned char);
 void	FDC_SetDataRegister(unsigned char);
 
@@ -185,3 +206,4 @@ typedef enum
 } FDC_STATE;
 
 #endif
+

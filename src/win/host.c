@@ -17,11 +17,11 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
-#include <windows.h>
+#include "precomp.h"
+//#include <windows.h>
 
 #include "win.h"
 #include "../cpc/host.h"
-#include "myapp.h"
 #include "directx/dd.h"
 #include "directx/graphlib.h"
 #include "directx/ds.h"
@@ -29,8 +29,7 @@
 #include "../cpc/arnold.h"
 #include "cpcemu.h"
 
-extern BOOL ApplicationIsActive;
-extern BOOL ApplicationHasFocus;
+extern APP_DATA AppData;
 
 
 static GRAPHICS_BUFFER_INFO BufferInfo;
@@ -40,19 +39,16 @@ static 	DDSURFACEDESC SurfaceDesc;
 
 BOOL	Host_SetDisplay(int Type, int Width, int Height, int Depth)
 {
-	int DispType;
 	if (Type == DISPLAY_TYPE_WINDOWED)
 	{
 		MyApp_SetWindowed(Width, Height);
-		DispType = GRAPHICS_WINDOWED;
 	}
 	else
 	{
 		MyApp_SetFullScreen(Width, Height);
-		DispType = GRAPHICS_FULLSCREEN;
 	}
 
-	return DD_SetVideoMode(DispType, Width, Height, Depth);
+	return DD_SetVideoMode(Width, Height, Depth, (Type!=DISPLAY_TYPE_WINDOWED));
 }
 
 
@@ -69,7 +65,7 @@ GRAPHICS_BUFFER_COLOUR_FORMAT *Host_GetGraphicsBufferColourFormat()
 
 		MODE_DETAILS ModeDetails;
 
-		ExamineMode(&ModeDetails);
+		DD_ExamineMode(&ModeDetails);
 
 //		BufferInfo.Height = SurfaceDesc.dwHeight;
 //		BufferInfo.Width = SurfaceDesc.dwWidth;
@@ -112,7 +108,7 @@ BOOL	Host_LockGraphicsBuffer(void)
 	{
 		MODE_DETAILS ModeDetails;
 
-		ExamineMode(&ModeDetails);
+		DD_ExamineMode(&ModeDetails);
 
 		BufferInfo.Height = SurfaceDesc.dwHeight;
 		BufferInfo.Width = SurfaceDesc.dwWidth;
@@ -191,14 +187,14 @@ BOOL	Host_ProcessSystemEvents(void)
 	return WinApp_ProcessSystemEvents();
 }
 
-void	Host_DoDriveLEDIndicator(int Drive, BOOL State)
+static void	DoDriveLEDIndicator(int Drive, BOOL State)
 {
 	// if not active, don't set LED
-	if (!ApplicationIsActive)
+	if (!AppData.ApplicationIsActive)
 		return;
 	
 	// if not in focus, don't set LED
-	if (!ApplicationHasFocus)
+	if (!AppData.ApplicationHasFocus)
 		return;
 
 	if (State)
@@ -212,11 +208,11 @@ void	Host_DoDriveLEDIndicator(int Drive, BOOL State)
 }
 
 
-void	Host_SetDirectory(char *Directory)
+/*void	Host_SetDirectory(char *Directory)
 {
-	_chdir(Directory);
+	_tchdir(Directory);
 }
-
+*/
 
 BOOL Host_LockAudioBuffer(unsigned char **ppBlock1, unsigned long *pBlock1Size, unsigned char **ppBlock2, unsigned long *pBlock2Size, int BlockSize)
 {
@@ -228,9 +224,11 @@ void	Host_UnLockAudioBuffer(void)
 	DS_UnLockAudioBuffer();
 }
 
+extern BOOL bWin;
 static unsigned long PreviousTime=0;
 int Host_LockSpeed = FALSE;
 unsigned long TimeError = 0;
+extern BOOL DoNotScanKeyboard;
 
 void	Host_Throttle(void)
 {
@@ -255,8 +253,89 @@ void	Host_Throttle(void)
 		PreviousTime = Time;
 	}
 	
-	CPC_UpdateAudio();
+	
+//		#ifdef AY_OUTPUT
+//			/* if enabled, writes PSG registers to temp file */
+//			YMOutput_WriteRegs();
+//		#endif
 
-	DoKeyboard();
+  /* disc drive light indicator*/
+   DoDriveLEDIndicator(0, FDD_LED_GetState(0));
 
+	if (bWin)
+	{
+		CPC_UpdateAudio();
+
+		/* auto type active? */
+		if (AutoType_Active())
+		{
+			/* update it */
+			AutoType_Update();
+		}
+		else
+		{
+
+			CPC_ClearKeyboard();
+
+			/* scan keyboard/joysticks */
+			DoKeyboard();
+		}
+	}
+//	else Sleep(2); /* YIELD TO WINDOWS - TROELS */ 
 }
+
+
+HOST_FILE_HANDLE	Host_OpenFile(char *Filename, int Access)
+{
+	HOST_FILE_HANDLE fh;
+
+	if (Access == HOST_FILE_ACCESS_READ)
+	{
+		fh = (HOST_FILE_HANDLE)fopen(Filename,"rb");
+	}
+	else
+	{
+		fh = (HOST_FILE_HANDLE)fopen(Filename,"wb");
+	}
+
+	return fh;
+}
+
+void	Host_CloseFile(HOST_FILE_HANDLE Handle)
+{
+	if (Handle!=0)
+	{
+		fclose((FILE *)Handle);
+	}
+}
+
+int	Host_GetFileSize(HOST_FILE_HANDLE Handle)
+{
+	if (Handle!=0)
+	{
+		int fno = _fileno((FILE *)Handle);
+
+		return _filelength(fno);
+	}
+
+	return 0;
+}
+
+
+
+void	Host_ReadData(HOST_FILE_HANDLE Handle, unsigned char *pData, unsigned long Size)
+{
+	if (Handle!=0)
+	{
+		fread(pData, Size, 1, (FILE *)Handle);
+	}
+}
+
+void	Host_WriteData(HOST_FILE_HANDLE Handle, unsigned char *pData, unsigned long Size)
+{
+	if (Handle!=0)
+	{
+		fwrite(pData, Size, 1, (FILE *)Handle);
+	}
+}
+

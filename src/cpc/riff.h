@@ -20,7 +20,6 @@
 #ifndef __RIFF_HEADER_INCLUDED__
 #define __RIFF_HEADER_INCLUDED__
 
-#include "cpcdefs.h"
 
 #ifdef CPC_LSB_FIRST
 #define RIFF_FOURCC_CODE(a,b,c,d) \

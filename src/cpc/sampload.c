@@ -18,16 +18,14 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 #include "cpcglob.h"
-#include "cpcdefs.h"
 #include "cpc.h"
 #include "voc.h"
 #include "wav.h"
+#include "csw.h"
 #include "sampload.h"
 #include "host.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <memory.h>
-#include <string.h>
+
+#include "headers.h"
 
 #define FPS				50
 #ifndef NOPS_PER_FRAME
@@ -68,6 +66,13 @@ BOOL	Sample_Load(char *Filename)
 		/* yes */
 		pSampleAudioStream->SampleType = SAMPLE_TYPE_WAV;
 	}
+	else 
+	/* is file a WAV? */	
+	if (CSW_Validate(Filename))
+	{
+		/* yes */
+		pSampleAudioStream->SampleType = SAMPLE_TYPE_CSW;
+	}
 
 	/* got a valid type */
 	if (pSampleAudioStream->SampleType != SAMPLE_TYPE_NONE)
@@ -104,6 +109,12 @@ BOOL	Sample_Load(char *Filename)
 				}
 				break;
 			
+				case SAMPLE_TYPE_CSW:
+				{
+					CSW_Open(&SampleAudioStream);
+				}
+				break;
+
 				default:
 					break;
 			}
@@ -153,6 +164,12 @@ void	Sample_Close(void)
 		}
 		break;
 
+		case SAMPLE_TYPE_CSW:
+		{
+			/*CSW_Close(pAudioStream); */
+		}
+		break;
+
 		default:
 			break;
 	}
@@ -175,6 +192,9 @@ static unsigned char Sample_GetDataByte(SAMPLE_AUDIO_STREAM *pAudioStream)
 	
 		case SAMPLE_TYPE_WAV:
 			return WAV_GetDataByte(pAudioStream);
+
+		case SAMPLE_TYPE_CSW:
+			return CSW_GetDataByte(pAudioStream);
 
 		default:
 			break;
@@ -267,7 +287,7 @@ void	Sample_SkipData(SAMPLE_AUDIO_STREAM *pAudioStream, unsigned long Size)
 
 /*----------------------------------------------------------------------*/
 
-unsigned char Sample_GetDataByteTimed(unsigned long PreviousNopCount, unsigned long NextNopCount)
+unsigned char Sample_GetDataByteTimed(unsigned long NopsPassed)
 {
 	SAMPLE_AUDIO_STREAM *pAudioStream = &SampleAudioStream;
 	unsigned long NopDifference;
@@ -276,7 +296,7 @@ unsigned char Sample_GetDataByteTimed(unsigned long PreviousNopCount, unsigned l
 	unsigned long i;
 
 	/* number of nops passed */
-	NopDifference = NextNopCount - PreviousNopCount;
+	NopDifference = NopsPassed;	//NextNopCount - PreviousNopCount;
 	
 	/* number_of_samples_passed = number of complete samples passed */
 	/* so we add on the fraction left over to get number of samples to skip */
@@ -308,11 +328,74 @@ unsigned char Sample_GetDataByteTimed(unsigned long PreviousNopCount, unsigned l
 	
 	}
 
-	SampleByte = (unsigned char)(pAudioStream->CurrentSample^0x080);
+	return (pAudioStream->CurrentSample>>7) & 0x01;
+//	SampleByte = (unsigned char)(pAudioStream->CurrentSample^0x080);
+//
+//	if (SampleByte<0x080)
+//		return 0;
 
-	if (SampleByte<0x080)
-		return 0;
+//	return 1;
+#if 0
 
-	return 1;
+	SAMPLE_AUDIO_STREAM *pAudioStream = &SampleAudioStream;
+	unsigned long NopDifference;
+	unsigned char SampleByte;
+	unsigned long NumberOfSamplesPassed, NumberOfSamplesToSkip;
+	unsigned long i;
+
+	/* number of nops passed */
+	NopDifference = NopsPassed;
+	
+	/* number_of_samples_passed = number of complete samples passed */
+	/* so we add on the fraction left over to get number of samples to skip */
+
+	/* number_of_samples_passed = number_of_samples_per_nop * number_of_nops */
+	NumberOfSamplesPassed = (pAudioStream->NumberOfSamplesPerNop * NopDifference);
+	
+	if (pAudioStream->PreviousFraction!=0)
+	{
+		unsigned long FractionRemaining;
+
+		/* get amount of time remaining to complete this sample */
+		FractionRemaining = 0x010000 - pAudioStream->PreviousFraction;
+
+		/* greater than time that has just passed? */
+		if (NumberOfSamplesPassed<FractionRemaining)
+		{		
+			/* update position within sample and return current sample value */
+			pAudioStream->PreviousFraction+=NumberOfSamplesPassed;
+			pAudioStream->PreviousFraction&=0x0ffff;
+			return (pAudioStream->CurrentSample>>7) & 0x01;
+		}
+		else
+		{
+			/* has overflowed over end of sample, adjust for fractional amount completed */
+			NumberOfSamplesPassed -= FractionRemaining;
+		}
+	}
+
+	/* number_of_samples_to_skip = int(number_of_samples_passed) */
+	NumberOfSamplesToSkip = ((NumberOfSamplesPassed+0x0ffff)>>16);
+
+	/* store fraction */
+	pAudioStream->PreviousFraction = NumberOfSamplesPassed & 0x0ffff;
+
+	if (NumberOfSamplesToSkip!=0)
+	{
+		/* skip bytes */
+		for (i=0; i<NumberOfSamplesToSkip; i++)
+		{
+			Sample_GetDataByte(pAudioStream);
+		}
+
+		/* and get the next data byte */
+		pAudioStream->CurrentSample = Sample_GetDataByte(pAudioStream);
+	
+	}
+
+	/* unsigned 8-bit data */
+	/* if top bit set then say that bit is 1 else it is 0 */
+	return (pAudioStream->CurrentSample>>7) & 0x01;
+#endif
 }
 

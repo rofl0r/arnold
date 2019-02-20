@@ -18,17 +18,13 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 #include "cpcglob.h"
-#include "cpcdefs.h"
 #include "cpc.h"
 #include "sampload.h"
 #include "host.h"
 #include "endian.h"
 #include "voc.h"
-#include <memory.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-/* Voc file format:
+#include "headers.h"
+ /* Voc file format:
 
 Header					0x01a bytes	"Creative Voice File\0x01a"
 Offset to first block	2 bytes		
@@ -99,7 +95,7 @@ Offset to first block	2 bytes
 #pragma pack(1)
 #endif
 
-typedef struct VOC_MAIN_HEADER
+typedef struct
 {
 	/* identification text */
 	unsigned char	IdentText[0x014];
@@ -114,7 +110,7 @@ typedef struct VOC_MAIN_HEADER
 	unsigned char	EncodedVersionMajor;
 } VOC_MAIN_HEADER;
 
-typedef struct VOC_BLOCK_HEADER
+typedef struct
 {
 	/* id of block */
 	unsigned char	ID;
@@ -124,7 +120,7 @@ typedef struct VOC_BLOCK_HEADER
 	unsigned char	LengthHigh;
 } VOC_BLOCK_HEADER;
 
-typedef struct VOC_BLOCK9_HEADER
+typedef struct
 {
 	/* sample frequency in Hz */
 	unsigned short	SampleFrequency;
@@ -138,24 +134,24 @@ typedef struct VOC_BLOCK9_HEADER
 	unsigned char	pad1[6];
 } VOC_BLOCK9_HEADER;
 
-typedef struct VOC_BLOCK1_HEADER
+typedef struct
 {
 	unsigned char	SampleRate;
 	unsigned char	CompressionType;
 } VOC_BLOCK1_HEADER;
 
-typedef struct VOC_BLOCK3_HEADER
+typedef struct
 {
 	unsigned short	LengthOfSilence;
 	unsigned char	SampleRate;
 } VOC_BLOCK3_HEADER;
 
-typedef struct VOC_BLOCK4_HEADER
+typedef struct
 {
 	unsigned short	MarkerID;
 } VOC_BLOCK4_HEADER;
 
-typedef struct VOC_BLOCK6_HEADER
+typedef struct
 {
 	unsigned short	RepeatCount;
 } VOC_BLOCK6_HEADER;
@@ -165,7 +161,7 @@ typedef struct VOC_BLOCK6_HEADER
 #endif
 
 
-typedef struct VOC_AUDIO_STREAM
+typedef struct
 {
 	/* offset into block */
 	unsigned long	CurrentBlockOffset;
@@ -572,6 +568,9 @@ unsigned char VOC_GetDataByte(SAMPLE_AUDIO_STREAM *pAudioStream)
 		pVocAudioStream->CurrentBlockOffset+=((pAudioStream->SampleBits>>3)*(pAudioStream->SampleChannels));
 	}
 
+	/* 8-bit data is always mono */
+	/* 16-bit data is always signed */
+
 	if (pAudioStream->SampleChannels==1)
 	{
 		if (pAudioStream->SampleBits==8)
@@ -583,9 +582,12 @@ unsigned char VOC_GetDataByte(SAMPLE_AUDIO_STREAM *pAudioStream)
 		{
 			unsigned short SampleData;
 
+
 			SampleData = Sample_GetByte(pAudioStream);
 			SampleData |= Sample_GetByte(pAudioStream)<<8;
 
+			SampleData = SampleData^0x08000;
+			
 			return (unsigned char)(SampleData>>8);
 		}
 	}
@@ -611,6 +613,10 @@ unsigned char VOC_GetDataByte(SAMPLE_AUDIO_STREAM *pAudioStream)
 			SampleData2 = Sample_GetByte(pAudioStream);
 			SampleData2 |= Sample_GetByte(pAudioStream)<<8;
 
+			SampleData1 = SampleData1^0x08000;
+			SampleData2 = SampleData2^0x08000;
+
+			
 			return (unsigned char)(((SampleData1 + SampleData2)>>1)>>8);
 		}
 	}

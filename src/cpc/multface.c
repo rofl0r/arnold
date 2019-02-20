@@ -44,15 +44,10 @@
 
 #include "multface.h"
 #include "cpcglob.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <memory.h>
-#include <string.h>
+#include "headers.h"
 #include "garray.h"
 #include "z80/z80.h"
 #include "cpc.h"
-#include "host.h"
-#include "dirstuff.h"
 
 
 static MULTIFACE_MODE Multiface_StoredMode = MULTIFACE_CPC_MODE;
@@ -60,7 +55,7 @@ static MULTIFACE_MODE Multiface_StoredMode = MULTIFACE_CPC_MODE;
 static void    Multiface_SetRamState(int RamState);
 
 /* flags */
-static unsigned long Multiface_Flags;
+static unsigned long Multiface_Flags = 0;
 
 /* multiface occupies memory &0000-&4000. &0000-&1fff is ROM, 0x02000-0x03fff is RAM */
 /* lower 8k is multiface rom */
@@ -232,43 +227,88 @@ void	Multiface_Initialise(void)
 	Multiface_Flags = 0;
 }
 
+CPCPortWrite multifacePortWrite={0x0000,0x0000, Multiface_WriteIO};
+
+
+void	Multiface_Install(void)
+{
+
+	Multiface_Initialise();
+
+	/* install function to capture I/O port writes */
+	CPC_InstallWritePort(&multifacePortWrite);
+	/* install function to reset multiface at system reset */
+	CPC_InstallResetFunction(Multiface_Reset);
+}
+
+
+void	Multiface_DeInstall(void)
+{
+	Multiface_Finish();
+}
+
+static void Multiface_FreeCPCMultifaceROM(void)
+{
+    if (MultifaceRom_CPC!=NULL)
+    {
+        /* free memory */
+        free(MultifaceRom_CPC);
+        
+        MultifaceRom_CPC = NULL;
+    }
+
+	Multiface_Flags &= ~MULTIFACE_FLAGS_CPC_ROM_LOADED;
+
+}
+
+static void Multiface_FreeCPCPLUSMultifaceROM(void)
+{
+	if (MultifaceRom_CPCPLUS!=NULL)
+	{
+		/* free rom */
+		free(MultifaceRom_CPCPLUS);
+		MultifaceRom_CPCPLUS = NULL;
+	}
+
+	Multiface_Flags &= ~MULTIFACE_FLAGS_CPCPLUS_ROM_LOADED;
+
+}
 
 /* loads a rom for multiface emulation */
-BOOL Multiface_LoadRom(MULTIFACE_ROM_TYPE RomType, unsigned char *pRomName)
+int Multiface_SetRomData(const MULTIFACE_ROM_TYPE RomType, const unsigned char *pRomData, const unsigned long RomDataSize)
 {
-    unsigned long   MultifaceRomSize;
-    unsigned char   *MultifaceRomData;
-	BOOL			State;
+	int State;
+	unsigned long CopyLength;
 
-	State = FALSE;
+	/* support AMSDOS header */
 
-    /* attempt to load rom data */
-    Host_LoadFile((char *)pRomName,&MultifaceRomData, &MultifaceRomSize);
+	CopyLength = 8192;
+	if (RomDataSize<CopyLength)
+		CopyLength = RomDataSize;
 
-	if (MultifaceRomData!=NULL)
+	if (pRomData!=NULL)
 	{
 		switch (RomType)
 		{
 			/* CPC version */
 			case MULTIFACE_ROM_CPC_VERSION:
 			{
-				Multiface_Flags &= ~MULTIFACE_FLAGS_CPC_ROM_LOADED;
-
-				if (MultifaceRom_CPC!=NULL)
-				{
-					free(MultifaceRom_CPC);
-					MultifaceRom_CPC = NULL;
-				}
-
+				/* free old rom data if it exists */
+				Multiface_FreeCPCMultifaceROM();
+				
 				MultifaceRom_CPC = (unsigned char *)malloc(8192);
 
 				if (MultifaceRom_CPC!=NULL)
 				{
-					memcpy(MultifaceRom_CPC, MultifaceRomData, 8192);
+					memcpy(MultifaceRom_CPC, pRomData, CopyLength);
 				
 					Multiface_Flags |= MULTIFACE_FLAGS_CPC_ROM_LOADED;
 
-					State = TRUE;
+					State = ARNOLD_STATUS_OK;
+				}
+				else
+				{
+					State = ARNOLD_STATUS_OUT_OF_MEMORY;
 				}
 			}
 			break;
@@ -276,23 +316,22 @@ BOOL Multiface_LoadRom(MULTIFACE_ROM_TYPE RomType, unsigned char *pRomName)
 			/* CPC Plus version */
 			case MULTIFACE_ROM_CPCPLUS_VERSION:
 			{
-				Multiface_Flags &= ~MULTIFACE_FLAGS_CPCPLUS_ROM_LOADED;
-
-				if (MultifaceRom_CPCPLUS!=NULL)
-				{
-					free(MultifaceRom_CPCPLUS);
-					MultifaceRom_CPCPLUS = NULL;
-				}
+				/* free old rom data if it exists */
+				Multiface_FreeCPCPLUSMultifaceROM();
 
 				MultifaceRom_CPCPLUS = (unsigned char *)malloc(8192);
 
 				if (MultifaceRom_CPCPLUS!=NULL)
 				{
-					memcpy(MultifaceRom_CPCPLUS, MultifaceRomData, 8192);
+					memcpy(MultifaceRom_CPCPLUS, pRomData, CopyLength);
 					
 					Multiface_Flags |= MULTIFACE_FLAGS_CPCPLUS_ROM_LOADED;
 					
-					State = TRUE;
+					State = ARNOLD_STATUS_OK;
+				}
+				else
+				{
+					State = ARNOLD_STATUS_OUT_OF_MEMORY;
 				}
 			}
 			break;
@@ -300,8 +339,6 @@ BOOL Multiface_LoadRom(MULTIFACE_ROM_TYPE RomType, unsigned char *pRomName)
 			default:
 				break;
 		}
-
-		free(MultifaceRomData);
 	}
 
 	Multiface_SetMode(Multiface_StoredMode);
@@ -313,21 +350,10 @@ BOOL Multiface_LoadRom(MULTIFACE_ROM_TYPE RomType, unsigned char *pRomName)
 void    Multiface_Finish(void)
 {
 	/* free rom loaded for CPC version */
-    if (MultifaceRom_CPC!=NULL)
-    {
-        /* free memory */
-        free(MultifaceRom_CPC);
-        
-        MultifaceRom_CPC = NULL;
-    }
+	Multiface_FreeCPCMultifaceROM();
 
 	/* free rom loaded for CPC PLUS version */
-	if (MultifaceRom_CPCPLUS!=NULL)
-	{
-		/* free rom */
-		free(MultifaceRom_CPCPLUS);
-		MultifaceRom_CPCPLUS = NULL;
-	}
+	Multiface_FreeCPCPLUSMultifaceROM();
 
 	/* free multiface ram */
 	if (MultifaceRam!=NULL)

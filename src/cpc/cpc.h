@@ -20,7 +20,25 @@
 #ifndef __CPC_HEADER_INCLUDED__
 #define __CPC_HEADER_INCLUDED__
 
-#include "cpcdefs.h"
+/* status codes returned from functions */
+enum
+{
+	/* file was opened ok */
+	ARNOLD_STATUS_OK,
+	/* file was not recognised */
+	ARNOLD_STATUS_UNRECOGNISED,
+	/* version of this file not supported */
+	ARNOLD_VERSION_UNSUPPORTED,
+	/* a general error */
+	ARNOLD_STATUS_ERROR,
+	/* the file or data was invalid */
+	ARNOLD_STATUS_INVALID,
+	/* the file or data had a bad length */
+	ARNOLD_STATUS_INVALID_LENGTH,
+	/* memory allocation request failed */
+	ARNOLD_STATUS_OUT_OF_MEMORY,
+};
+
 
 #include "z80/z80.h"
 
@@ -31,18 +49,19 @@
 #include "printer.h"
 #include "asic.h"
 #include "crtc.h"
-#include "multface.h"
-#include "tzx.h"
 #include "fdc.h"
+#include "fdd.h"
+#include "fdi.h"
 #include "psg.h"
-#include "dumpym.h"
-#include "scrsnap.h"
 #include "snapshot.h"
-#include "wav.h"
 #include "render.h"
 #include "garray.h"
 #include "arnold.h"
 #include "westpha.h"
+#include "cassette.h"
+#include "vortex.h"
+#include "ramrom.h"
+#include "magnum.h"
 
 #define NUM_CRTC_TYPES 5
 
@@ -60,14 +79,45 @@
 
 #define NOPS_PER_MONITOR_SCREEN (NOPS_PER_LINE*LINES_PER_SCREEN)
 
-
-typedef struct AMSTRAD_ROMS
+typedef struct 
 {
-	unsigned char	*pBasic;
-	unsigned char	*pOs;
-} AMSTRAD_ROMS;
+	/* The port I/O address is logically ANDed with this value
+	to remove bits we are not interested in */
+	Z80_WORD PortAnd;
+	/* Then the port I/O address is compared against this value
+	which has the state of the bits we are interested in. The
+	bits we are not interested in should be set to 0 */
+	Z80_WORD PortCmp;
+	/* if the comparison matches, then this function is called
+	to write the data to the port */
+	void (*pWriteFunction)(Z80_WORD, Z80_BYTE);
+} CPCPortWrite;
 
+typedef struct
+{
+	/* The port I/O address is logically ANDed with this value
+	to remove bits we are not interested in */
+	Z80_WORD PortAnd;
+	/* Then the port I/O address is compared against this value
+	which has the state of the bits we are interested in. The
+	bits we are not interested in should be set to 0 */
+	Z80_WORD PortCmp;
+	/* if the comparison matches, then this function is called
+	to write the data to the port */
+	Z80_BYTE (*pReadFunction)(Z80_WORD);
+} CPCPortRead;
 
+typedef void (*CPC_RESET_FUNCTION)(void);
+
+/* install a reset function for a expansion peripheral */
+void CPC_InstallResetFunction(CPC_RESET_FUNCTION resetFunction);
+
+/* install a port read function */
+/* currently used for expansion peripherals */
+void CPC_InstallReadPort(CPCPortRead *readPort);
+/* install a port write function */
+/* currently used for expansion peripherals */
+void CPC_InstallWritePort(CPCPortWrite *writePort);
 
 typedef enum
 {
@@ -166,7 +216,35 @@ typedef enum
 	/* no key press */
 	CPC_KEY_NULL
 } CPC_KEY_ID;
-	
+
+/* digital joystick 0 */
+#define CPC_JOY0_UP	CPC_KEY_JOY_UP
+#define CPC_JOY0_DOWN CPC_KEY_JOY_DOWN
+#define CPC_JOY0_LEFT	CPC_KEY_JOY_LEFT
+#define CPC_JOY0_RIGHT CPC_KEY_JOY_RIGHT
+#define CPC_JOY0_FIRE1	CPC_KEY_JOY_FIRE1
+#define CPC_JOY0_FIRE2 CPC_KEY_JOY_FIRE2
+#define CPC_JOY0_SPARE CPC_KEY_SPARE
+
+/* digital joystick 1 */
+#define CPC_JOY1_UP	CPC_KEY_6
+#define CPC_JOY1_DOWN CPC_KEY_5
+#define CPC_JOY1_LEFT	CPC_KEY_R
+#define CPC_JOY1_RIGHT CPC_KEY_T
+#define CPC_JOY1_FIRE1	CPC_KEY_G
+#define CPC_JOY1_FIRE2 CPC_KEY_F
+#define CPC_JOY1_SPARE CPC_KEY_B
+
+enum
+{
+	/* CPC/CPC+ digital joystick 0 */
+	CPC_DIGITAL_JOYSTICK0,
+	/* CPC/CPC+ digital joystick 1 (joystick splitter required for CPC) */
+	CPC_DIGITAL_JOYSTICK1,
+	/* CPC+ analogue joystick */
+	CPC_ANALOGUE_JOYSTICK
+};
+
 typedef enum
 {
 	JOYSTICK_HARDWARE_AMX_MOUSE = 0,
@@ -175,23 +253,35 @@ typedef enum
 	JOYSTICK_HARDWARE_SPANISH_LIGHTGUN
 } JOYSTICK_HARDWARE_ID;
 
-typedef struct PATCH_ENTRY
-{
-	unsigned short	Addr;
-	unsigned short	Byte;
-} PATCH_ENTRY;
-
-typedef void (*WRITE_FUNCTION)(int);
-typedef unsigned int	(*READ_FUNCTION)(void);
-typedef void (*FUNCTION)(void);
 
 BOOL	CPC_Initialise();
 void	CPC_Finish();
 void	CPC_Reset();
 
-#define CPC_HW_CPCPLUS		0x0001
-#define CPC_HW_CPC			0x0002
-#define CPC_HW_KCCOMPACT	0x0003
+enum
+{
+	/* CPC+ hardware design */
+	/* ASIC combining 8255, CRTC and Gate Array */
+	CPC_HW_CPCPLUS,
+	/* CPC hardware design */
+	/* seperate 8255, CRTC and Gate Array */
+	CPC_HW_CPC,	
+	/* standard CPC464 hardware */
+	CPC_HW_CPC464,
+	/* standard CPC664 hardware */
+	CPC_HW_CPC664,
+	/* standard CPC6128 hardware */
+	CPC_HW_CPC6128,
+	/* cost down CPC464 */
+	/* seperate 8255, combined CRTC and Gate Array */
+	CPC_HW_CPC464_COST_DOWN,
+	/* cost down CPC6128 */
+	/* seperate 8255, combined CRTC, PAL and Gate Array */
+	CPC_HW_CPC6128_COST_DOWN,
+	/* KC Compact hardware design */
+	/* Z8536 CIO */
+	CPC_HW_KCCOMPACT
+};
 
 void	CPC_SetHardware(int);
 int		CPC_GetHardware(void);
@@ -217,9 +307,6 @@ int PPI_GetPortCDataForSnapshot(void);
 
 /* writing functions */
 void	ROM_Select(int);
-
-void	CPC_DumpRamToBuffer(char *Buffer);
-void	CPC_DumpBaseRamToBuffer(char *pBuffer);
 
 BOOL	AllocateEmulatorMemory(void);
 void	InitialiseMemoryPaging(unsigned long);	
@@ -256,14 +343,6 @@ typedef enum
 	IO_CRTC_WRITE_REG
 } CPC_IO_ID;
 #endif
-
-typedef enum
-{
-	CASSETTE_TYPE_SAMPLE = 0,
-	CASSETTE_TYPE_TAPE_IMAGE,
-	CASSETTE_TYPE_NONE
-} CPC_CASSETTE_TYPE_ID;
-
 /* select CPC emulation */
 void	CPC_SetCPCType(CPC_TYPE_ID);
 int		CPC_GetCPCType(void);
@@ -279,26 +358,38 @@ int		CPC_GetMonitorType(void);
 void	CPC_SetMonitorBrightness(int);
 int		CPC_GetMonitorBrightness(void);
 
-char	*ExpansionRom_GetRomName(int RomIndex);
-BOOL	ExpansionRom_Insert(char *RomFilename, int RomIndex);
-Z80_WORD Z80_RD_BASE_WORD(Z80_WORD Addr);
+void CPC_SetOSRom(const unsigned char *pOSRom);
+
+void CPC_SetBASICRom(const unsigned char *pBASICROM);
+
+void CPC_SetDOSRom(const unsigned char *pDOSRom);
+
+
+/* rom */
+BOOL ExpansionRom_GetRomName(const int RomIndex, char **);
+int    ExpansionRom_SetRomData(const unsigned char *RomData, const unsigned long RomDataSize, const int RomIndex);
 unsigned char *ExpansionRom_Get(int RomIndex);
 BOOL	ExpansionRom_IsActive(int RomIndex);
 void	ExpansionRom_SetActiveState(int RomIndex, BOOL State);
-
 void	ExpansionROM_RefreshTable(void);
+void	ExpansionROM_SetTableEntry(int, unsigned char *);
+
+Z80_WORD Z80_RD_BASE_WORD(Z80_WORD Addr);
+
 
 void	CPC_ResetTiming(void);
 void	CPC_ResetNopCount(void);
 unsigned long	CPC_GetNopCount(void);
 void	CPC_UpdateNopCount(unsigned long);
 
+
+
 /*void	CPC_AcknowledgeInterrupt(void); */
 void	CPC_EnableASICRamWrites(BOOL);
 
 void	CPC_ReleaseKeys();
 
-
+#if 0
 void	DebugHooks_WriteMemory_Active(BOOL State);
 void	DebugHooks_ReadMemory_Active(BOOL State);
 void	DebugHooks_WriteIO_Active(BOOL State);
@@ -308,7 +399,7 @@ BOOL	DebugHooks_ReadMemory_GetActiveState(void);
 BOOL	DebugHooks_WriteMemory_GetActiveState(void);
 BOOL	DebugHooks_WriteIO_GetActiveState(void);
 BOOL	DebugHooks_ReadIO_GetActiveState(void);
-
+#endif
 
 /*char *CPC_Debug_GetTextForIOID(CPC_IO_ID IOID);
 void	CPC_Debug_SetupIOCompare(DEBUG_CMP_STRUCT *pComparison, CPC_IO_ID IOPort); */
@@ -316,7 +407,6 @@ void	CPC_Debug_SetupIOCompare(DEBUG_CMP_STRUCT *pComparison, CPC_IO_ID IOPort); 
 
 void	AudioDAC_SetVolume(unsigned char, unsigned char);
 
-void	CPC_ReloadSystemCartridge();
 
 void	CPC_SetComputerNameIndex(int);
 int		CPC_GetComputerNameIndex(void);
@@ -389,38 +479,25 @@ void	CPC_UpdateColours(void);
 void	CPC_SetRamConfig(unsigned long);
 unsigned long CPC_GetRamConfig(void);
 
-void	CPC_SetCassetteType(int);
 int             ROM_GetSelectedROM(void);
 
 
-void	Vortex_Initialise(void);
-void	Vortex_Finish(void);
-void	Vortex_RethinkMemory(void);
-
-/* Inicron RAM-ROM */
-
-#define RAM_ROM_FLAGS_RAM_ON	0x0001
-#define RAM_ROM_FLAGS_RAM_WRITE_ENABLE	0x0002
-#define RAM_ROM_FLAGS_EPROM_ON	0x0004
-
-void	RAM_ROM_Initialise(int NumBlocks);
-void	RAM_ROM_Finish(void);
-void	RAM_ROM_SetBankEnable(int Bank, BOOL State);
-BOOL	RAM_ROM_GetBankEnableState(int Bank);
-void	RAM_ROM_RethinkMemory(unsigned char **, unsigned char **);
-BOOL	RAM_ROM_IsRamOn(void);
-BOOL	RAM_ROM_IsRamWriteEnabled(void); 
-void	RAM_ROM_SetRamOnState(BOOL);
-void	RAM_ROM_SetRamWriteEnableState(BOOL);
-void	RAM_ROM_SetEPROMOnState(BOOL);
-BOOL	RAM_ROM_IsEPROMOn(void);
-void	RAM_ROM_SetupTable(void);
-
-void	Magnum_DoOut(Z80_WORD Port, Z80_BYTE Data);
 
 Z80_BYTE Z80_RD_BASE_BYTE(Z80_WORD Addr);
 
 void	KCC_Update(void);
 
-unsigned long CPC_GetCassetteType(void);
+
+/* internal disc interface of CPC664, CPC6128 and CPC6128+ */
+/* or external DDI-1 disc interface */
+void Amstrad_DiscInterface_Install(void);
+void Amstrad_DiscInterface_DeInstall(void);
+
+/* internal ram of CPC6128, CPC6128+ or Dk'Tronics or Dobbertin
+compatible ram expansion */
+void	Amstrad_RamExpansion_Install(void);
+void	Amstrad_RamExpansion_DeInstall(void);
+
+BOOL Keyboard_HasBeenScanned();
+
 #endif

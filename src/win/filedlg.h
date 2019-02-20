@@ -20,9 +20,9 @@
 // FileDlg header
 
 // Initialise the file dialog stuff
-void InitFileDlg(HWND hwnd, OPENFILENAME *, char *DefExt, char *Filter, DWORD Flags);
-BOOL GetFileNameFromDlg(HWND hwnd, OPENFILENAME *ofn, char *SuggestName, char *Title, char *Buffer, char *);
-BOOL GetSaveNameFromDlg(HWND hwnd, OPENFILENAME *ofn, char *SuggestName, char *Title, char *Buffer, char *);
+void InitFileDlg(HWND hwnd, OPENFILENAME *, TCHAR *DefExt, TCHAR *Filter, DWORD Flags);
+BOOL GetFileNameFromDlg(HWND hwnd, OPENFILENAME *ofn, TCHAR *SuggestName, TCHAR *Title, TCHAR *Buffer, TCHAR *);
+BOOL GetSaveNameFromDlg(HWND hwnd, OPENFILENAME *ofn, TCHAR *SuggestName, TCHAR *Title, TCHAR *Buffer, TCHAR *);
 
 
 

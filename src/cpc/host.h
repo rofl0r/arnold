@@ -27,7 +27,7 @@
 
 typedef unsigned long HOST_FILE_HANDLE;
 
-typedef struct GRAPHICS_BUFFER_INFO
+typedef struct
 {
 	unsigned char *pSurface;		/* pointer to top-left for rendering */
 	int			Width;				/* width of graphics image */
@@ -35,14 +35,14 @@ typedef struct GRAPHICS_BUFFER_INFO
 	int			Pitch;				/* number of bytes in one line of graphics buffer including padding. */
 } GRAPHICS_BUFFER_INFO;
 
-typedef struct GRAPHICS_BUFFER_COLOUR_ELEMENT
+typedef struct
 {
 	int BPP;						/* bits per colour */
 	int Mask;						/* mask */
 	int Shift;						/* shift */
 } GRAPHICS_BUFFER_COLOUR_ELEMENT;
 
-typedef struct GRAPHICS_BUFFER_COLOUR_FORMAT
+typedef struct
 {
 	int BPP;								/* bits per pixel (when R,G,B are combined) */
 	GRAPHICS_BUFFER_COLOUR_ELEMENT Red;		/* information about red */
@@ -50,7 +50,7 @@ typedef struct GRAPHICS_BUFFER_COLOUR_FORMAT
 	GRAPHICS_BUFFER_COLOUR_ELEMENT Blue;	/* information about blue */
 } GRAPHICS_BUFFER_COLOUR_FORMAT;
 
-typedef struct SOUND_PLAYBACK_FORMAT
+typedef struct
 {
 	int NumberOfChannels;	
 	int BitsPerSample;
@@ -61,6 +61,8 @@ typedef struct SOUND_PLAYBACK_FORMAT
 #define DISPLAY_TYPE_WINDOWED	0x0001
 /* full-screen display, bit depth can be set independently of window manager settings */
 #define DISPLAY_TYPE_FULLSCREEN	0x0002
+
+void	Host_HandlePrinterOutput(void);
 
 BOOL	Host_LockGraphicsBuffer(void);	
 GRAPHICS_BUFFER_INFO	*Host_GetGraphicsBufferInfo(void);
@@ -73,16 +75,16 @@ void	Host_WriteDataToSoundBuffer(unsigned char *pData, unsigned long Length);
 BOOL	Host_AudioPlaybackPossible(void);
 SOUND_PLAYBACK_FORMAT *Host_GetSoundPlaybackFormat(void);
 BOOL	Host_ProcessSystemEvents(void);
-void	Host_DoDriveLEDIndicator(int Drive, BOOL State);
-BOOL	Host_SaveFile(char *Filename, unsigned char *, unsigned long);
-BOOL	Host_LoadFile(char *Filename, unsigned char **pLocation, unsigned long *pLength);
+//void	Host_DoDriveLEDIndicator(int Drive, BOOL State);
+//BOOL	Host_SaveFile(char *Filename, unsigned char *, unsigned long);
+//BOOL	Host_LoadFile(char *Filename, unsigned char **pLocation, unsigned long *pLength);
 
 HOST_FILE_HANDLE Host_OpenFile(char *Filename, int Access);
 void	Host_CloseFile(HOST_FILE_HANDLE);
 int		Host_GetFileSize(HOST_FILE_HANDLE);
 void	Host_WriteData(HOST_FILE_HANDLE, unsigned char *, unsigned long);
 void	Host_ReadData(HOST_FILE_HANDLE, unsigned char *, unsigned long);
-void	Host_SetDirectory(char *);
+//void	Host_SetDirectory(char *);
 unsigned long	Host_GetCurrentTimeInMilliseconds(void);
 
 BOOL Host_LockAudioBuffer(unsigned char **, unsigned long *, unsigned char **, unsigned long *, int);

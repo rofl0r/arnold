@@ -1,0 +1,844 @@
+ARNOLD
+======
+
+Un emulador de Amstrad/Schneider CPC, Plus/CPC+ y VEB Mikroelektronik KC Compact.
+
+El programa y el código fuente tienen (c) Copyright de Kevin Thacker 1995-2002.
+<URL:mailto:amstrad@aiind.upv.es>
+
+Las ROMs tienen (c) Copyright de Amstrad plc and Locomotive Software Ltd, Todos 
+los derechos reservados.
+
+Software:
+
+Juegos:
+<URL:ftp://ftp.nvg.ntnu.no/pub/cpc>
+
+Demos, utilidades:
+<URL:ftp://ftp.lip6.fr/pub/amstrad>
+
+Información:
+
+Documentación Técnica:
+<URL:http://andercheran.aiind.upv.es/~amstrad/>
+
+Página de Arnold:
+<URL:http://arnold.emuunlim.com/>
+
+Versión MacOS de Arnold:
+<URL:http://www.bannister.org/>
+
+Versión Unix/Linux de Arnold:
+<URL:http://www.cpcszene.de/~nurgle/>
+
+Las roms han sido distribuidas con este programa con permiso
+de Amstrad plc.
+
+Esta distribución está distribuida bajo la Licencia Pública GNU. Ver el fichero "Copying"
+para la licencia completa en inglés. También se incluye una traducción al castellano
+NO oficial en el fichero "gpl-spanish.htm".
+
+Licencia:
+
+   Este programa es software gratuito; puedes redistribuirlo y/o modificarlo
+   bajo los términos de la Licencia Pública General GNU tal y como está publicada por
+   la Free Software Foundation; desde la version 2, o (a tu elección)
+   cualquier versión posterior.
+
+   Este programa es distribuido con la esperanza de que sea útil,
+   pero SIN NIGUNA GARANTÍA; incluso sin la garantía implícita de
+   COMERCIALIZACIÓN o CONVENIENCIA PARA UN USO PARTICULAR.  Mira la
+   Licencia Pública General GNU para más detalles.
+
+   Deberías haber recivido una copia de la Licencia Pública General GNU
+   junto con este programa; si no, escribe a la Free Software
+   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+
+La versión MacOS es mantenida por Richard Bannister. Las partes MacOS del código fuente
+son (c) Copyright de Richard Bannister y no son distribuidas con esta distribución.
+Yo he dado permiso a Richard para excluirlas de la distribución. Su código fuente
+no es distribuible y no está cubierto por la Licencia Pública GNU.
+
+Si tu haces una versión para otro sistema, *preferiría* que hicieras tu código
+disponible gratuitamente bajo la Licencia Pública GNU y me permitieras distribuirlo junto con
+el código de Arnold.
+
+NOTA:
+
+Arnold no está completamente libre de errores y podría haber algún error en esta 
+versión que causara averías o cuelgues.
+USAS ESTE EMULADOR BAJO TU PROPIO RIESGO. He utilizado mucho este emulador sin ningún problema.
+Algunas características puede que no funcionen  o no están totalmente desarrolladas, estoy trabajando
+arreglando esto.
+
+Se que hay errores en el interface Windows y estoy trabajando para arreglar esto.
+Pero, si encuentras algún error en la emulación del CPC, por favor dímelo.
+
+Si hay una demo o programa que no muestra la pantalla correctamente, o el teclado
+no responde cuando debiera, o el sonido está corrupto, por favor, dame una descripción
+del problema y trataré de solucionarlo.
+
+
+Trasfondo
+==========
+
+Que es el Amstrad/Schneider CPC?:
+---------------------------------
+
+El Computador Personal a Color Amstrad (Amstrad CPC) es un ordenador de 8-bit 
+hecho por Amstrad plc en 1984. Este ordenador fue vendido bajo el nombre comercial
+Schneider en Alemania.
+
+Hubo 3 sistemas Amstrad CPC:
+- El CPC 464 tenía 64K de RAM, construido con una unidad de cassette y el diseño de hardware del Amstrad CPC.
+Este sistema fue lanzado en 1984.
+- El CPC 664 tenía 64K de RAM, construido con una unidad de disco y el diseño de hardware del Amstrad CPC.
+Este sistema fue lanzado en 1985.
+- El CPC 6128 tenía 128K de RAM, construido con una unidad de disco y el diseño de hardware del Amstrad CPC.
+Este sistema fue lanzado en 1985.
+
+El diseño Amstrad CPC tenía las siguientes características:
+- una CPU Z80 funcionando a 4Mhz
+- un generador de sonidos programable AY-3-8912 funcionando a 1Mhz
+- un procesador de gráficos 6845 CRTC generaba la pantalla con la ayuda del Gate-Array
+- chip a medida "Gate Array" proporcionando:
+	- 27 colores (3 intensidades de R,G y B),
+	- 3 modos de pantalla
+		- baja resolución con 16 colores, 160x200 con el tamaño de pantalla habitual
+		- media resolución con 4 colores, 320x200 con el tamaño de pantalla habitual
+		- alta resolución con 2 colores, 640x200 con el tamaño de pantalla habitual
+	- lógica para la paginación de la ROM
+	- lógica para la generación de interrupciones
+- un Interface Paralelo para Periféricos 8255 conectado al teclado, AY-3-8912, joysticks y cassette
+- joysticks digitales
+
+El sistema Amstrad requería un monitor para ser utilizado (porque la fuente de alimentación estaba oculta en la base
+del monitor), pero esto fue una gran idea porque esto significa que solo había 1 enchufe para el lote entero.
+El Amstrad CPC venía con un monitor de fósforo verde (niveles de verde), o un monitor a color.
+
+Que es el Amstrad Plus?:
+--------------------------
+
+En 1990, Amstrad produjo un modelo actualizado, llamado Amstrad Plus. Este sistema
+era compatible con el Amstrad CPC. Este diseño tiene las siguientes características:
+- el "CPC+ ASIC" combinando las funciones del 6845, 8255 y "Gate Array"
+- paleta de 4096 colores
+- 16 hardware sprites
+	- 16x16 pixels en dimensión
+	- puede ser ampliadocan a su tamaño original x2 o x4
+	- los pixels tienen la misma resolución como el modo de resolución alta
+	- 16 colores (paleta independiente para la pantalla de fondo)
+- soporte para cartuchos de hasta 512k
+- lista DMA que puede alimentar datos al chip de sonido
+- interrupciones scan-line programables
+- scroll software con suavizado de pixel
+- división de pantalla
+- joysticks analógicos
+
+Este modelo fue producido demasiado tarde, y en esa época el Atari ST y Amiga habían tomado el mercado.
+
+El Amstrad Plus requería un cartucho para funcionar y el cartucho de sistema proporcionado
+incluía BASIC, AMSDOS y el juego Burnin' Rubber.
+
+El Amstrad Plus podía ser comprado con un monitor a color o un monitor en blanco y negro.
+
+
+Que es el KC Compact?:
+------------------------
+
+El KC Compact es un clon del Amstrad CPC de Alemania del Este. Este sistema fue creado en 1989
+para celebrar el 40 aniversario de la RDA (República Democrática Alemana). Más tarde en 1989, el muro
+de Berlín fue destruido y las Alemanias del Este y Oeste se unieron. Como resultado la producción del KC
+Compact fue parada. 
+
+Este sistema era compatible con el diseño del Amstrad CPC pero tenía las siguientes diferencias:
+- un chip Zilog Z8536 CIO fue usado para generar las interrupciones permitiendo varias frecuencias
+  de interrupciones
+- las funciones del "Gate Array" eran "emuladas" usando logica TTL estándar.
+
+
+Que está emulado?
+=================
+
+Arnold es muy preciso y hay pocos programas (principalmente demos) que no se ven correctamente
+(especialmete estos que usan la técnica "horizontal splitting"). Arnold debería ejecutar el 99% de todos los programas
+y debe ejecutarlos como lo haría un CPC real.
+
+Arnold ha sido escrito para ser portable y para ser la emulación de Amstrad CPC and KC Compact más precisa,
+y emula muchas características indocumentadas.
+
+- emulación completa de 1º ciclo
+- características indocumentadas del CPC+ asic 
+- características indocumentads de varios tipos de CRTC
+- códigos de operación del Z80 indocumentados
+- soporte completo para los modos de interrupción del Z80 0, 1 y 2; modo de interrupción 0 y 2
+  funcionan como deberían hacerlo en un CPC+ 
+  (vectores de interrupciones soportados, y la ejecución de instrucciones extrañas de IM0)
+- todas las características del harware CPC+ (incluyendo las incompatibilidades entre el CPC+ y el CPC)
+- todas las características del hardware CPC
+- ratón Genius
+- Joysticks digitales
+- diferentes expansiones de ram: Discos de Silicio DK'tronics 64k o Dk'Tronics 256K
+- Multiface 2 (el modelo final con interruptor automático)
+- dispositico de sonido Digiblaster 8-bit D/A
+- dispositivo Inicron RAMROM
+- emulación de cinta utilizando imagens de cinta o sonidos digitalizados/muestreados
+- emulación de disco utilizando imagenes de disco
+- emulación de cartuchos CPC+ utilizando ficheros de imagenes de cartucho
+- interrupciones scan-line desde el Z8536 CIO para el KC Compact
+- operacion indocumentada delos puertos E/S del AY-3-8912.
+
+Que no está emuldo?
+===================
+
+- modo 3 indocumentad en el KC Compact
+- joysticks analógicos
+- no todas las operaciones del Z8536 en el KC Compact emuladas
+- no todas las operaciones del 8255 en el CPC son soportadas
+- error en el vector de interrupciones del CPC+ ASIC.
+- teclado "clash"
+- banderas indocumentadas no son perfectas para todos los comandos.
+- acceso a disco a nivel de ciclo; los programas no cargan a velocidad real.
+- otro hardware Amstrad... (mándame info y lo implemetaré, o añade el código tu mismo)
+- la emulación de sonido podría hacerse con más trabajo
+- los efectos de sincronización horizontal y vertical del monitorthe los cuales producen 
+  con ciertos valores programados patrones extraños
+- control de brillo del monitor
+- todavía muchos errores con la emulación del CRTC.
+
+
+VELOCIDAD:
+----------
+
+La velocidad del emulador es lenta en comparación con otros emuladores.
+Por qué? 
+1) El programa está escrito en C. Esto es así para poder portarlo
+a otros sistemas y  para hacer el desarrollo del código más rápido.
+2) La emulación es muy precisa y permite a los programas dependientes del tiempo
+ejecutarse como lo harían en un CPC real (split rasters y el 99% de los efectos de demos
+son emulados exactamente).
+
+La velocidad del emulador en modo CPC+ es más lenta cuando las características del CPC+
+están activas porque el emulador debe hacer funciones extras para emular este sistema.
+
+
+Uso:
+======
+
+
+Versión Windows
+---------------
+
+Para usar este emulador necesitas:
+- un PC rápido (un Pentium II o mejor)
+- Win95 con DirectX 5.0 o superior instaladas
+- Win98
+- Windows NT4 con al menos Service Pack3
+- Windows 2000
+- Windows ME
+ 
+Puedes bajarte la distribución de DirectX del sitio web de Microsoft.
+<URL:http://www.microsoft.com/directx/>
+
+Si el emulador no funciona correctamente, puede que no tengas DirectX instalado
+correctamente. Prueba un juego que sepas que necesita DirectX.
+Si el juego funciona correctamente, entonces por favor indícame tu configuración.
+
+El emulador solo funciona con resoluciones de escritorio de 16-bit, 24-bit o 32-bit.
+
+
+Versión Unix/Linux
+------------------
+
+Para utilizar Arnold necesitas:
+- un sistema rápido
+- X-Windows (16-bit de profundidad, 24-bit o 32-bit)
+- para la versión SDL necesitas tener libsdl instalada.
+  Puedes obtenerla de http://www.libsdl.org/
+- para la versión GTK+ necesitas libgtk y libgdk instaladas.
+  Puedes obtenerlas de http://www.gtk.org/
+
+Esta versión es más básica comparada con la versión Windows.
+Algunas de las características de la versión Windows no han sido todavía
+hechas disponibles en la versión Unix. Por favor, se paciente.
+
+He compilado y testeado esta versión con Redhat Linux v7.0 en
+mi Pentium II.
+
+Con la versión GTK/SDL verás una ventana donde puedes elegir abrir una
+imagen de disco (para las unidades A o B), Reiniciar el ordenador o Salir.
+
+En la versión SDL puedes también elegir una precisión de renderizado diferente y el modo a pantalla completa.
+
+F1 = reiniciar
+F2 = intercambiar los modos a pantalla completa y ventana.
+
+Por favor, ten en cuenta que la versión Linux/Unix está en desarrollo y puede que tenga errores.
+A pesar de ello, Andreas Mickeli está trabajando en ella. Él ha hecho un gran trabajo,
+y se que hará un gran trabajo en el futuro.
+
+Hay varias opciones disponibles en la linea de comandos:
+
+-drivea <nombrefichero>      = especifica una imagen de disco a insertar en la unidad A
+-driveb <nombrefichero>      = especifica una imagen de disco a insertar en la unidad B
+-cart <nombrefichero>        = especifica cartucho CPC+ a insertar
+                          (reinicia en modo CPC+ si no es el seleccionado)
+-frameskip <numero>     = especifica el salto de frame (0=ninguno, 1=dibuja un frame,
+                          pierde un frame, dibuja un frame etc
+-crtctype <numero>      = especifica tipo de CRTC a utilizar en la emulación
+                          (0=hd6845s/um6845, 1=um6845r, 2=mc6845, 3=CPC+ ASIC)
+-tape <nombrefichero>        = especifica imagen de cinta .tzx/.cdt a utilizar
+-cpctype <numero>       = especifica tipo de CPC (0=cpc464, 1=cpc664, 2=cpc6128,
+                          3=cpc464+,4=cpc6128+,5=kc compact)
+-snapshot <nombrefichero>    = especifica fichero de captura (.sna) para auto-empezar
+
+Para esta versión, los ficheros con las ROMs deben estar en un subdirectorio dentro
+del directorio donde está el ejecutable:
+
+e.g.
+
+arnold
+roms/...
+
+
+Software
+========
+
+Para usar software con este emulador debe de estar en un formato de fichero compatible.
+
+1) Una imagen de disco
+Este es un fichero que contiene todos los datos de un disco Amstrad de 3".
+Las imágenes de disco tienen la extensión ".dsk". Las imagenes de disco estándar de CPCEMU 
+y Extendida de CPCEMU son soportadas.
+
+2) Una imagen de cinta
+Este es un fichero que contiene las descripciones de las ondas de sonido que están almacenadas en una 
+cinta. Las imágenes de cinta tienen las extensiones ".tzx" o ".cdt".
+
+3) Una muestra de sonido
+Este es un fichero que contiene sonido digitalizado/muestreado. Los formatos soportados son VOC descomprimido
+y WAV descomprimido. (la versión Unix no soporta esta característica)
+
+4) Una imagen de cartucho
+Este es un fichero que contiene todos los datos de un cartucho de Amstrad CPC+. Un cartucho 
+solo es usable con la emulación de Amstrad CPC+. Una imagen de cartucho tiene la extensión ".cpr".
+
+
+5) Una captura
+Este es un fichero creado por el emulador y contiene una captura de la memoria y el estado del hardware del Amstrad
+en el momento en que la captura fue hecha. Puedes usar una captura para guardar
+tus progresos en un juego, de forma que puedas empezar desde ese punto en el futuro.
+
+Por defecto el formato de la captura es en versión 3. También puede usarse para guardar el estado 
+del hardware del CPC+ para guardar capturas de programas y demos de CPC+.
+
+
+Guía de comienzo rápido
+=======================
+
+Comandos del Amstrad CPC
+========================
+
+NOTA: El símbolo "|" se obtiene presionando MAYUSCULAS y @ juntos en el teclado del Amstrad emulado.
+NOTA: [return] significa que aprietas la tecla RETURN.
+NOTA: Una vez el programa ha empezado a cargar sigue las instrucciones de pantalla.
+
+Discos
+------
+
+Inserta un disco en la unidad y teclea:
+
+CAT [return]
+
+En muchos discos podrás ver un listado de los ficheros del disco. En algunos discoa puedes obtener el
+siguiente mensaje de error "Drive A: read fail, Retry Ignore or Cancel?". Si obtienes un mensaje de error
+entonces el disco puede estar protegido contra escritura y debes usar el método
+de arranque "|CPM" para iniciarlo (ver  abajo).
+
+Para ver un directorio también puedes teclear:
+
+|DIR [return]
+
+Cuando un directorio es mostrado, verás los nombres de los ficheros, su tamaño, y la cantidad de espacio libre
+que queda en el disco.
+
+En algunos discos puedes ejecutar un programa con uno de los siguinetes nombres:
+
+DISC.BAS
+DISC.BIN
+DISK.BAS
+DISK.BIN
+MENU.BAS
+MENU.BIN
+
+en otros discos, estos nombres no existirán, por lo que es cuestión de probar el encontrar el fichero ejecutable, 
+pero las siguientes reglas pueden ayudarte:
+
+1. busca un fichero con la extensión ".BAS", ".BIN" o ".   " (3 spaces)
+2. el fichero suele ser a menudo uno de los más pequeños (puede que un par de k de tamaño).
+3. el fichero puede tener un nombre similar al nombre del juego e.g. CYBERND.BIN para Cybernoid
+
+Prueba varios ficheros y deberías encontrar el ejecutable correcto.
+Cuando ya lo hayas identificado teclea:
+
+RUN"<nombrefichero> [return]
+
+NOTA: reemplaza <nombrefichero> con un nombre del disco.
+NOTA: si un fichero tiene una extensión ".BAS", ".BIN" o ".   " , no necesitas teclearla.
+e.g. RUN"disc ejecutará el fichero disc.bas, disc.bin o disc.  .
+
+Si has elegido el fichero correcto, entonces el programa se cargará y ejecutará. Si no, el Amstrad
+se puede colgar o dar un mensaje de error "Load failed...".
+
+Para determinados discos necesitas teclear:
+
+|CPM [return]
+
+Esto arrancará el disco y ejecutará el programa.
+
+Cintas (muestras e imagenes de cinta)
+------
+
+"Inserta" la muestra o cinta y teclea:
+
+|TAPE [return]
+RUN" [return]
+
+deberías ver el siguiente mensaje:
+
+"Press PLAY then any key:"
+
+presiona la tecla RETURN y espera.
+Después de un tiempo deberías ver:
+
+"Loading <file> block 1"
+donde <file> es el nopmbre del fichero de la cinta.
+Si no ves este mensaje "rebobina" la cinta y espera de nuevo.
+
+Preparate para esperar mucho tiempo, las cintas son emuladas en tiempo real,
+por lo que si un programa empleaba 8 minutos para cargar en un CPC real, tomará
+8 minutos para cargar en la emulación!!!!
+
+Para algunas imágenes de disco necesitas "rebobinar la cinta al inicio" justo después
+de que hayas mandado este comando de carga o de lo contrario el fichero de carga inicial
+en la cinta no será encontrado. La razón de esto es que
+la imagen de cinta puede que no tenga una pausa al principio.
+El Amstrad espera un pequeño tiempo para que el motor de la cinta alcance la máxima velocidad
+y como resultado puede que ciertos ficheros en el comienzo de la cinta no se encuentren si no se hace esto.
+
+
+Cartuchos
+---------
+
+Inserta el cartucho, el juego debería empezar automáticamente.
+
+Captura
+--------
+
+Inserta la captura, el programa empezará automáticamente.
+
+Guía de comienzo rápido
+=======================
+
+Versión Windows
+---------------
+
+Archivo->Unidad de Disco A->Disco en blanco->Sin formato
+	Inserta un disco sin formato en la unidad de disco A del Amstrad.
+	Puedes usar un programa para formatear el discopra su uso.
+
+Archivo->Unidad de Disco A->Insertar Disco...
+	Muestra un selector de ficheros donde puedes elegir la imagen de disco
+	a insertar en la unidad de disco A del Amstrad.
+
+Archivo->Unidad de Disco A->Quitar Disco
+	Quita la imagen de disco de la unidad A del Amstrad.
+	Si intentas ejecutar funciones de discote indicará que el disco no existe.
+	Si no hay nigún disco en la unidad no tiene efecto.
+
+Archivo->Unidad de Disco A->Cambiar cara del Disco
+	Si tienes una imagen de disco que describe un disco con doble cara,
+	puedes dar la vuelta al disco utilizando esta función. Si el disco tiene una única cara
+	no tiene nigún efecto.
+
+Archivo->Unidad de Disco B
+	ver información para Archivo->Unidad de Disco A
+
+Archivo->Cartucho->Insertar Cartucho...
+	Muestra un selector de ficheros donde puedes elegir insertar una imagen
+	de cartucho. Si el CPC no es de tipo CPC Plus,
+	se selecciona automáticamente CPC Plus y el juego empieza automáticamente.
+
+Archivo->Cartucho->Insertar Cartucho de Sistema
+	Inserta el cartucho de sistema en el ordenador, de forma que puedes usar BASIC.
+
+Archivo->Captura->Abrir Captura....
+	Inserta una captura. El ordenador se reinicia usando la información de la captura.
+
+Archivo->Captura->Escribir captura de 64K...
+	Guarda 64k de la RAM del Amstrad a una captura.
+
+Archivo->Captura->Escribir captura de 128K...
+	Guarda 128k de la RAM del Amstrad a una captura.
+
+Archivo->Captura->Indicar versión de captura a escribir (2 o 3)
+	Guarda una captura de la versión seleccionada. La versión 2 es compatible con todos los 
+	emuladores. La versión 2 no soporta el hardware CPC+ o KC Compact.
+	La versión 3 es nueva y no es soportada por muchos emuladores, pero esta
+	versión puede usarse para capturar información del hardware CPC+.
+	Esta versión no está soportada en este momento pero lo será en una distribución futura.
+
+Archivo->Cinta->Insertar imagen de Cinta ...
+	Con esta opción puedes seleccionar la imagen de cinta a usar
+	con la emulación de cinta (una imagen de cinta tiene extensiones ".cdt" o ".tzx").
+Archivo->Cinta->Quitar Cinta
+	Con esta opción puedes quitar la imagen de cinta y el reproductor de cassette
+	emulado quedará limpio.
+Archivo->Cinta->Rebobinar Cinta al principio
+	Es lo mismo que rebobinar una cinta al principio en un reproductor de cintas.
+Archivo->Cinta->El botón 'Play' está apretado en el grabador de cinta
+	Es lo mismo que apretar 'Play' en un reproductor de cintas.
+Archivo->Cinta->Insertar Muestra...
+	Con esta opción puedes seleccionar la muestra de sonido WAV o VOC
+	que se usará para la emulación de cinta.
+
+Archivo->Configuración de ROM...
+	Con esta opción puedes instalar ROMs adicionales. 
+
+	Selecciona "Cargar" para cargar el fichero rom en el banco seleccionado.
+	Puedes pinchar en la caja blanca para habilitar/deshabilitar la rom.
+	Cuando se muestra la marca de seleccionado la rom esta habilitada, cuando no se muestra la rom está
+	deshabilitada.
+
+	Para que esta configuración surta efecto debes reiniciar el Amstrad.
+	Ejemplos de roms son Maxam (un ensamblador) y Protext (un procesador de textos)
+
+
+Archivo->Escribir captura de pantalla...
+	Con esta opción puedes guardar la pantalla a una foto BMP de Windows.
+
+
+------------------------------------------
+
+Configuración->Reiniciar
+	Reinicia el Amstrad (lo mismo que apagarlo y encenderlo nuevamente)
+
+Configuración->Trucos->Base de datos de Trucos...
+
+	Con esta opción puedes usar una base de datos de trucos del estilo de la de CPCEMU. Puedes
+	usar la base de datos de trucos para introducir trucos.
+
+Configuración->Configuración del Emulador->Pantalla Completa
+	Cambia la pantalla a pantalla completa. (Aprieta F4 para volver a
+	modo ventana). También puedes apretar F4 en cualquier momento para intercambiar entre el modo
+	a pantalla completa y el modo ventana)
+
+Configuración->Configuración del Emulador->Usar Joystick/Joypad
+	Selecciona esta opción para usar un joystick/joypad de PC para simular el joystick
+	Amstrad. Si esta opción está deshabilitada entonces puedes usar el teclado numérico
+	para simular el joystick (8 arriba, 2 abajo, 4 izquierda, 6 derecha y 5 fuego)
+
+Configuración->Configuración del Emulador->Salto de Frame
+	Ninguno
+	1
+	2
+	3
+	4
+
+	Puedes usar esta opción para acelerar la emulación.
+	Ninguno - todos los frames se dibujan
+	1 - un frame se dibuja, un frame se salta, un frame se dibuja...
+	2 - un frame se dibuja, dos frames se saltan, un frame se dibuja...
+	etc
+
+Configuración->Configuración del Emulador->Bloquear Velocidad
+	Si la emulación va muy rápido utiliza esta opción para bloquear la velocidad
+	al 100% de la velocidad real del CPC.
+
+Configuración->Configuración del Emulador->Prioridad de Tarea
+	Normal
+	Prioritario
+
+	Puedes usar esta opción para acelerar la emulación.
+	Normal es la selección por defecto. Cuando se selecciona Prioritario
+	Windows dará más tiempo a la emulación, pero otras funciones de Windows
+	serán relentizadas o dejarán de funcionar.
+
+
+Configuración->Configuración del Emulador->Precisión de Renderizado
+	Baja 
+	Alta
+	Muy Alta
+
+	En este modo puedes elegir la precisión de renderizado.
+	
+	En "Baja" el segundo pixel de cada pareja de la horizontal no es dibujado.
+	Con esta precisión de renderizado, el modo 2 no se muestra correctamente.
+
+	En "Alta" cada pixel es dibujado, y hay lineas negras entre cada linea.
+	Es utilizado para simular el efecto de una panatalla de televisión.
+
+	En "Muy Alta" todos los pixels son dibujados y las lineas son duplicadas.
+
+
+Configuración->Configuración del Emulador->Grabación de Sonido->Grabar Sonido como Wav
+	Empezar a grabar...
+	Parar de grabar
+
+	Puedes usar estas funciones para grabar el sonido a un fichero de sonido WAV de Windows.
+
+Configuración->Configuración del Emulador->Grabación de Sonido->Salida de STSound
+	Empezar a grabar...
+	Parar de Grabar
+
+	ST Sound es otro programa que puede reproducir sonidos creados por el 
+	chip de sonido AY-3-8912 (el chip de sonido del CPC). Utilizando esto puedes grabar
+	una melodía de un juego y escucharla en tu PC sin tener que ejecutar el juego
+	en Arnold.
+
+
+Configuración->Configuración del Amstrad->Tipo de CPC
+	CPC 464,
+	CPC 664,
+	CPC 6128,
+	CPC 464+
+	CPC 6128+
+	KC Compact
+
+	Este menu permite seleccionar el tipo de CPC a emular. 
+	En estos momentos, el CPC464, el CPC664 y el CPC464+ tienen todos 128k de memoria.
+	Esto será corregido en una versión futura.
+
+
+	NOTA:
+
+	- El CPC+ no es totalmente compatible con el CPC, y cuando el CPC+ es emulado,
+	algunos juegos no funcionan; igual que si hubieras probado el juego real
+	en un CPC+ real!
+
+	- El KC Compact no es totalmente compatible con el CPC. Cuando este modo está seleccionado
+	las interrupciones se generan de diferente forma.
+
+	- Cuando se selecciona el modo CPC+, se selecciona automáticamente el tipo de CRTC 3.
+	Este es el único tipo de CRTC disponible para esta máquina.
+	- Cuando el modo KC Compact es seleccionado, se selecciona automáticamente el tipo de CRTC 0.
+	Este es el único tipo de CRTC disponible para esta máquina.
+	
+Configuración->Configuración del Amstrad->Tipo de CRTC
+	Tipo 0 (HD6845S/UM6845) - solo CPC
+	Tipo 1 (UM6845R) - solo CPC
+	Tipo 2 (MC6845) - solo CPC
+	Tipo 3 (CPC+ ASIC) - solo CPC+
+	Tipo 4 (Pre-ASIC) - solo CPC
+
+	Este menu te permite escoger el tipo de CRTC que es emulado.
+	A menudo el tipo de CRTC solo es importante para demos 
+	que necesitan una versión determinada.
+		
+	Algunas demos autodetectan el tipo de CRTC usado y se adptan para trabajar con él,
+	a pesar de ellos algunas demos no funcionarán con todos los tipos de CRTC!
+
+	A pesar de seguir el mismo diseño, cada CRTC se comporta de forma ligeramente diferente
+	cuando se programa "al limite".
+
+	El tipo de CRTC 0 es el más compatible y funciona con el 90% de todas
+	las demos, por lo que es recomendable elegirlo cuando utilizamos un modo CPC.
+
+	NOTA:
+		- No puedes elegir CRTC tipo 3 en modo CPC.
+		El CPC solo estaba disponible con los tipos 0,1,2 y 4.
+		- No puedes elegir tipo de  CRTC en modo CPC+. CRTC tipo 3 es el único disponible.
+		- No puedes elegir tipo de CRTC en modo KC Compact. CRTC tipo 0 es el único disponible.
+
+
+Configuración->Configuración del Amstrad->Multiface->Parar Multiface
+	Es lo mismo que presionar el botón de "stop" en el multiface. Para que funcione
+	esta opción la emulación de multiface debe estar habilitada.
+
+Configuración->Configuración del Amstrad->Multiface->Configuración de Multiface...
+	Aquí puedes habilitar/deshabilitar la emulación de multiface, y será detectada después 
+	de reiniciar (como en el Multiface real).
+
+	Aquí también puedes seleccionar la ROM Multiface a utilizar. Hay dos roms
+	una para CPC y otra para CPC+. La versión de la ROM de CPC no funciona en CPC+
+	y viceversa.
+	
+	El Multiface es un dispositivo hardware que se puede conectar detrás del
+	Amstrad CPC/Plus. Este dispositivo tiene dos botones; un botón de reiniciar ("Reset")
+	y un botón de parada ("Stop"). Cuando el botón de parada es presionado el Multiface
+	toma el control y un menú es mostrado. Desde este menú puedes grabar la ram y el estado del hardware
+	a un fichero o editar el estado del hardware. Puedes también volver a la emulación en el punto
+	en el que fue parada.
+	Si has grabado el estado de la memoria y el hardware puedes re-cargarlo más tarde y reiniciar tu
+	programa en el punto en el que fue parado.
+
+Configuración->Configuración del Amstrad->Configuración de Inicron RAM-ROM...
+	El Inicron RAM-ROM es un dispositivo que se conecta al puerto de expansión.
+	Este dispositivo tiene RAM donde puedes instalar programas rom.
+	Este dispositivo es ideal para desarrollar y probar programas rom.
+	El dispositivo puede mantener los datos de 16 ROMs y puedes seleccionar que 
+	banco está activo. También puedes seleccionar si el dispositivo está conectado,
+	y si está deshabilitada la escritura en su ram.
+
+
+Configuración->Configuración del Amstrad->Configurar RAM
+	Expansión de RAM de 64k
+	Expasión de RAM de 256k
+	Disco de Silicio de 256k
+
+	Esta opción te permite elegir hardware ram adicional.
+	En un Amstrad real estos dispositivos hardware se conectan
+	al puerto de expansión y proporcionan ram adicional.
+
+	Los 128k del Amstrad CPC6128 es lo mismo que elegir el
+	Amstrad CPC464 con 64k de ram de expansión.
+
+Configuración->Configuración del Amstrad->Tipo de Monitor
+	Color
+	Fósforo Verde
+	Escala de Grises
+
+	Puedes usar esta opción para ver como se vería el programa/juego
+	si se utilizara uno de estos monitores.
+
+	Fósforo Verde no puede usarse en modo CPC+ y se seleccionará
+	Escala de Grises en su lugar.
+	
+
+Configuración->Configuración del Amstrad->Salida de Impresora
+	Fichero
+	Digiblaster
+
+	Si se seleccion Fichero, cualquier dato escrito en la impresora por el Amstrad
+	se enviará a un fichero.
+
+	Si se selecciona Digiblaster, cualquier dato escrito en la impresora se enviará
+	al dispositivo Digiblaster.
+
+	El Digiblaster es un dispositivo que se conecta al conector de impresora 
+	paralelo del Amstrad y permite que el Amstrad genere sonidos muestreados/digitalizados
+	de 8-bit.
+
+Configuración->Configuración del Amstrad->Hardware en el puerto de Joystick
+	Joystick
+	Ratón Amx
+	Pistola de Luz española
+
+	Puedes elegir esta opción para seleccionar que hardware está conectado al 
+	puerto de Joystick del Amstrad.
+
+	Las opciones son:
+
+	Joystick - joystick digital estándar
+	Ratón AMX - un ratón AMX
+	Pistola de Luz española - la Pistola de Luz creada por una compañía española (no se el nombre)
+
+
+Depurar->Pantalla de depurado
+	Muestra el depurador incorporado. Esta opción es útil para el usuario
+	avanzado.
+
+	Ver->Abrir Vista de Desensamblador
+		Mostrará el desensamblado de parte de la memoria. Puedes usar los cursores para moverte
+		arriba y abajo de la memoria o retroceso de página y avance de página para 
+		moverte más rápido.
+		
+		Apretando V cambia la vista entre el desensamblador del Z80,
+		o de cada uno de los canales DMA de CPC+.
+		
+		Cuando ejecutas paso a paso el código del programa, el contador de programa actual
+		se muestra con la barra gris.
+
+		También puedes posicionar la barra gris en cualquier línea y apretar B para  
+		poner una parada (breakpoint) (presiona B de nuevo para quitar la parada).
+
+		Cuando una parada es indicada, la ejecución se detendrá en ese punto.
+	
+		Si se presiona el botón derecho puedes cambiar la dirección mostrada.
+
+	Ver->Abrir Vista de Volcado de Memoria
+		Muestra un volcado de memoria.
+		Puedes ver la memoria como octetos (bytes) hexadecimales o palabras hexadecimales ASCII.
+		Presiona V para cambiar entre vistas.
+		
+		Puedes moverte por la pantalla con los cursores y usar anvance página y
+		retroceso página como en la vista de desensamblado.
+		El cursor gris indica la posición actual.
+		
+		Puedes teclear un valor hexadecimal cuando estás  en el área hexadecimal
+		de la pantalla y cambiar de esta forma la memoria.
+
+		Si tecleas en el área ASCII cambiará la memoria también, pero puedes teclear 
+		palabras y sentencias en lugar de valores hexadecimales.
+		
+		Si tecleas en el área de dirección de memoria puedes cambiar la dirección vista.
+
+		Puedes pulsar TAB para cambiar entre áreas.
+
+		En esta vista puedes pulsar también el botón derecho del ratón, y desde aquí
+		puedes indicar la dirección a ver o buscar bytes.
+
+		Cuando buscas varios bytes teclea espacios en blanco para separarlos.
+	
+	Ver->Abrir Vista de Hardware del CPC
+		Aquí puedes ver el estado del Hardware del CPC (Registros de la paleta del
+		Gate Array, modo del gate array y control de rom etc). Puedes pulsar en un elemento
+		y editarlo.
+	Ver->Abrir Vista de Hardware del CPC+
+		Aquí puedes vcer el estado del Hardware del CPC+. (ver la paleta extendida
+		del CPC+, direcciones DMA etc)
+	Ver->Abrir Vista de CRTC
+		Aquí puedes ver el estado del CRTC (ver los valores de sus registros internos y 
+		comparaciones)
+
+	En la pantalla principal puedes dar un paso en un programa, ejecutar hasta una dirección
+	y editar los registros de la CPU.
+
+
+Modos
+	Proporciona una lista de los modos disponibles a pantalla completa.
+
+Característica de grabación STSound
+===================================
+
+Permite grabar la salida PSG en el formato YM3
+que puede ser reproducido con STSound. El fichero de 
+salida, tiene la extensión ".YM3". Antes de poder reproducir 
+este sonido con STSound, debe ser convertido en un 
+fichero ".YM". Esto se hace comprimiendo el fichero
+utilizando LHA.
+
+lha -h0 <nombrefichero>.ym <nombrefichero>.ym3
+
+Para empezar a grabar el sonido, selecciona 
+"Salida de STSound->Empezar a grabar...".
+Se te preguntará por el nombre del fichero de salida
+".YM3". La grabación empezará, y continuará mientras no
+selecciones "Salida de STSound->Parar de Grabar". Mientras
+grabas, un fichero temporal almacena los datos del sonido
+raw PSG. Cuando se selecciona "Parar de Grabar", estos datos
+son leídos y convertidos al formato ".YM3".
+
+Puedes empezar y parar la captura de sonido PSG en cualquier momento.
+
+Esta característica, actualmente, solo captura musica normal.
+No puede manejar musica Digi-Tracker, o sonidos con
+efectos digitales. Debido a ello, puede que no sea posible
+capturar algunos sonidos correctamente.
+
+
+
+
+
+//////////////////////////////////////////////////////////////////
+
+Tanto el emulador Arnold como la documentación adjunta
+a sido traducido al castellano por:
+
+Miguel Canteras.
+kereslas@hotmail.com
+
+Cualquier comentario referente a la traducción será bienvenido.
+
+//////////////////////////////////////////////////////////////////

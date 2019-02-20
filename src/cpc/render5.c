@@ -19,7 +19,6 @@
  */
 /* Rendering Functions */
 
-#include "cpcdefs.h"
 #include "cpcglob.h"
 #include "cpc.h"
 #include "render.h"
@@ -29,9 +28,7 @@
 #define SHOW_SPEED
 
 #ifdef SHOW_SPEED
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "headers.h"
 #endif
 
 #define LESS_MULTS 
@@ -52,8 +49,8 @@ static void	CRTC_SetVisibleClocks
 no, so don't attempt to render anything */
 static BOOL Renderer_Active = FALSE;
 static int     BytesPerPixel;
-static int ScanLines = 0;
-static int FillScanLines = 0;
+int ScanLines = 0;
+int FillScanLines = 0;
 static int PIXEL_STEP;
 int PIXEL_STEP_SHIFT;
 static int Render_CPCRenderHeight, Render_CPCRenderWidth;
@@ -1505,8 +1502,10 @@ void    Render_SetRenderingAccuracy(int Accuracy)
 
 }
 
+/* Troels K. begin */
+/*static*/ int Render_RenderingAccuracyForWindowedMode = RENDERING_ACCURACY_LOW;
+/* Troels K. end */
 
-static int Render_RenderingAccuracyForWindowedMode;
 
 void	Render_SetRenderingAccuracyForWindowedMode(int Accuracy)
 {

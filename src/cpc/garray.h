@@ -47,7 +47,6 @@ int             GateArray_GetBlue(int);
 /* used for Snapshot and Multiface */
 int             GateArray_GetPaletteColour(int PenIndex);
 int             GateArray_GetSelectedPen(void);
-int             GateArray_GetRamConfiguration(void);
 int             GateArray_GetMultiConfiguration(void);
 void            GateArray_RethinkMemory(void);
 void            GateArray_SetRethinkMemoryCallback(void (*)(void));
@@ -61,14 +60,13 @@ void			GateArray_SetWriteCallback(void (*)(int));
 #define GATE_ARRAY_INT_PULSE_LENGTH_IN_NOPS 5
 /* wait every 4th clock. */
 
-typedef struct GATE_ARRAY_STATE
+typedef struct
 {
 	unsigned long	InterruptLineCount;
 	unsigned long	InterruptSyncCount;
 
 	unsigned char   PenSelection;
 	unsigned char   ColourSelection;
-	unsigned char   RamConfiguration;
 	unsigned char   RomConfiguration;
 
 	unsigned char   PenColour[18];
@@ -77,18 +75,12 @@ typedef struct GATE_ARRAY_STATE
 	unsigned char	pad0;
 	unsigned char	pad1;
 
-	unsigned char **pChosenRamConfig;
-
-	/* these are the addressess for ram r/w i.e. when rom is not paged in */
-	unsigned char	*RamConfigRead[8];
-	unsigned char	*RamConfigWrite[8];
-
-	/* these are the addressess when rom is active */
-	unsigned char	*RomConfigRead[8];
-	unsigned char	*RomConfigWrite[8];
-
 } GATE_ARRAY_STATE;
 
+/* not really part of the GateArray but part of a RAM expansion */
+/* or the internal RAM expansion of the CPC6128 or CPC6128+ */
+void	PAL_WriteConfig(int Function);
+int     PAL_GetRamConfiguration(void);
 
 void	GateArray_SetInterruptLineCount(int Count);
 int		GateArray_GetInterruptLineCount(void);

@@ -26,6 +26,7 @@
 #include "dissasm.h"
 #include "gdebug.h"
 #include "breakpt.h"
+#include "../messages.h"
 
 DISSASSEMBLE_WINDOW *Dissassemble_Create(void)
 {
@@ -511,16 +512,16 @@ char	*Dissassemble_GetViewName(DISSASSEMBLE_WINDOW *pDissassembleWindow)
 	switch (pDissassembleWindow->ViewType)
 	{
 		case DISSASSEMBLE_VIEW_Z80_INSTRUCTIONS:
-			return "Z80";
+			return Messages[115];
 		
 		case DISSASSEMBLE_VIEW_DMA_CHANNEL_0_INSTRUCTIONS:
-			return "ASIC DMA Channel 0";
+			return Messages[116];
 
 		case DISSASSEMBLE_VIEW_DMA_CHANNEL_1_INSTRUCTIONS:
-			return "ASIC DMA Channel 1";
+			return Messages[117];
 
 		case DISSASSEMBLE_VIEW_DMA_CHANNEL_2_INSTRUCTIONS:
-			return "ASIC DMA Channel 2";
+			return Messages[118];
 		
 			default:
 			break;

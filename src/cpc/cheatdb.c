@@ -17,9 +17,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "headers.h"
 #include "cpcglob.h"
 #include "cheatdb.h"
 #include <ctype.h>
@@ -290,7 +288,7 @@ static unsigned long CheatDatabase_QuotedText_Length;
 /* space to store quoted text */
 static unsigned char CheatDatabase_QuotedText[CHEAT_DATABASE_MAX_QUOTED_STRING_LENGTH];
 
-static unsigned char *pDataPtr, *pDataPtrEnd;
+static const unsigned char *pDataPtr, *pDataPtrEnd;
 
 static void	CheatDatabase_GetDataInQuotes(void)
 {
@@ -568,16 +566,14 @@ static int	CheatDatabase_Parse_OldByte(void)
 
 /* I chose to do it this way so it is portable */
 
-CHEAT_DATABASE *CheatDatabase_Read(char *pFilename)
+CHEAT_DATABASE *CheatDatabase_Parse(const unsigned char *pDatabase, const unsigned long Database_FileLength)
 {
 	CHEAT_DATABASE *pCheatDatabase;
 	CHEAT_DATABASE_ENTRY *pCurrentEntry;
 
-	unsigned char *pDatabase;
-	unsigned long Database_FileLength;
-
 	pCurrentEntry = NULL;
-	if (Host_LoadFile(pFilename, &pDatabase, &Database_FileLength))
+	
+	if (pDatabase!=NULL)
 	{
 		/* loaded database, parse it */
 		unsigned char ch;
@@ -805,8 +801,6 @@ CHEAT_DATABASE *CheatDatabase_Read(char *pFilename)
 			}
 		}
 		while (pDataPtr<pDataPtrEnd);
-	
-		free(pDatabase);
 
 		return pCheatDatabase;
 	}

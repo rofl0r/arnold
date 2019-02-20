@@ -17,44 +17,24 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
-#include <stdlib.h>
-#include <string.h>
 #include "dumpym.h"
 #include "cpcglob.h"
-#include "cpcdefs.h"
 #include "endian.h"
 #include "host.h"
+#include "headers.h"
 
 /* current state of registers and info about if
 they have changed */
-static AY_INFO	AYRegs[16];
-static AY_INFO	PreviousAYRegs[16];
-static BOOL		AYRegsChanged[16];
-
-/* file handle for temporary file */
-static HOST_FILE_HANDLE	fhYMOutput=0;
-/* status of recording */
-static BOOL	YMOutputEnabled=FALSE;
-/* filename for output YM */
-static char	*pYMFilename;
-/* filename for temp data */
-static char	*pYMTempFilename;
-
-/* TRUE if actively recording AY output */
-static BOOL YMOutput_Recording = FALSE;
-/* TRUE if we should wait until the AY output is not silent before recording */
-static BOOL	YMOutput_StartRecordingWhenSilenceEnds = FALSE;
-
-static int YM_Version = 5;
+static AY_INFO	AYInfo;
 
 static unsigned char *YM5_SongName = NULL;
 static unsigned char *YM5_AuthorName = NULL;
 static unsigned char *YM5_Comments = NULL;
-static unsigned char YM5_EndFileText[4]="End!";
 
-
-static unsigned char YM5_Ident_Text[4]="YM5!";
-static unsigned char YM5_IdentString_Text[8]="LeOnArD!";
+const unsigned char YM5_EndFileText[4]="End!";
+const unsigned char YM3_Ident_Text[4] = "YM3!";
+const unsigned char YM5_Ident_Text[4] = "YM5!";
+const unsigned char YM5_IdentString_Text[8]="LeOnArD!";
 
 #define YM5_SONG_ATTRIBUTE_DATA_INTERLEAVED	0x0001
 
@@ -62,7 +42,7 @@ static unsigned char YM5_IdentString_Text[8]="LeOnArD!";
 #pragma pack(1)
 #endif
 
-typedef struct YM5_HEADER
+typedef struct
 {
 	unsigned long ID;
 	unsigned char IDString[8];
@@ -78,11 +58,6 @@ typedef struct YM5_HEADER
 #ifdef _WINDOWS
 #pragma pack()
 #endif
-
-void	YMOutput_SetStartRecordingState(BOOL State)
-{
-	YMOutput_StartRecordingWhenSilenceEnds = State;
-}
 
 unsigned char *YMOutput_GetName(void)
 {
@@ -179,77 +154,41 @@ void	YMOutput_SetComment(unsigned char *pNewComment)
 }
 
 
-static void	YMOutput_InitialiseRegisters(void)
+void	YMOutput_StartRecording(void)
 {
 	int i;
 
 	/* initialise register data */
 	for (i=0; i<16; i++)
 	{
-		/* current */
-		AYRegs[i].RegisterData = 0;
-		AYRegs[i].Flags = 0;
-	
-		/* previous */
-		PreviousAYRegs[i].RegisterData = 0;
-		PreviousAYRegs[i].Flags = 0;
-
-		/* changed flag */
-		AYRegsChanged[i] = FALSE;
+		AYInfo.RegisterData[i] = AYInfo.PreviousRegisterData[i] = 0;
+		AYInfo.Flags[i] = 0;
 	}
-}
-
-
-/* dump registers to file */
-void	YMOutput_Init(char *pTempFilename)
-{
-	fhYMOutput = 0;
-	YMOutputEnabled = FALSE;
-
-	/* set temp filename */
-	pYMTempFilename = (char *)malloc(strlen(pTempFilename)+1);
-
-	if (pYMTempFilename!=NULL)
-	{
-		strcpy(pYMTempFilename, pTempFilename);
-	}
-
-	YMOutput_InitialiseRegisters();
-
-	YMOutput_SetName((unsigned char *)"Untitled");
-	YMOutput_SetAuthor((unsigned char *)"Unknown");
-
 }
 
 void	YMOutput_Finish(void)
 {
-	/* stop any recording */
-	YMOutput_StopRecording();
-
-	/* free temp filename */
-	if (pYMTempFilename!=NULL)
-	{
-		free(pYMTempFilename);
-	}
-
 	if (YM5_SongName!=NULL)
 	{
 		free(YM5_SongName);
+		YM5_SongName = NULL;
 	}
 
 	if (YM5_AuthorName!=NULL)
 	{
 		free(YM5_AuthorName);
+		YM5_AuthorName = NULL;
 	}
 
 	if (YM5_Comments!=NULL)
 	{
 		free(YM5_Comments);
+		YM5_Comments = NULL;
 	}
 }
 
 /* TRUE if output is silent, FALSE if not */
-static BOOL YMOutput_IsSilent(void)
+BOOL YMOutput_IsSilent(void)
 {
 	/* what defines silence? */
 
@@ -261,7 +200,7 @@ static BOOL YMOutput_IsSilent(void)
 	   R8, R9, R10 can be any value.
 	*/
 
-	if ((AYRegs[8].RegisterData==0) || (AYRegs[9].RegisterData==0) || (AYRegs[10].RegisterData==0))
+	if ((AYInfo.RegisterData[8]==0) || (AYInfo.RegisterData[9]==0) || (AYInfo.RegisterData[10]==0))
 	{
 		/* volume regs are all zero = silence regardless of mixer,
 		tone and noise settings. */
@@ -269,8 +208,13 @@ static BOOL YMOutput_IsSilent(void)
 	}
 
 	/* a volume register is not zero, something *could* be audible */
-	if ((!(AYRegsChanged[8] | AYRegsChanged[9] | AYRegsChanged[10])) &&
-		((AYRegs[7].RegisterData & 0x03f)==0x03f))
+	if (
+		(!(
+		(AYInfo.Flags[8]&AY_INFO_REG_DATA_CHANGED) | 
+		(AYInfo.Flags[9]&AY_INFO_REG_DATA_CHANGED) | 
+		(AYInfo.Flags[10]&AY_INFO_REG_DATA_CHANGED)
+		)) &&
+		((AYInfo.RegisterData[7] & 0x03f)==0x03f))
 	{
 		/* AY Regs haven't changed, and tone and noise are disabled */
 		return TRUE;
@@ -279,268 +223,246 @@ static BOOL YMOutput_IsSilent(void)
 	return FALSE;
 }
 
-
-/* write regs to temp file */
-void	YMOutput_WriteRegs(void)
-{
-	int i;
-
-	if (YMOutputEnabled==TRUE)
-	{
-		if (fhYMOutput!=0)
-		{
-			if (YMOutput_StartRecordingWhenSilenceEnds)
-			{
-				/* we want to start recording when silence ends */
-
-				/* are we recording ? */
-				if (!YMOutput_Recording)
-				{
-					/* no */
-
-					/* is output silent? */
-					if (!YMOutput_IsSilent())
-					{
-						/* not silent, so we can start to record */
-						YMOutput_Recording = TRUE;
-					}
-				}
-			}
-			else
-			{
-				/* do not record when silence ends, so we must be able
-				to record all the time */
-				YMOutput_Recording = TRUE;
-			}
-
-			/* if we are recording, then write register data to file */
-			if (YMOutput_Recording)
-			{
-				for (i=0; i<14; i++)
-				{
-					if (i==13)
-					{
-						if (!(AYRegs[i].Flags & AY_INFO_REG_CHANGED))
-						{
-							unsigned char Unchanged = 0x0ff;
-
-							Host_WriteData(fhYMOutput, &Unchanged,sizeof(unsigned char));
-						}
-						else
-						{
-							/* write reg data */
-							Host_WriteData(fhYMOutput, &AYRegs[13].RegisterData, sizeof(unsigned char));
-						}
-					}
-
-					if (i!=13)
-					{
-						/* write reg data */
-						Host_WriteData(fhYMOutput,&AYRegs[i].RegisterData, sizeof(unsigned char));
-					}
-				}
-			}
-		}
-	}
-
-	/* clear changed status */
-	YMOutput_ClearRegStatus();
-}
-
-void	YMOutput_ClearRegStatus(void)
+static void	YMOutput_ClearRegUpdatedStatus(void)
 {
 	int i;
 
 	for (i=0; i<16; i++)
 	{
-		AYRegs[i].Flags = 0;
+		/* clear updated flag */
+		AYInfo.Flags[i] &=~AY_INFO_REG_UPDATED;
 	}
 }
+
+
+/* generate a temporary record which can be written to a file */
+void	YMOutput_GenerateTempRecord(unsigned char *Regs)
+{
+	int i;
+
+	for (i=0; i<13; i++)
+	{
+		Regs[i] = AYInfo.RegisterData[i];
+	}
+
+	if ((AYInfo.Flags[13] & AY_INFO_REG_UPDATED)==0)
+	{
+		Regs[13] = 0x0ff;
+	}
+	else
+	{
+		Regs[13] = AYInfo.RegisterData[13];
+	}
+
+	for (i=14; i<16; i++)
+	{
+		Regs[i] = AYInfo.RegisterData[i];	
+	}
+
+	/* clear changed status */
+	YMOutput_ClearRegUpdatedStatus();
+}
+
 
 /* record AY/YM output */
 void	YMOutput_StoreRegData(int PSG_SelectedRegister, int Data)
 {
-	if (Data!=AYRegs[PSG_SelectedRegister].RegisterData)
+	/* setup previous register data */
+	AYInfo.PreviousRegisterData[PSG_SelectedRegister] = 
+		AYInfo.RegisterData[PSG_SelectedRegister];
+
+	/* data changed? */
+	if (Data!=AYInfo.RegisterData[PSG_SelectedRegister])
 	{
-		/* data has changed from previous frame */
-		AYRegsChanged[PSG_SelectedRegister] = TRUE;
+		AYInfo.Flags[PSG_SelectedRegister]|=AY_INFO_REG_DATA_CHANGED;
+	}
+	else
+	{
+		AYInfo.Flags[PSG_SelectedRegister]&=~AY_INFO_REG_DATA_CHANGED;
 	}
 
-	/* store current values as previous */
-	PreviousAYRegs[PSG_SelectedRegister].RegisterData = 
-		AYRegs[PSG_SelectedRegister].RegisterData;
+	/* this register has been updated this frame */
+	AYInfo.Flags[PSG_SelectedRegister]|=AY_INFO_REG_UPDATED;
 
 	/* store register data */
-	AYRegs[PSG_SelectedRegister].RegisterData = (unsigned char)Data;
-	/* mark data as changed */
-	AYRegs[PSG_SelectedRegister].Flags |= AY_INFO_REG_CHANGED;
+	AYInfo.RegisterData[PSG_SelectedRegister] = (unsigned char)Data;
 }
 
-void	YMOutput_StartRecording(char *pFilename, int Version)
+int		YMOutput_ValidateVersion(int Version)
 {
-	YMOutputEnabled = FALSE;
-
 	if ((Version!=3) && (Version!=5))
 	{
 		Version = 5;
 	}
 
-	YM_Version = Version;
-
-	
-	pYMFilename = (char *)malloc(strlen(pFilename)+1);
-
-	if (pYMFilename!=NULL)
-	{
-		strcpy(pYMFilename, pFilename);
-	
-		/* open temp file */
-		fhYMOutput = Host_OpenFile(pYMTempFilename,HOST_FILE_ACCESS_WRITE);
-		
-		if (fhYMOutput!=0)
-		{
-			/* open succeeded, enable recording */
-			YMOutputEnabled = TRUE;
-			return;
-		}
-	
-		free(pYMFilename);
-	}
-
-	YMOutput_InitialiseRegisters();
+	return Version;
 }
 
-void	YMOutput_StopRecording(void)
+/* calculate size of header for YM file */
+unsigned long YMOutput_GenerateHeaderOutputSize(int nVersion)
 {
-	if (YMOutputEnabled)
+	unsigned long nSize;
+
+	nSize = 0;
+
+	nVersion = YMOutput_ValidateVersion(nVersion);
+
+	if (nVersion==3)
 	{
-		unsigned char *pTempData;
-		unsigned long TempDataLength;
+		nSize = strlen(YM3_Ident_Text);
+	}
+	else if (nVersion == 5)
+	{
+		/* version 5 */
+		nSize = sizeof(YM5_HEADER);
 
-		/* close temp output file */
-		Host_CloseFile(fhYMOutput);
-		fhYMOutput = 0;
-		
-		/* build YM data */
-
-		/* load temp file */
-		Host_LoadFile(pYMTempFilename, &pTempData, &TempDataLength);
-
-		if ((pTempData!=NULL) && (TempDataLength!=0))
+		/* write name of song */
+		if (YM5_SongName!=NULL)
 		{
-			HOST_FILE_HANDLE FileHandle;
-			
-			FileHandle = Host_OpenFile(pYMFilename, HOST_FILE_ACCESS_WRITE);
-			
-			if (FileHandle!=0)
-			{
-				int i,j;
-				int NoOfVBL = TempDataLength/14;	
+			nSize += strlen(YM5_SongName);
+		}
+		nSize++;
 
-				if (YM_Version == 3)
-				{
-					static unsigned char YMIdent[4] = "YM3!";
+		/* write author name */
+		if (YM5_AuthorName!=NULL)
+		{
+			nSize += strlen(YM5_AuthorName);
+		}
+		nSize++;
 
-					/* write output ident */
-					Host_WriteData(FileHandle, YMIdent, 4);
-				}
-				else
-				{
-					YM5_HEADER YM5_Header;
+		if (YM5_Comments!=NULL)
+		{
+			nSize += strlen(YM5_Comments);
+		}
+		nSize++;
+	}
+	
+	return nSize;
+}
 
-					memcpy(&YM5_Header.ID, YM5_Ident_Text, 4);
-					memcpy(&YM5_Header.IDString, YM5_IdentString_Text, 8);
-					YM5_Header.NumVBL = NoOfVBL;
-					YM5_Header.SongAttributes = YM5_SONG_ATTRIBUTE_DATA_INTERLEAVED;
-					YM5_Header.NoOfDigiDrumSamples = 0;
-					YM5_Header.YMFrequency = 1000000;
-					YM5_Header.PlayerFrequency = 50;
-					YM5_Header.VBLLoopIndex = 0;
-					YM5_Header.SizeOfExtraData = 0;
+unsigned long YMOutput_GenerateTrailerOutputSize(int nVersion)
+{
+	unsigned long nSize;
+
+	nSize = 0;
+
+	nVersion = YMOutput_ValidateVersion(nVersion);
+
+	if (nVersion == 5)
+	{
+		/* version 5 */
+		nSize = strlen(YM5_EndFileText);
+	}
+	
+	return nSize;
+}
+
+/* setup header */
+void YMOutput_GenerateHeaderData(unsigned char *pData, int nVersion, int nVBL)
+{	
+	nVersion = YMOutput_ValidateVersion(nVersion);
+
+	if (nVersion == 3)
+	{
+		memcpy(pData, YM3_Ident_Text, strlen(YM3_Ident_Text));
+	}
+	else
+	{
+		YM5_HEADER YM5_Header;
+
+		memcpy(&YM5_Header.ID, YM5_Ident_Text, 4);
+		memcpy(&YM5_Header.IDString, YM5_IdentString_Text, 8);
+		YM5_Header.NumVBL = nVBL;
+		YM5_Header.SongAttributes = YM5_SONG_ATTRIBUTE_DATA_INTERLEAVED;
+		YM5_Header.NoOfDigiDrumSamples = 0;
+		YM5_Header.YMFrequency = 1000000;
+		YM5_Header.PlayerFrequency = 50;
+		YM5_Header.VBLLoopIndex = 0;
+		YM5_Header.SizeOfExtraData = 0;
 					
 #ifdef CPC_LSB_FIRST
-				YM5_Header.NumVBL = SwapEndianLong(YM5_Header.NumVBL);
-				YM5_Header.SongAttributes = SwapEndianLong(YM5_Header.SongAttributes);
-				YM5_Header.YMFrequency = SwapEndianLong(YM5_Header.YMFrequency);
-				YM5_Header.VBLLoopIndex = SwapEndianLong(YM5_Header.VBLLoopIndex);
-				YM5_Header.NoOfDigiDrumSamples = SwapEndianWord(YM5_Header.NoOfDigiDrumSamples);
-				YM5_Header.PlayerFrequency = SwapEndianWord(YM5_Header.PlayerFrequency);
-				YM5_Header.SizeOfExtraData = SwapEndianWord(YM5_Header.SizeOfExtraData);
+		YM5_Header.NumVBL = SwapEndianLong(YM5_Header.NumVBL);
+		YM5_Header.SongAttributes = SwapEndianLong(YM5_Header.SongAttributes);
+		YM5_Header.YMFrequency = SwapEndianLong(YM5_Header.YMFrequency);
+		YM5_Header.VBLLoopIndex = SwapEndianLong(YM5_Header.VBLLoopIndex);
+		YM5_Header.NoOfDigiDrumSamples = SwapEndianWord(YM5_Header.NoOfDigiDrumSamples);
+		YM5_Header.PlayerFrequency = SwapEndianWord(YM5_Header.PlayerFrequency);
+		YM5_Header.SizeOfExtraData = SwapEndianWord(YM5_Header.SizeOfExtraData);
 #endif
-					/* write header */
-					Host_WriteData(FileHandle, (unsigned char *)&YM5_Header, sizeof(YM5_HEADER));
+		memcpy(pData, &YM5_Header,sizeof(YM5_HEADER));
+		pData+=sizeof(YM5_HEADER);
 		
-						
-					/* write name of song */
-					if (YM5_SongName!=NULL)
-					{
-						Host_WriteData(FileHandle, YM5_SongName, strlen((const char *)YM5_SongName)+1);
-					}
-					else
-					{
-						unsigned char Filler = 0;
-
-						Host_WriteData(FileHandle, &Filler, sizeof(unsigned char));
-					}
-
-					/* write author name */
-					if (YM5_AuthorName!=NULL)
-					{
-						Host_WriteData(FileHandle, YM5_AuthorName, strlen((const char *)YM5_AuthorName)+1);
-					}
-					else
-					{
-						unsigned char Filler = 0;
-
-						Host_WriteData(FileHandle, &Filler, sizeof(unsigned char));
-					}
-
-					/* write comments */
-					if (YM5_Comments!=NULL)
-					{
-						Host_WriteData(FileHandle, YM5_Comments, strlen((const char *)YM5_Comments)+1);
-					}
-					else
-					{
-						unsigned char Filler = 0;
-						Host_WriteData(FileHandle, &Filler, sizeof(unsigned char));
-					}
-				}
-
-				for (j=0; j<14; j++)
-				{
-					for (i=0; i<NoOfVBL; i++)
-					{
-						unsigned char Data = pTempData[(i*14) + j];
-
-						Host_WriteData(FileHandle, &Data, sizeof(unsigned char));
-					}
-				}
-
-				if (YM_Version == 5)
-				{
-					/* write register 14, 15 details - in this case just zero's. */
-					for (i=0; i<NoOfVBL*2; i++)
-					{
-						unsigned char Filler = 0;
-						Host_WriteData(FileHandle, &Filler, sizeof(unsigned char));
-					}
-		
-				}
-
-
-				if (YM_Version==5)
-				{
-					/* write end of file text */
-					Host_WriteData(FileHandle, YM5_EndFileText,4);
-				}
-
-				Host_CloseFile(FileHandle);
-				
-			}
-
-			free(pTempData);
+		/* write name of song */
+		if (YM5_SongName!=NULL)
+		{
+			int nStringLen = strlen(YM5_SongName);
+			memcpy(pData, YM5_SongName, nStringLen);
+			pData+=nStringLen;
 		}
+
+		pData[0] = '\0';
+		pData++;
+
+		/* write author name */
+		if (YM5_AuthorName!=NULL)
+		{
+			int nStringLen = strlen(YM5_AuthorName);
+			memcpy(pData, YM5_AuthorName, nStringLen);
+			pData+=nStringLen;
+		}
+
+		pData[0] = '\0';
+		pData++;
+
+		if (YM5_Comments!=NULL)
+		{
+			int nStringLen = strlen(YM5_Comments);
+			memcpy(pData, YM5_Comments, nStringLen);
+			pData+=nStringLen;
+		}
+
+		pData[0] = '\0';
+		pData++;
+	}
+}
+
+void YMOutput_GenerateTrailerData(unsigned char *pData, int nVersion)
+{
+	unsigned long nSize;
+
+	nSize = 0;
+
+	nVersion = YMOutput_ValidateVersion(nVersion);
+
+	if (nVersion == 5)
+	{
+		/* version 5 */
+		memcpy(pData, YM5_EndFileText, strlen(YM5_EndFileText));
+	}
+}
+
+void YMOutput_ConvertTempData(const unsigned char *pSrcData, unsigned char *pOutputData, int nVersion, int nVBL)
+{
+	int j,i;
+	unsigned long nPos = 0;
+	
+	nVersion = YMOutput_ValidateVersion(nVersion);
+
+	for (j=0; j<14; j++)
+	{
+		for (i=0; i<nVBL; i++)
+		{
+			unsigned char Data = pSrcData[(i*16) + j];
+
+			pOutputData[nPos] = Data;
+			nPos++;
+		}
+	}
+
+	if (nVersion == 5)
+	{
+		/* write register 14, 15 details - in this case just zero's. */
+		memset(pOutputData, 0, (nVBL*2));
 	}
 }
 

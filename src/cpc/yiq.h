@@ -21,7 +21,7 @@
 #define __YIQ_HEADER_INCLUDED__
 
 
-typedef struct RGB_CHAR
+typedef struct
 {
 	unsigned char R;
 	unsigned char G;

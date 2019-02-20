@@ -20,36 +20,14 @@
 #ifndef __DEVICE_HEADER_INCLUDED__
 #define __DEVICE_HEADER_INCLUDED__
 
-typedef struct FDC_CHRN
+typedef struct
 {
-	int		C;
-	int		H;
-	int		R;
-	int		N;
-	int		ST1;
-	int		ST2;
-} FDC_CHRN;
-
-/*typedef struct FDC_IO
-{
-	int		Drive;
-	
-	char	*pData;
-	int		DataSize;
-
-	int		PhysicalSide;
-	int		PhysicalTrack;
-
-	int		SectorOffset;
-
-	int		ST0;
-	int		ST1;
-	int		ST2;
-	int		C;
-	int		H;
-	int		R;
-	int		N;
-} FDC_IO;
-*/
+	unsigned char		C;
+	unsigned char		H;
+	unsigned char		R;
+	unsigned char		N;
+	unsigned char		ST1;
+	unsigned char		ST2;
+} CHRN;
 
 #endif

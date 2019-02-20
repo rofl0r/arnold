@@ -106,7 +106,6 @@ Bit 0: Carry
 */
 
 
-#include "../cpcdefs.h"
 #include "../cpcglob.h"
 
 /*
@@ -236,7 +235,7 @@ typedef union
 #endif
 
 /* structure holds all register data */
-typedef struct  
+typedef struct  _Z80_REGISTERS
 {
         Z80_REGISTER_LONG       PC;                     
         Z80_REGISTER_PAIR       AF;                     

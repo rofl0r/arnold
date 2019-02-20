@@ -31,16 +31,14 @@
 
 /* Version 3 has the additional chunks as written by No$CPC v1.8 */
 
-#include <stdio.h>
-#include <stdlib.h>
+
+#include "headers.h"
+
 #include "snapshot.h"
 #include "z80/z80.h"
 #include "cpc.h"
-#include <memory.h>
-#include "host.h"
-#include <string.h>
 #include "snapv3.h"
-#include "expbuf.h"
+#include "fdi.h"
 
 extern char *Z80MemoryBase;
 extern char *Amstrad_ExtraRam;
@@ -66,16 +64,11 @@ extern char *Amstrad_ExtraRam;
 #define SNAPSHOT_CRTC_FLAGS_VSYNC_STATE (1<<1)
 #define SNAPSHOT_CRTC_FLAGS_VADJ_STATE (1<<7)
 
-/* load snapshot */
-BOOL    Snapshot_Load(char *SnapshotFilename)
+/* insert snapshot */
+int Snapshot_Insert(const unsigned char *pSnapshot, const unsigned long SnapshotLength)
 {
-		BOOL Status = FALSE;
-        unsigned long SnapshotLength;
-        unsigned char   *pSnapshot;
+		BOOL Status = ARNOLD_STATUS_UNRECOGNISED;
         SNAPSHOT_HEADER *pSnapshotHeader;
-
-        /* attempt to load snapshot data */
-        Host_LoadFile(SnapshotFilename, &pSnapshot, &SnapshotLength);
 
         /* failed so quit */
         if (pSnapshot!=NULL)
@@ -175,7 +168,6 @@ BOOL    Snapshot_Load(char *SnapshotFilename)
 													(pSnapshotHeader->Version==1) ||
 													(pSnapshotHeader->Version==2))
 												{
-
 													/* version 1 and 2 did not know about CPC+ so do not allow them
 													to be set */
 													
@@ -184,13 +176,15 @@ BOOL    Snapshot_Load(char *SnapshotFilename)
 													{
 														case 0:
 														{
-															CPC_SetCPCType(CPC_TYPE_CPC464);
+															CPC_SetHardware(CPC_HW_CPC);
+//															CPC_SetCPCType(CPC_TYPE_CPC464);
 														}
 														break;
 
 														case 1:
 														{
-															CPC_SetCPCType(CPC_TYPE_CPC664);
+															CPC_SetHardware(CPC_HW_CPC);
+//															CPC_SetCPCType(CPC_TYPE_CPC664);
 														}
 														break;
 
@@ -198,7 +192,8 @@ BOOL    Snapshot_Load(char *SnapshotFilename)
 														default:
 														case 2:
 														{
-															CPC_SetCPCType(CPC_TYPE_CPC6128);
+															CPC_SetHardware(CPC_HW_CPC);
+//															CPC_SetCPCType(CPC_TYPE_CPC6128);
 														}
 														break;
 
@@ -215,19 +210,22 @@ BOOL    Snapshot_Load(char *SnapshotFilename)
 													{
 														case 0:
 														{
-															CPC_SetCPCType(CPC_TYPE_CPC464);
+															CPC_SetHardware(CPC_HW_CPC);
+//															CPC_SetCPCType(CPC_TYPE_CPC464);
 														}
 														break;
 
 														case 1:
 														{
-															CPC_SetCPCType(CPC_TYPE_CPC664);
+															CPC_SetHardware(CPC_HW_CPC);
+//															CPC_SetCPCType(CPC_TYPE_CPC664);
 														}
 														break;
 
 														case 2:
 														{
-															CPC_SetCPCType(CPC_TYPE_CPC6128);
+															CPC_SetHardware(CPC_HW_CPC);
+//															CPC_SetCPCType(CPC_TYPE_CPC6128);
 
 														}
 														break;
@@ -237,7 +235,8 @@ BOOL    Snapshot_Load(char *SnapshotFilename)
 														case 6:
 														case 5:
 														{
-															CPC_SetCPCType(CPC_TYPE_464PLUS);
+															CPC_SetHardware(CPC_HW_CPCPLUS);
+//															CPC_SetCPCType(CPC_TYPE_464PLUS);
 														}
 														break;
 
@@ -245,7 +244,8 @@ BOOL    Snapshot_Load(char *SnapshotFilename)
 														default:
 														case 4:
 														{
-															CPC_SetCPCType(CPC_TYPE_6128PLUS);
+															CPC_SetHardware(CPC_HW_CPCPLUS);
+//															CPC_SetCPCType(CPC_TYPE_6128PLUS);
 														}
 														break;
 													}
@@ -323,7 +323,7 @@ BOOL    Snapshot_Load(char *SnapshotFilename)
                                                 /* mode and rom configuration select */
                                                 GateArray_Write((((char *)pSnapshotHeader)[0x040] & 0x03f) | 0x080);
                                                 /* ram configuration select */
-                                                GateArray_Write((((char *)pSnapshotHeader)[0x041] & 0x03f) | 0x0c0);
+                                                PAL_WriteConfig((((char *)pSnapshotHeader)[0x041] & 0x03f) | 0x0c0);
 
                                                 /**** CRTC ****/
                                                 /* initialise CRTC */
@@ -379,7 +379,7 @@ BOOL    Snapshot_Load(char *SnapshotFilename)
 
 													pCRTC_State = CRTC_GetInternalState();
 
-													FDD_MotorControl(((char *)pSnapshotHeader)[0x09c]&0x01);
+													FDI_SetMotorState(((char *)pSnapshotHeader)[0x09c]&0x01);
 
 													Printer_WriteDataByte(((char *)pSnapshotHeader)[0x0a1]);
 
@@ -454,7 +454,7 @@ BOOL    Snapshot_Load(char *SnapshotFilename)
 													}
 												}
 												
-												Status = TRUE;
+												Status = ARNOLD_STATUS_OK;
 
 												if (pSnapshotHeader->Version ==3)
 												{
@@ -503,380 +503,409 @@ BOOL    Snapshot_Load(char *SnapshotFilename)
 
                         }
                 }
-
-                /* free loaded data */
-                free(pSnapshot);
         }
         
         return Status;
 }
 
-BOOL    Snapshot_Save(char *SnapshotFilename, int SnapshotSizeInK,int Version)
+/* calculate the size of the output snapshot based on the passed parameters */
+unsigned long Snapshot_CalculateOutputSize(int SnapshotSizeInK, int Version)
 {
-        int             SnapshotMemorySize;
-        int             SnapshotSize;
-		simple_expanding_buffer buffer;
+	unsigned long SnapshotSize;
 
-		/* override snapshot size for version 1 */
-		if (SnapshotSizeInK==128)
+	/* fixed size snapshot header */
+	SnapshotSize = sizeof(SNAPSHOT_HEADER);
+
+	SnapshotSize += SnapshotSizeInK*1024;
+	
+	if (Version==3)
+	{
+		/* V3 stuff */
+
+		/* CPC+ hardware? */
+		if (CPC_GetHardware()==CPC_HW_CPCPLUS)
 		{
-			/* extra ram allocated? */
-			if (Amstrad_ExtraRam==NULL)
-			{
-				/* no */
-				return FALSE;
-			}
+			SnapshotSize += SnapshotV3_CPCPlus_CalculateOutputSize();
+		}
+	}
 
-			/* has 64k ram expansion? */
-			if ((CPC_GetRamConfig() & CPC_RAM_CONFIG_64K_RAM)==0)
-			{
-				/* no */
-				return FALSE;
-			}
+	return SnapshotSize;
+}
+
+
+
+/* fills the supplied pre-allocated buffer with snapshot data. It is the responsibility
+of the calling function to allocate and free the data */
+void Snapshot_GenerateOutputData(unsigned char *pBuffer, int SnapshotSizeInK, int Version)
+{
+    int             SnapshotMemorySize;
+    int             SnapshotSize;
+
+	/* override snapshot size for version 1 */
+	if (SnapshotSizeInK==128)
+	{
+		/* extra ram allocated? */
+		if (Amstrad_ExtraRam==NULL)
+		{
+			/* no */
+			return;
 		}
 
+		/* has 64k ram expansion? */
+		if ((CPC_GetRamConfig() & CPC_RAM_CONFIG_64K_RAM)==0)
+		{
+			/* no */
+			return;
+		}
+	}
 
-        /* initially only write 64K snapshots */
-        SnapshotMemorySize = SnapshotSizeInK*1024;
 
-        /* calculate size of output file */
-        SnapshotSize = SnapshotMemorySize + sizeof(SNAPSHOT_HEADER);
+    /* initially only write 64K snapshots */
+    SnapshotMemorySize = SnapshotSizeInK*1024;
 
-		simple_expanding_buffer_init(&buffer, 64<<10);
+    /* calculate size of output file */
+    SnapshotSize = SnapshotMemorySize + sizeof(SNAPSHOT_HEADER);
 
-        {
-                int i;
-                unsigned char SnapshotHeader[256];
-				int CPCType;
+    {
+        int i;
+        unsigned char SnapshotHeader[256];
+		int CPCType;
 
-                /* clear header */
-                memset(&SnapshotHeader, 0, sizeof(SNAPSHOT_HEADER));
+        /* clear header */
+        memset(&SnapshotHeader, 0, sizeof(SNAPSHOT_HEADER));
 
-                /* setup header */
-                memcpy(&SnapshotHeader, SNAPSHOT_HEADER_TEXT, 8);
+        /* setup header */
+        memcpy(&SnapshotHeader, SNAPSHOT_HEADER_TEXT, 8);
 
-                /* set version */
-                SnapshotHeader[0x010] = (unsigned char)Version;
+        /* set version */
+        SnapshotHeader[0x010] = (unsigned char)Version;
 
-				switch (Version)
+		switch (Version)
+		{
+			case 1:
+			case 2:
+			{
+				CPCType = 2;
+#if 0
+				/* version 2 doesn't recognise KC Compact or CPC+! */
+				/* convert my CPC type to Snapshot CPC type index. */						
+				switch (1)	//CPC_GetCPCType())
 				{
-					case 1:
-					case 2:
+					case CPC_TYPE_CPC464:
 					{
-						/* version 2 doesn't recognise KC Compact or CPC+! */
-						/* convert my CPC type to Snapshot CPC type index. */						
-						switch (CPC_GetCPCType())
-						{
-							case CPC_TYPE_CPC464:
-							{
-								CPCType = 0;
-							}
-							break;
+						CPCType = 0;
+					}
+					break;
 
-							case CPC_TYPE_CPC664:
-							{
-								CPCType = 1;
-							}
-							break;
+					case CPC_TYPE_CPC664:
+					{
+						CPCType = 1;
+					}
+					break;
 
-							case CPC_TYPE_CPC6128:
-							{
-								CPCType = 2;
-							}
-							break;
-
-							default:
-							{
-								/* unknown */
-								CPCType = 3;
-							}
-							break;
-						}
+					case CPC_TYPE_CPC6128:
+					{
+						CPCType = 2;
 					}
 					break;
 
 					default:
-					case 3:
 					{
-						/* version 3 doesn't recognise KC Compact */
-						/* convert my CPC type index to Snapshot CPC type index. */
-						
-						/* NOTE: GX4000 not supported by Arnold at this time, so is not defined in this file */
-						switch (CPC_GetCPCType())
-						{
-							case CPC_TYPE_CPC464:
-							{
-								CPCType = 0;
-							}
-							break;
-
-							case CPC_TYPE_CPC664:
-							{
-								CPCType = 1;
-							}
-							break;
-
-							case CPC_TYPE_CPC6128:
-							{
-								CPCType = 2;
-							}
-							break;
-
-							case CPC_TYPE_6128PLUS:
-							{
-								CPCType = 4;
-							}
-							break;
-
-							case CPC_TYPE_464PLUS:
-							{
-								CPCType = 5;
-							}
-							break;
-
-							default:
-							{
-								CPCType = 3;
-							}
-							break;
-						}
+						/* unknown */
+						CPCType = 3;
 					}
 					break;
 				}
+#endif
+			}
+			break;
 
-                /* get cpc type */
-                SnapshotHeader[0x06d]  = (unsigned char)CPCType;
-
-                /* ***** Z80 CPU ***** */
-                {
-						int Register;
-
-                        char *pRegs = (char *)&SnapshotHeader[0x011];
-                
-						Register = Z80_GetReg(Z80_AF);
-
-						SNAPSHOT_PUT_REGISTER_PAIR(pRegs,0, Register);
-
-						Register = Z80_GetReg(Z80_BC);
-
-						SNAPSHOT_PUT_REGISTER_PAIR(pRegs,2, Register);
-
-						Register = Z80_GetReg(Z80_DE);
-
-						SNAPSHOT_PUT_REGISTER_PAIR(pRegs,4, Register);
-
-						Register = Z80_GetReg(Z80_HL);
-
-						SNAPSHOT_PUT_REGISTER_PAIR(pRegs,6, Register);
-
-						pRegs[8] = (char)Z80_GetReg(Z80_R);
-						pRegs[9] = (char)Z80_GetReg(Z80_I);
-
-						 /* iff0 */
-                        /* iff1 */
-
-                        if (Z80_GetReg(Z80_IFF1)!=0)
-						{
-							pRegs[10] = 1;
-						}
-						
-                        if (Z80_GetReg(Z80_IFF2)!=0)
-						{
-                                pRegs[11] = 1;
-                        }
- 				
-						Register = Z80_GetReg(Z80_IX);
-
-						SNAPSHOT_PUT_REGISTER_PAIR(pRegs,12, Register);
-
-						Register = Z80_GetReg(Z80_IY);
-
-						SNAPSHOT_PUT_REGISTER_PAIR(pRegs,14, Register);
-
-						Register = Z80_GetReg(Z80_SP);
-
-						SNAPSHOT_PUT_REGISTER_PAIR(pRegs,16, Register);
-
-						Register = Z80_GetReg(Z80_PC);
-
-						SNAPSHOT_PUT_REGISTER_PAIR(pRegs,18, Register);
-
-						Register = Z80_GetReg(Z80_IM);
-						pRegs[20] = (char)(Register & 0x03);
-						
-						Register = Z80_GetReg(Z80_AF2);
-
-						SNAPSHOT_PUT_REGISTER_PAIR(pRegs,21, Register);
-
-						Register = Z80_GetReg(Z80_BC2);
-
-						SNAPSHOT_PUT_REGISTER_PAIR(pRegs,23, Register);
-
-						Register = Z80_GetReg(Z80_DE2);
-
-						SNAPSHOT_PUT_REGISTER_PAIR(pRegs,25, Register);
-
-						Register = Z80_GetReg(Z80_HL2);
-
-						SNAPSHOT_PUT_REGISTER_PAIR(pRegs,27, Register);
-
-               	}
-
-                /**** GATE ARRAY ****/
-                /* store colour palette */
-                for (i=0; i<17; i++)
-                {
-                   SnapshotHeader[0x02f + i] = (unsigned char)((GateArray_GetPaletteColour(i) & 0x01f));
-                }
-
-                /* store selected pen */
-                SnapshotHeader[0x02e] = (unsigned char)(GateArray_GetSelectedPen());
-
-                /* store multi-configuration */
-                SnapshotHeader[0x040] = (unsigned char)((GateArray_GetMultiConfiguration()&0x01f)|0x080);
-
-                /* store ram configuration */
-                SnapshotHeader[0x041] = (unsigned char)(GateArray_GetRamConfiguration() & 0x03f);
-
-                /**** CRTC ****/
-                /* get CRTC status */
-                for (i=0; i<18; i++)
-                {
-                        SnapshotHeader[0x043 + i] = CRTC_GetRegisterData(i);
-                }
-
-                /* select CRTC register */
-                SnapshotHeader[0x042] = (unsigned char)(CRTC_GetSelectedRegister() & 0x01f);
-
-                /**** ROM INDEX ****/
-                /* select expansion rom */
-                SnapshotHeader[0x055] = (unsigned char)ROM_GetSelectedROM();
-
-
-                /**** PSG ****/
-                /* get PSG status */
-                for (i=0; i<16; i++)
-                {
-                        SnapshotHeader[0x05b + i] = (unsigned char)PSG_GetRegisterData(i);
-                }
-
-                /* select PSG register */
-                SnapshotHeader[0x05a] = (unsigned char)(PSG_GetSelectedRegister() & 0x0f);
-                
-                /**** PPI ****/
-                /* get PPI control */
-                SnapshotHeader[0x059] = (unsigned char)PPI_GetControlForSnapshot();
-
-                /* get port A data */
-                SnapshotHeader[0x056] = (unsigned char)PPI_GetPortADataForSnapshot();
-                /* get port B data */
-                SnapshotHeader[0x057] = (unsigned char)PPI_GetPortBDataForSnapshot();
-                /* get port C data */
-                SnapshotHeader[0x058] = (unsigned char)PPI_GetPortCDataForSnapshot();
-
-
-                /* set memory size */
-                SnapshotHeader[0x06b] = (unsigned char)(SnapshotMemorySize>>10); 
-                SnapshotHeader[0x06c] = (unsigned char)((SnapshotMemorySize>>10)>>8);
-
-				if (Version==3)
+			default:
+			case 3:
+			{
+				/* version 3 doesn't recognise KC Compact */
+				/* convert my CPC type index to Snapshot CPC type index. */
+				if (CPC_GetHardware()==CPC_HW_CPC)
 				{
-					unsigned long CRTC_Flags;
-
-					/* put V3 stuff into header */
-					CRTC_INTERNAL_STATE *pCRTC_State;
-
-					pCRTC_State = CRTC_GetInternalState();
-
-					/* floppy disc drive motor state */
-					if (FDD_GetMotorState())
-					{
-						SnapshotHeader[0x09c] = 1;
-					}
-					else
-					{
-						SnapshotHeader[0x09c] = 0;
-					}
-
-					/* last byte written to printer port */
-					SnapshotHeader[0x0a1] = Printer_GetDataByte();
-
-					/* crtc type */
-					SnapshotHeader[0x0a4] = CPC_GetCRTCType();
-
-					/* crtc internal state */
-					SnapshotHeader[0x0a9] = pCRTC_State->HCount;
-					SnapshotHeader[0x0ab] = pCRTC_State->LineCounter;
-					SnapshotHeader[0x0ac] = pCRTC_State->RasterCounter;
-					SnapshotHeader[0x0ad] = pCRTC_State->VertAdjustCount;
-
-					CRTC_Flags = 0;
-
-					if (pCRTC_State->CRTC_Flags & CRTC_VS_FLAG)
-					{
-						SnapshotHeader[0x0af] = pCRTC_State->VerticalSyncCount & 0x0f;
-						CRTC_Flags |= SNAPSHOT_CRTC_FLAGS_VSYNC_STATE;
-					}
-
-					if (pCRTC_State->CRTC_Flags & CRTC_HS_FLAG)
-					{
-						SnapshotHeader[0x0ae] = pCRTC_State->HorizontalSyncCount & 0x0f;
-						CRTC_Flags |= SNAPSHOT_CRTC_FLAGS_HSYNC_STATE;
-					}
-
-					if (pCRTC_State->CRTC_Flags & CRTC_VADJ_FLAG)
-					{
-						SnapshotHeader[0x0ad] = pCRTC_State->VertAdjustCount & 0x01f;
-						CRTC_Flags |= SNAPSHOT_CRTC_FLAGS_VADJ_STATE;
-					}
-
-
-					SnapshotHeader[0x0b0] = CRTC_Flags & 0x0ff;
-					SnapshotHeader[0x0b1] = (CRTC_Flags>>8) & 0x0ff;				
-
-					SnapshotHeader[0x0b3] = GateArray_GetInterruptLineCount();
-
-					if (Z80_GetInterruptRequest())
-					{
-						SnapshotHeader[0x0b4] = 1;
-					}
-					else
-					{
-						SnapshotHeader[0x0b4] = 0;
-					}
-
-					SnapshotHeader[0x0b2] = GateArray_GetVsyncSynchronisationCount();
+					CPCType = 2;
+				}
+				else
+				{
+					CPCType = 4;
 				}
 
-				simple_expanding_buffer_write(&buffer, (unsigned char *)&SnapshotHeader, sizeof(SNAPSHOT_HEADER));
-
-				/* copy base 64k out to snapshot */
-				simple_expanding_buffer_write(&buffer, (unsigned char *)Z80MemoryBase, (64<<10));
-
-				if (SnapshotSizeInK==128)
+#if 0
+				
+				/* NOTE: GX4000 not supported by Arnold at this time, so is not defined in this file */
+				switch (1)	//CPC_GetCPCType())
 				{
-					simple_expanding_buffer_write(&buffer, (unsigned char *)Amstrad_ExtraRam, (64<<10));
-				}
-
-					
-				if (Version==3)
-				{
-					/* poke V3 stuff into header */
-
-					/* CPC+ hardware? */
-					if (CPC_GetHardware()==CPC_HW_CPCPLUS)
+					case CPC_TYPE_CPC464:
 					{
-						SnapshotV3_WriteCPCPlusChunk(&buffer);
+						CPCType = 0;
 					}
+					break;
 
+					case CPC_TYPE_CPC664:
+					{
+						CPCType = 1;
+					}
+					break;
+
+					case CPC_TYPE_CPC6128:
+					{
+						CPCType = 2;
+					}
+					break;
+
+					case CPC_TYPE_6128PLUS:
+					{
+						CPCType = 4;
+					}
+					break;
+
+					case CPC_TYPE_464PLUS:
+					{
+						CPCType = 5;
+					}
+					break;
+
+					default:
+					{
+						CPCType = 3;
+					}
+					break;
 				}
+#endif
+			}
+			break;
+		}
 
-                /* write file */
-                Host_SaveFile(SnapshotFilename,(unsigned char *)buffer.pBuffer, buffer.Used);
+        /* get cpc type */
+        SnapshotHeader[0x06d]  = (unsigned char)CPCType;
 
-                simple_expanding_buffer_free(&buffer);
+        /* ***** Z80 CPU ***** */
+        {
+				int Register;
+
+                char *pRegs = (char *)&SnapshotHeader[0x011];
+        
+				Register = Z80_GetReg(Z80_AF);
+
+				SNAPSHOT_PUT_REGISTER_PAIR(pRegs,0, Register);
+
+				Register = Z80_GetReg(Z80_BC);
+
+				SNAPSHOT_PUT_REGISTER_PAIR(pRegs,2, Register);
+
+				Register = Z80_GetReg(Z80_DE);
+
+				SNAPSHOT_PUT_REGISTER_PAIR(pRegs,4, Register);
+
+				Register = Z80_GetReg(Z80_HL);
+
+				SNAPSHOT_PUT_REGISTER_PAIR(pRegs,6, Register);
+
+				pRegs[8] = (char)Z80_GetReg(Z80_R);
+				pRegs[9] = (char)Z80_GetReg(Z80_I);
+
+				 /* iff0 */
+                /* iff1 */
+
+                if (Z80_GetReg(Z80_IFF1)!=0)
+				{
+					pRegs[10] = 1;
+				}
+				
+                if (Z80_GetReg(Z80_IFF2)!=0)
+				{
+                        pRegs[11] = 1;
+                }
+ 		
+				Register = Z80_GetReg(Z80_IX);
+
+				SNAPSHOT_PUT_REGISTER_PAIR(pRegs,12, Register);
+
+				Register = Z80_GetReg(Z80_IY);
+
+				SNAPSHOT_PUT_REGISTER_PAIR(pRegs,14, Register);
+
+				Register = Z80_GetReg(Z80_SP);
+
+				SNAPSHOT_PUT_REGISTER_PAIR(pRegs,16, Register);
+
+				Register = Z80_GetReg(Z80_PC);
+
+				SNAPSHOT_PUT_REGISTER_PAIR(pRegs,18, Register);
+
+				Register = Z80_GetReg(Z80_IM);
+				pRegs[20] = (char)(Register & 0x03);
+				
+				Register = Z80_GetReg(Z80_AF2);
+
+				SNAPSHOT_PUT_REGISTER_PAIR(pRegs,21, Register);
+
+				Register = Z80_GetReg(Z80_BC2);
+
+				SNAPSHOT_PUT_REGISTER_PAIR(pRegs,23, Register);
+
+				Register = Z80_GetReg(Z80_DE2);
+
+				SNAPSHOT_PUT_REGISTER_PAIR(pRegs,25, Register);
+
+				Register = Z80_GetReg(Z80_HL2);
+
+				SNAPSHOT_PUT_REGISTER_PAIR(pRegs,27, Register);
+
         }
 
-        return TRUE;
-}
+        /**** GATE ARRAY ****/
+        /* store colour palette */
+        for (i=0; i<17; i++)
+        {
+           SnapshotHeader[0x02f + i] = (unsigned char)((GateArray_GetPaletteColour(i) & 0x01f));
+        }
 
+        /* store selected pen */
+        SnapshotHeader[0x02e] = (unsigned char)(GateArray_GetSelectedPen());
+
+        /* store multi-configuration */
+        SnapshotHeader[0x040] = (unsigned char)((GateArray_GetMultiConfiguration()&0x01f)|0x080);
+
+        /* store ram configuration */
+        SnapshotHeader[0x041] = (unsigned char)(PAL_GetRamConfiguration() & 0x03f);
+
+        /**** CRTC ****/
+        /* get CRTC status */
+        for (i=0; i<18; i++)
+        {
+                SnapshotHeader[0x043 + i] = CRTC_GetRegisterData(i);
+        }
+
+        /* select CRTC register */
+        SnapshotHeader[0x042] = (unsigned char)(CRTC_GetSelectedRegister() & 0x01f);
+
+        /**** ROM INDEX ****/
+        /* select expansion rom */
+        SnapshotHeader[0x055] = (unsigned char)ROM_GetSelectedROM();
+
+
+        /**** PSG ****/
+        /* get PSG status */
+        for (i=0; i<16; i++)
+        {
+                SnapshotHeader[0x05b + i] = (unsigned char)PSG_GetRegisterData(i);
+        }
+
+        /* select PSG register */
+        SnapshotHeader[0x05a] = (unsigned char)(PSG_GetSelectedRegister() & 0x0f);
+        
+        /**** PPI ****/
+        /* get PPI control */
+        SnapshotHeader[0x059] = (unsigned char)PPI_GetControlForSnapshot();
+
+        /* get port A data */
+        SnapshotHeader[0x056] = (unsigned char)PPI_GetPortADataForSnapshot();
+        /* get port B data */
+        SnapshotHeader[0x057] = (unsigned char)PPI_GetPortBDataForSnapshot();
+        /* get port C data */
+        SnapshotHeader[0x058] = (unsigned char)PPI_GetPortCDataForSnapshot();
+
+
+        /* set memory size */
+        SnapshotHeader[0x06b] = (unsigned char)(SnapshotMemorySize>>10); 
+        SnapshotHeader[0x06c] = (unsigned char)((SnapshotMemorySize>>10)>>8);
+
+		if (Version==3)
+		{
+			unsigned long CRTC_Flags;
+
+			/* put V3 stuff into header */
+			CRTC_INTERNAL_STATE *pCRTC_State;
+
+			pCRTC_State = CRTC_GetInternalState();
+
+			if (FDI_GetMotorState())
+			{
+				SnapshotHeader[0x09c] = 1;
+			}
+			else
+			{
+				SnapshotHeader[0x09c] = 0;
+			}
+
+			/* last byte written to printer port */
+			SnapshotHeader[0x0a1] = Printer_GetDataByte();
+
+			/* crtc type */
+			SnapshotHeader[0x0a4] = CPC_GetCRTCType();
+
+			/* crtc internal state */
+			SnapshotHeader[0x0a9] = pCRTC_State->HCount;
+			SnapshotHeader[0x0ab] = pCRTC_State->LineCounter;
+			SnapshotHeader[0x0ac] = pCRTC_State->RasterCounter;
+			SnapshotHeader[0x0ad] = pCRTC_State->VertAdjustCount;
+
+			CRTC_Flags = 0;
+
+			if (pCRTC_State->CRTC_Flags & CRTC_VS_FLAG)
+			{
+				SnapshotHeader[0x0af] = pCRTC_State->VerticalSyncCount & 0x0f;
+				CRTC_Flags |= SNAPSHOT_CRTC_FLAGS_VSYNC_STATE;
+			}
+
+			if (pCRTC_State->CRTC_Flags & CRTC_HS_FLAG)
+			{
+				SnapshotHeader[0x0ae] = pCRTC_State->HorizontalSyncCount & 0x0f;
+				CRTC_Flags |= SNAPSHOT_CRTC_FLAGS_HSYNC_STATE;
+			}
+
+			if (pCRTC_State->CRTC_Flags & CRTC_VADJ_FLAG)
+			{
+				SnapshotHeader[0x0ad] = pCRTC_State->VertAdjustCount & 0x01f;
+				CRTC_Flags |= SNAPSHOT_CRTC_FLAGS_VADJ_STATE;
+			}
+
+
+			SnapshotHeader[0x0b0] = CRTC_Flags & 0x0ff;
+			SnapshotHeader[0x0b1] = (CRTC_Flags>>8) & 0x0ff;				
+
+			SnapshotHeader[0x0b3] = GateArray_GetInterruptLineCount();
+
+			if (Z80_GetInterruptRequest())
+			{
+				SnapshotHeader[0x0b4] = 1;
+			}
+			else
+			{
+				SnapshotHeader[0x0b4] = 0;
+			}
+
+			SnapshotHeader[0x0b2] = GateArray_GetVsyncSynchronisationCount();
+		}
+
+
+		memcpy(pBuffer, SnapshotHeader, sizeof(SNAPSHOT_HEADER));
+		pBuffer+=sizeof(SNAPSHOT_HEADER);
+
+		/* copy base 64k out to snapshot */
+		memcpy(pBuffer, Z80MemoryBase, (64<<10));
+		pBuffer+=(64<<10);
+
+		if (SnapshotSizeInK==128)
+		{
+			memcpy(pBuffer, Amstrad_ExtraRam, (64<<10));
+			pBuffer+=(64<<10);
+		}
+
+		if (Version==3)
+		{
+			/* poke V3 stuff into header */
+
+			/* CPC+ hardware? */
+			if (CPC_GetHardware()==CPC_HW_CPCPLUS)
+			{
+				pBuffer = SnapshotV3_CPCPlus_WriteChunk(pBuffer);
+			}
+		}
+    }
+}

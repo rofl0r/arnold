@@ -22,7 +22,6 @@
 
 #include "cpcglob.h"
 
-BOOL	CPCEmulation_Initialise(void);
 void	CPCEmulation_Finish(void);
 void	CPCEmulation_Run(void);
 void	CPC_SetFrameSkip(int);

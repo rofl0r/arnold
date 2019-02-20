@@ -1,32 +1,5 @@
 Andreas Micklei's Arnold/Linux Changelog:
 
-18-Jun-2003
-===========
-Linux port:
-- Fixed keyboard initialization. Does not reset mapping on every resolution
-  change any more.
-
-08-May-2003
-===========
-
-Linux port:
-- Added keyboard switching via GTK+ GUI between QWERTY, QWERTZ and AZERTY
-  (AZERTY mapping provided by Ramlaid)
-
-22-September-2002
-=================
-
-Linux port:
-- Added disk image saving code (with yes/no requestors) from Ramlaid
-
-21-September-2002
-=================
-
-Linux port:
-- Allow compilation under Big Endian (only Linux/PPC on a Mac tested)
-- Roms of all emulated machines are now compiled into the Arnold binary
-- Add config file support (not very useful yet)
-
 09-Februrary-2002
 =================
 

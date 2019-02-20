@@ -18,11 +18,7 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 #include "wav.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <memory.h>
-#include "cpcdefs.h"
+#include "headers.h"
 #include "endian.h"
 #include "host.h"
 
@@ -30,13 +26,13 @@
 #pragma pack(1)
 #endif
 
-typedef struct WAV_RIFF_CHUNK
+typedef struct
 {
 	unsigned long								ChunkName;
 	unsigned long								ChunkLength;
 } WAV_RIFF_CHUNK;
 
-typedef struct WAV_WAVEFORMAT
+typedef struct
 {  
     unsigned short  FormatTag; 
     unsigned short NoOfChannels;
@@ -549,6 +545,9 @@ void	WAV_Open(SAMPLE_AUDIO_STREAM *pAudioStream)
 
 unsigned char WAV_GetDataByte(SAMPLE_AUDIO_STREAM *pAudioStream)
 {
+
+	/* 8-bit data is always mono */
+	/* 16-bit data is always signed */
 	if (pAudioStream->SampleChannels==1)
 	{
 		if (pAudioStream->SampleBits==8)
@@ -562,6 +561,8 @@ unsigned char WAV_GetDataByte(SAMPLE_AUDIO_STREAM *pAudioStream)
 
 			SampleData = Sample_GetByte(pAudioStream);
 			SampleData |= Sample_GetByte(pAudioStream)<<8;
+
+			SampleData=SampleData^0x08000;
 
 			return (unsigned char)(SampleData>>8);
 		}
@@ -587,6 +588,9 @@ unsigned char WAV_GetDataByte(SAMPLE_AUDIO_STREAM *pAudioStream)
 
 			SampleData2 = Sample_GetByte(pAudioStream);
 			SampleData2 |= Sample_GetByte(pAudioStream)<<8;
+
+			SampleData1=SampleData1^0x08000;
+			SampleData2=SampleData2^0x08000;
 
 			return (unsigned char)(((SampleData1 + SampleData2)>>1)>>8);
 		}

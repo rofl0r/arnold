@@ -23,10 +23,14 @@
 #include "multface.h"
 #include "crtc.h"
 #include "cpc.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <memory.h>
-#include <string.h>
+#include "headers.h"
+#include "memory.h"
+#include "pal.h"
+
+extern PAL16L8 PAL;
+extern unsigned char *pUpperRom;
+extern unsigned char *pLowerRom;
+extern unsigned long LowerRomIndex;
 
 /* these point to the actual ram/rom that the CPU can see 
 for reading and writing operations */
@@ -34,52 +38,96 @@ unsigned char   *pReadRamPtr[8];
 unsigned char   *pWriteRamPtr[8];
 
 GATE_ARRAY_STATE	GateArray_State;
-
-
-extern unsigned char *RamConfigurationTable[64*4];
-extern unsigned char *pUpperRom;
-extern int LowerRomIndex;
-extern char *pLowerRom;
-
 /* actual colours to display */
 RGBCOLOUR       DisplayColours[32];
 
+
+#define CPCEMUCOLOR
 /* base hardware colours */
-static RGBCOLOUR        HardwareColours[32] =
+enum
 {
-		{0x060,0x060,0x060,0},                     /* r1 g1 b1     White */
-        {0x060,0x060,0x060,0},                     /* -------- ** White ** */
-        {0x00,0x0ff,0x060,0},                    /* r0 g2 b1 Sea Green */
-        {0x0ff,0x0ff,0x060,0},                   /* r2 g2 b1 Pastel yellow */
-        {0x00,0x00,0x060,0},                     /* r0 g0 b1 Blue */
-        {0x0ff,0x00,0x060,0},                    /* r2 g0 b1 Purple */
-        {0x00,0x060,0x060,0},                     /* r0 g1 b1 Cyan */
-        {0x0ff,0x060,0x060,0},                    /* r2 g1 b1 Pink */
-        {0x0ff,0x00,0x060,0},                    /* -------- ** Purple ** */
-        {0x0ff,0x0ff,0x060,0},                   /* -------- ** Pastel yellow ** */
-        {0x0ff,0x0ff,0x00,0},                   /* r2 g2 b0 Bright Yellow */
-        {0x0ff,0x0ff,0x0ff,0},                  /* r2 g2 b2 Bright White */
-        {0x0ff,0x00,0x00,0},                    /* r2 g0 b0 Bright Red */
-        {0x0ff,0x00,0x0ff,0},                   /* r2 g0 b2 Bright Magenta */
-        {0x0ff,0x060,0x00,0},                    /* r2 g1 b0 Orange */
-        {0x0ff,0x060,0x0ff,0},                   /* r2 g1 b2 Pastel Magenta */
-        {0x00,0x00,0x060,0},                     /* -------- ** Blue ** */
-        {0x00,0x0ff,0x060,0},                    /* -------- ** Sea Green ** */
-        {0x00,0x0ff,0x00,0},                    /* r0 g2 b0 Bright green */
-        {0x00,0x0ff,0x0ff,0},                   /* r0 g2 b2 Bright Cyan */
-        {0x00,0x00,0x00,0},                     /* r0 g0 b0 Black */
-        {0x00,0x00,0x0ff,0},                    /* r0 g0 b2 Bright Blue */
-        {0x00,0x060,0x00,0},                     /* r0 g1 b0 Green */
-        {0x00,0x060,0x0ff,0},                    /* r0 g1 b2 Sky Blue */
-        {0x060,0x00,0x060,0},                     /* r1 g0 b1 Magenta */
-        {0x060,0x0ff,0x060,0},                    /* r1 g2 b1 Pastel green */
-         {0x060,0x0ff,0x00,0},                    /* r1 g2 b0 Lime */
-        {0x060,0x0ff,0x0ff,0},                   /* r1 g2 b2 Pastel cyan */
-        {0x060,0x00,0x00,0},                     /* r1 g0 b0 Red */
-        {0x060,0x00,0x0ff,0},                    /* r1 g0 b2 Mauve */
-        {0x060,0x060,0x00,0},                     /* r1 g1 b0 Yellow */
-        {0x060,0x060,0x0ff,0}                             /* r1 g1 b2 Pastel blue */
+   ENUM_colorscheme_arnold,
+   ENUM_colorscheme_cpcloader,
+   ENUM_colorscheme_enumcount
 };
+
+int PUB_colorscheme = ENUM_colorscheme_arnold;
+
+
+/* base hardware colours */
+static const RGBCOLOUR HardwareColours[ENUM_colorscheme_enumcount][32] =
+{
+	{
+			{0x060,0x060,0x060,0},                     /* r1 g1 b1     White */
+			{0x060,0x060,0x060,0},                     /* -------- ** White ** */
+			{0x00,0x0ff,0x060,0},                    /* r0 g2 b1 Sea Green */
+			{0x0ff,0x0ff,0x060,0},                   /* r2 g2 b1 Pastel yellow */
+			{0x00,0x00,0x060,0},                     /* r0 g0 b1 Blue */
+			{0x0ff,0x00,0x060,0},                    /* r2 g0 b1 Purple */
+			{0x00,0x060,0x060,0},                     /* r0 g1 b1 Cyan */
+			{0x0ff,0x060,0x060,0},                    /* r2 g1 b1 Pink */
+			{0x0ff,0x00,0x060,0},                    /* -------- ** Purple ** */
+			{0x0ff,0x0ff,0x060,0},                   /* -------- ** Pastel yellow ** */
+			{0x0ff,0x0ff,0x00,0},                   /* r2 g2 b0 Bright Yellow */
+			{0x0ff,0x0ff,0x0ff,0},                  /* r2 g2 b2 Bright White */
+			{0x0ff,0x00,0x00,0},                    /* r2 g0 b0 Bright Red */
+			{0x0ff,0x00,0x0ff,0},                   /* r2 g0 b2 Bright Magenta */
+			{0x0ff,0x060,0x00,0},                    /* r2 g1 b0 Orange */
+			{0x0ff,0x060,0x0ff,0},                   /* r2 g1 b2 Pastel Magenta */
+			{0x00,0x00,0x060,0},                     /* -------- ** Blue ** */
+			{0x00,0x0ff,0x060,0},                    /* -------- ** Sea Green ** */
+			{0x00,0x0ff,0x00,0},                    /* r0 g2 b0 Bright green */
+			{0x00,0x0ff,0x0ff,0},                   /* r0 g2 b2 Bright Cyan */
+			{0x00,0x00,0x00,0},                     /* r0 g0 b0 Black */
+			{0x00,0x00,0x0ff,0},                    /* r0 g0 b2 Bright Blue */
+			{0x00,0x060,0x00,0},                     /* r0 g1 b0 Green */
+			{0x00,0x060,0x0ff,0},                    /* r0 g1 b2 Sky Blue */
+			{0x060,0x00,0x060,0},                     /* r1 g0 b1 Magenta */
+			{0x060,0x0ff,0x060,0},                    /* r1 g2 b1 Pastel green */
+			 {0x060,0x0ff,0x00,0},                    /* r1 g2 b0 Lime */
+			{0x060,0x0ff,0x0ff,0},                   /* r1 g2 b2 Pastel cyan */
+			{0x060,0x00,0x00,0},                     /* r1 g0 b0 Red */
+			{0x060,0x00,0x0ff,0},                    /* r1 g0 b2 Mauve */
+			{0x060,0x060,0x00,0},                     /* r1 g1 b0 Yellow */
+			{0x060,0x060,0x0ff,0}                             /* r1 g1 b2 Pastel blue */
+	},
+  /* TRK */
+   {
+      {163, 163, 163, 0},                   /* r1 g1 b1     White */
+      {163, 163, 163, 0},                   /* -------- ** White ** */
+      {  0, 255,  96, 0},                   /* r0 g2 b1 Sea Green */
+      {239, 195,  79, 0},                   /* r2 g2 b1 Pastel yellow */
+      {  0,   0, 171, 0},                   /* r0 g0 b1 Blue */
+      {255,   0,  96, 0},                   /* r2 g0 b1 Purple */
+      {  0, 159, 199, 0},                   /* r0 g1 b1 Cyan */
+      {251, 151, 151, 0},                   /* r2 g1 b1 Pink */
+      {255,   0,  96, 0},                   /* -------- ** Purple ** */
+      {239, 195,  79, 0},                   /* -------- ** Pastel yellow ** */
+      {255, 255,   0, 0},                   /* r2 g2 b0 Bright Yellow */
+      {255, 255, 255, 0},                   /* r2 g2 b2 Bright White */
+      {251,   0,   0, 0},                   /* r2 g0 b0 Bright Red */
+      {255,   0, 255, 0},                   /* r2 g0 b2 Bright Magenta */
+      {239, 167,   0, 0},                   /* r2 g1 b0 Orange */
+      {235, 103, 235, 0},                   /* r2 g1 b2 Pastel Magenta */
+      {  0,   0,  96, 0},                   /* -------- ** Blue ** */
+      {  0, 255,  96, 0},                   /* -------- ** Sea Green ** */
+      {  0, 255,   0, 0},                   /* r0 g2 b0 Bright green */
+      {  0, 187, 251, 0},                   /* r0 g2 b2 Bright Cyan */
+      {  0,   0,   0, 0},                   /* r0 g0 b0 Black */
+      {  0,   0, 239, 0},                   /* r0 g0 b2 Bright Blue */
+      {  0, 153,   0, 0},                   /* r0 g1 b0 Green */
+      {  0, 153, 255, 0},                   /* r0 g1 b2 Sky Blue */
+      {191,   0, 191, 0},                   /* r1 g0 b1 Magenta */
+      { 96, 255,  96, 0},                   /* r1 g2 b1 Pastel green */
+      { 96, 255,   0, 0},                   /* r1 g2 b0 Lime */
+      {153, 255, 255, 0},                   /* r1 g2 b2 Pastel cyan */
+      {163,  19,  19, 0},                   /* r1 g0 b0 Red */
+      { 96,   0, 255, 0},                   /* r1 g0 b2 Mauve */
+      {191, 171,   0, 0},                   /* r1 g1 b0 Yellow */
+      { 96,  96, 255, 0}                    /* r1 g1 b2 Pastel blue */
+   }
+};
+
 
 /* the green brightness is equal to the firmware colour index */
 static unsigned char FirmwareColourIndex[32] =
@@ -118,44 +166,6 @@ static unsigned char FirmwareColourIndex[32] =
         14
 };
 
-#ifdef DEBUG_MODE
-char *HardwareColourNames[32] =
-{
-        "White",
-        "White",
-        "Sea Green",
-        "Pastel Yellow",
-        "Blue",
-        "Purple",
-        "Cyan",
-        "Pink",
-        "Purple",
-        "Pastel Yellow",
-        "Bright Yellow",
-        "Bright White",
-        "Bright Red",
-        "Bright Magenta",
-        "Orange",
-        "Pastel Magenta",
-        "Blue",
-        "Sea Green",
-        "Bright Green",
-        "Bright Cyan",
-        "Black",
-        "Bright Blue",
-        "Green",
-        "Sky Blue",
-        "Magenta",
-        "Pastel Green",
-        "Lime",
-        "Pastel Cyan",
-        "Red",
-        "Mauve",
-        "Yellow",
-        "Pastel Blue"
-};
-#endif
-
 static RGBCOLOUR        HardwareColoursGreen[32];
 
 static RGBCOLOUR        HardwareColoursGreyScale[32];
@@ -179,9 +189,14 @@ void	GateArray_AdjustMonitorBrightness(void)
 	   RGB_CHAR SourceRGB, DestRGB;
  
 		/* R,G,B that would be represented by this colour index  */
-		Red = HardwareColours[i].u.element.Red;
-		Green = HardwareColours[i].u.element.Green;
-		Blue = HardwareColours[i].u.element.Blue;
+//		Red = HardwareColours[i].u.element.Red;
+//		Green = HardwareColours[i].u.element.Green;
+//		Blue = HardwareColours[i].u.element.Blue;
+
+		/* R,G,B that would be represented by this colour index  */
+		Red = HardwareColours[PUB_colorscheme][i].u.element.Red;
+		Green = HardwareColours[PUB_colorscheme][i].u.element.Green;
+		Blue = HardwareColours[PUB_colorscheme][i].u.element.Blue;
 
 		SourceRGB.R = Red;
 		SourceRGB.G = Green;
@@ -251,6 +266,8 @@ void    GateArray_SetMonitorColourMode(MONITOR_COLOUR_MODE      MonitorMode)
         }
 }
 
+/*-------------------------------------------------------------------------*/
+
 void    GateArray_Initialise(void)
 {
         int i;
@@ -277,9 +294,15 @@ void    GateArray_Initialise(void)
                         RGB_CHAR SourceColour;
                         RGB_CHAR GreyScaleColour;
 
-                        SourceColour.R = HardwareColours[i].u.element.Red;
-                        SourceColour.G = HardwareColours[i].u.element.Green;
-                        SourceColour.B = HardwareColours[i].u.element.Blue;
+    //                    SourceColour.R = HardwareColours[i].u.element.Red;
+  //                      SourceColour.G = HardwareColours[i].u.element.Green;
+//                        SourceColour.B = HardwareColours[i].u.element.Blue;
+
+                     SourceColour.R = HardwareColours[PUB_colorscheme][i].u.element.Red;
+                        SourceColour.G = HardwareColours[PUB_colorscheme][i].u.element.Green;
+                        SourceColour.B = HardwareColours[PUB_colorscheme][i].u.element.Blue;
+
+
 
                         BrightnessControl_GenerateGreyScaleFromColour(&SourceColour, &GreyScaleColour);
                         
@@ -288,10 +311,6 @@ void    GateArray_Initialise(void)
                         HardwareColoursGreyScale[i].u.element.Blue = GreyScaleColour.B;
                 }
         }
-
-        GateArray_State.pChosenRamConfig = &RamConfigurationTable[0];
-
-
 }
 
 void    GateArray_Reset(void)
@@ -305,12 +324,10 @@ void    GateArray_Reset(void)
 			for (i=0; i<17; i++)
 			{
 					GateArray_State.PenColour[i] = 20;
-					Render_SetColour(&HardwareColours[20],i);
+//					Render_SetColour(&HardwareColours[20],i);
+					Render_SetColour(&HardwareColours[PUB_colorscheme][20],i);
 			}
 		}
-
-	    /* setup main ram */
-        GateArray_Write(0x0c0);
 
         /* set mode and rom enable register to zero, enabling both
         halves of the rom */
@@ -319,18 +336,68 @@ void    GateArray_Reset(void)
         Render_SetPixelTranslation(0);
 }
 
-void	Vortex_RethinkMemory(void);
-
 void	GateArray_RethinkMemory(void)
 {
+#if 0
+	unsigned long Flags;
+
+	Flags = Memory_GetReadFlags();
+
+	if (GateArray_State.RomConfiguration & 0x08)
+	{
+		/* upper rom is enabled */
+		Flags |= (1<<7)|(1<<6);
+	}
+	else
+	{
+		Flags &= ~((1<<7)|(1<<6));
+	}
+
+	if (GateArray_State.RamConfiguration & 0x04)
+	{
+		Flags |= (1<<0)|(1<<1);
+	}
+	else
+	{
+		Flags &= ~((1<<0)|(1<<1));
+	}
+
+	Memory_SetReadFlags(Flags);
+
+	Flags = Memory_GetWriteFlags();
+
+	if (GateArray_State.RomConfiguration & 0x08)
+	{
+		/* upper rom is enabled */
+		Flags |= (1<<7)|(1<<6);
+	}
+	else
+	{
+		Flags &= ~((1<<7)|(1<<6));
+	}
+
+	if (GateArray_State.RamConfiguration & 0x04)
+	{
+		Flags |= (1<<0)|(1<<1);
+	}
+	else
+	{
+		Flags &= ~((1<<0)|(1<<1));
+	}
+
+	Memory_SetWriteFlags(Flags);
+
+
+	Memory_Rethink();
+#endif
 	unsigned char RomConfiguration = GateArray_State.RomConfiguration;
 
-    pWriteRamPtr[0] = pWriteRamPtr[1] = pReadRamPtr[0] = pReadRamPtr[1] = GateArray_State.pChosenRamConfig[0];
-	pWriteRamPtr[2] = pWriteRamPtr[3] = pReadRamPtr[2] = pReadRamPtr[3] = GateArray_State.pChosenRamConfig[1];
-	pWriteRamPtr[4] = pWriteRamPtr[5] = pReadRamPtr[4] = pReadRamPtr[5] = GateArray_State.pChosenRamConfig[2];
+    pWriteRamPtr[0] = pWriteRamPtr[1] = pReadRamPtr[0] = pReadRamPtr[1] = PAL.pChosenRamConfig[0];
+	pWriteRamPtr[2] = pWriteRamPtr[3] = pReadRamPtr[2] = pReadRamPtr[3] = PAL.pChosenRamConfig[1];
+	pWriteRamPtr[4] = pWriteRamPtr[5] = pReadRamPtr[4] = pReadRamPtr[5] = PAL.pChosenRamConfig[2];
 
 	{
-		unsigned char *pAddrC000 = GateArray_State.pChosenRamConfig[3];
+		unsigned char *pAddrC000 = PAL.pChosenRamConfig[3];
 
 		pWriteRamPtr[6] = pWriteRamPtr[7] = pAddrC000;
 
@@ -362,10 +429,6 @@ void	GateArray_RethinkMemory(void)
 #ifdef MULTIFACE
     Multiface_SetMemPointers(pReadRamPtr, pWriteRamPtr);
 #endif
-
-/*	Vortex_RethinkMemory(); */
-
-
 }
 
 int             GateArray_GetPaletteColour(int PenIndex)
@@ -378,10 +441,6 @@ int             GateArray_GetSelectedPen(void)
         return GateArray_State.PenSelection;
 }
 
-int             GateArray_GetRamConfiguration(void)
-{
-        return GateArray_State.RamConfiguration;
-}
 
 int             GateArray_GetMultiConfiguration(void)
 {
@@ -533,7 +592,7 @@ void    GateArray_Write(int Function)
 				GateArray_State.PenIndex = (unsigned char)(Function & 0x0f);
 			}
 		}
-		return;
+		break;
 
 		case 0x040:
 		{
@@ -556,7 +615,7 @@ void    GateArray_Write(int Function)
 
 			Render_SetColour(&DisplayColours[ColourIndex],PenIndex);
 		}
-		return;
+		break;
 
 		case 0x080:
         {
@@ -578,25 +637,18 @@ void    GateArray_Write(int Function)
             {
                 GateArray_ClearInterrupt();
             }
+
+		
+			GateArray_RethinkMemory();
 		}
 		break;
 
+		/* not part of Gate Array in CPC464, CPC664 or CPC6128 */
+		/* part of ASIC in CPC+ */
+		/* but handled as PAL_WriteConfig */
 		case 0x0c0:
-        {
-            /* function 11xxxxxx */
-            int     Config;
-
-            GateArray_State.RamConfiguration = (unsigned char)Function;
-
-            Config = Function & 0x03f;
-            Config = Config<<2;
-
-            GateArray_State.pChosenRamConfig = &RamConfigurationTable[Config];
 			break;
-		}
 	}
-
-	GateArray_RethinkMemory();
 }
 
 
@@ -605,7 +657,8 @@ int             GateArray_GetRed(int PaletteIndex)
 {
         int HwColourIndex = GateArray_State.PenColour[PaletteIndex & 0x01f];
 
-        return HardwareColours[HwColourIndex].u.element.Red;
+//        return HardwareColours[HwColourIndex].u.element.Red;
+        return HardwareColours[PUB_colorscheme][HwColourIndex].u.element.Red;
 }
 
 
@@ -614,7 +667,8 @@ int             GateArray_GetGreen(int PaletteIndex)
 {
         int HwColourIndex = GateArray_State.PenColour[PaletteIndex & 0x01f];
 
-        return HardwareColours[HwColourIndex].u.element.Green;
+//        return HardwareColours[HwColourIndex].u.element.Green;
+        return HardwareColours[PUB_colorscheme][HwColourIndex].u.element.Green;
 }
 
 /* return blue colour component for palette index specified */
@@ -622,7 +676,8 @@ int             GateArray_GetBlue(int PaletteIndex)
 {
         int HwColourIndex = GateArray_State.PenColour[PaletteIndex & 0x01f];
         
-        return HardwareColours[HwColourIndex].u.element.Blue;
+//        return HardwareColours[HwColourIndex].u.element.Blue;
+        return HardwareColours[PUB_colorscheme][HwColourIndex].u.element.Blue;
 }
 
 void	GateArray_UpdateColours(void)

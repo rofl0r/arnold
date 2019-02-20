@@ -20,9 +20,6 @@
 #ifndef __GLOBAL_HEADER_INCLUDED__
 #define __GLOBAL_HEADER_INCLUDED__
 
-#include "../cpc/cpcglob.h"
-
-#if 0
 #ifndef _BOOL
 #define _BOOL
 typedef int BOOL;
@@ -40,23 +37,16 @@ typedef int BOOL;
 #define	NULL	0
 #endif
 
-#ifndef BYTE
+#ifndef _BYTE
+#define _BYTE
 typedef unsigned char BYTE;
 #endif
 
-#ifndef WORD
+#ifndef _WORD
+#define _WORD
 typedef unsigned short WORD;
 #endif
-#endif
 
-//#ifndef LONG
-//typedef unsigned int	LONG;
-//#endif
-
-//#define DEBUGGING
-
-BOOL	LoadFile(char *, unsigned char **, unsigned long *);
-BOOL	SaveFile(char *,char *,int);
 
 #endif
 

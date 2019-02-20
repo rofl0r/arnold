@@ -29,7 +29,7 @@
 
 #define ImageCreator_Text "Arnold\0"
 
-typedef struct EXTDSK_INTERNAL_TRACK
+typedef struct
 {
 	/* true if track has been modified (formatted, or written to) */
 	BOOL	ModifiedFlag;			
@@ -41,23 +41,24 @@ typedef struct EXTDSK_INTERNAL_TRACK
 	char	*pSectorData[64];
 } EXTDSK_INTERNAL_TRACK;
 
-typedef struct EXTDSK_INTERNAL
+typedef struct
 {
 	/* header for each track 85 tracks with 2 sides */
 	EXTDSK_INTERNAL_TRACK	**pTrackList;
 } EXTDSK_INTERNAL;
 
-void ExtDskInternal_PutSector(DISKIMAGE_UNIT *pDrive,int PhysicalTrack,int PhysicalSide,int Index,char *pData);
+void ExtDskInternal_PutSector(DISKIMAGE_UNIT *pDrive,int PhysicalTrack,int PhysicalSide,int Index,char *pData, int Mark);
 void ExtDskInternal_GetSector(DISKIMAGE_UNIT *pDrive,int PhysicalTrack,int PhysicalSide,int Index,char *pData);
 int	ExtDskInternal_GetSectorsPerTrack(DISKIMAGE_UNIT *pDrive,int PhysicalTrack, int PhysicalSide);
-void ExtDskInternal_GetID(DISKIMAGE_UNIT *pDrive,int PhysicalTrack,int PhysicalSide,int Index,FDC_CHRN *pCHRN);
-void	ExtDskInternal_WriteImage(DISKIMAGE_UNIT *pDrive);
+void ExtDskInternal_GetID(DISKIMAGE_UNIT *pDrive,int PhysicalTrack,int PhysicalSide,int Index,CHRN *pCHRN);
+//void	ExtDskInternal_WriteImage(simple_expanding_buffer *,DISKIMAGE_UNIT *pDrive);
 void	ExtDskInternal_Free(DISKIMAGE_UNIT *pUnit);
 int     ExtDskInternal_Initialise(DISKIMAGE_UNIT *pDskUnit);
 void	ExtDskInternal_EmptyTrack(DISKIMAGE_UNIT *pDrive, int PhysicalTrack, int PhysicalSide);
-void            ExtDskInternal_ExtDsk2ExtDskInternal(DISKIMAGE_UNIT *pUnit);
-void    ExtDskInternal_AddSector(DISKIMAGE_UNIT *pDrive, int PhysicalTrack, int PhysicalSide, FDC_CHRN *pCHRN, int FillerByte);
-void            ExtDskInternal_Dsk2ExtDskInternal(DISKIMAGE_UNIT *pUnit);
+void            ExtDskInternal_Dsk2ExtDskInternal(DISKIMAGE_UNIT *pUnit, const unsigned char *pDiskImage, const unsigned long DiskImageSize);
+void    ExtDskInternal_AddSector(DISKIMAGE_UNIT *pDrive, int PhysicalTrack, int PhysicalSide, CHRN *pCHRN, int FormatN,int FillerByte);
+void            ExtDskInternal_Dsk2ExtDskInternal(DISKIMAGE_UNIT *pUnit, const unsigned char *pDiskImage, const unsigned long DiskImageSize);
+void	ExtDskInternal_Dif2ExtDskInternal(DISKIMAGE_UNIT *pUnit,const unsigned char *, const unsigned long);
 EXTDSK_INTERNAL *ExtDskInternal_New(void);
 void    ExtDskInternal_AddTrack(EXTDSK_INTERNAL *pExtDsk, int TrackIndex);
 void	ExtDskInternal_RemoveSectorsInTrack(EXTDSK_INTERNAL *pExtDsk, int TrackIndex);
@@ -66,6 +67,13 @@ char *ExtDskInternal_GetPointerToSectorData(EXTDSK_INTERNAL *pExtDsk, int TrackI
 EXTDSKCHRN *ExtDskInternal_GetSectorCHRN(EXTDSK_INTERNAL *pExtDsk, int TrackIndex, int SectorIndex);
 int ExtDskInternal_GetSPT(EXTDSK_INTERNAL *pExtDsk, int TrackIndex);
 int ExtDskInternal_GetSectorSize(EXTDSK_INTERNAL *pExtDsk, int TrackIndex, int SectorIndex);
+void            ExtDskInternal_ExtDsk2ExtDskInternal(DISKIMAGE_UNIT *pUnit, const unsigned char *pDiskImage, const unsigned long DiskImageSize);
+
+
+unsigned long ExtDskInternal_CalculateOutputDataSize(DISKIMAGE_UNIT *pDrive);
+
+/* write ext dsk out to disk, creating a new extdsk from the data stored */
+void    ExtDskInternal_GenerateOutputData(unsigned char *pBuffer, DISKIMAGE_UNIT *pDrive);
 
 #endif
 

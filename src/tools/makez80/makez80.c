@@ -1996,7 +1996,7 @@ int		Z80_GetNopCountForInstruction(Z80_WORD Addr, Z80_BYTE Flags)
 							/* 00rrr100 - INC r */
 							/* 00rrr101 - DEC r */
 							if (((Opcode>>3) & 0x07)==6)
-								return 2;
+								return 3;
 
 							return 1;
 							

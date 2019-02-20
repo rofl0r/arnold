@@ -20,10 +20,7 @@
 /* Z8536 emulation */
 
 #include "z8536.h"
-#include <memory.h>
-#include <stdio.h>
-#include <stdlib.h>	
-#include <string.h>
+#include "headers.h"
 			
 /* test transfer sequence 
 

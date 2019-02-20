@@ -20,20 +20,41 @@
 #ifndef __CPC_PRINTER_HEADER_INCLUDED__
 #define __CPC_PRINTER_HEADER_INCLUDED__
 
-#define PRINTER_OUTPUT_DO_NOTHING		0x0000
-#define PRINTER_OUTPUT_TO_FILE			0x0001
-#define PRINTER_OUTPUT_TO_PRINTER		0x0002
-#define PRINTER_OUTPUT_TO_DIGIBLASTER	0x0003
+typedef struct
+{
+	int CurrentBit7State;
+	int PreviousBit7State;
+	int CurrentDataByte;
+	int PreviousDataByte;
+} CPC_PRINTER_HW;
 
 void	Printer_SetDataBit7State(int);
 int		Printer_GetDataBit7State(void);
-void	Printer_SetOutputMethod(int);
-int		Printer_GetOutputMethod(void);
 void	Printer_WriteDataByte(int);
 
 void	Printer_Initialise(void);
 void	Printer_Finish(void);
+
+/* This is the value of the last data byte which was written to port &efxx */
+/* This function is used by the snapshot load/save functions */
+
+/* bit 0-6 are data, bit 7 is strobe.*/
 unsigned char Printer_GetDataByte(void);
+
+/* this is the actual value of the 8-bit data from the printer connector */
+/* for CPC, bit 7 will always be 0, unless a 8-bit printer port hardware
+modification has been made; for the CPC+, bit 7 will be 0 or 1 depending
+on the state set through CRTC register 12 */
+/* bit 7-0 are data */
+unsigned char Printer_Get8BitData(void);
+unsigned char Printer_GetPrevious8BitData(void);
+
+/* get the state of the strobe */
+int		Printer_GetStrobeState(void);
+int		Printer_GetPreviousStrobeState(void);
+
+/* set the state of the busy input to the printer connector */
+void	Printer_SetBusyInput(int);
 
 #endif
 

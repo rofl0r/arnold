@@ -1,0 +1,43 @@
+# Makefile for Arnold GBA version
+
+CC = gcc
+AS = as
+LD = ld
+
+#   CFLAGS    flags for C compile
+#   LFLAGS1   flags after output file spec, before obj file list
+#   LFLAGS2   flags after obj file list (libraries, etc)
+
+CFLAGS = -O2 -ffreestanding -DGBA -DCASSETTE_NOSAMPLE -DCPC_NODEBUGGER -mcpu=arm7tdmi -mthumb-interwork -Wall -Wno-unused 
+LFLAGS1 = -nostartfiles -Tlnkscript 
+LFLAGS2 = -s 
+
+CPC_O=	cpc/arnold.o cpc/asic.o cpc/audioevent.o cpc/cpc.o \
+        cpc/crtc.o cpc/fdc.o cpc/autotype.o cpc/cassette.o \
+	cpc/garray.o cpc/printer.o cpc/psgplay.o \
+	cpc/psg.o cpc/render.o cpc/render5.o \
+	cpc/snapshot.o cpc/fdi.o cpc/fdd.o cpc/tzxold.o \
+        cpc/z8536.o cpc/diskimage/diskimg.o cpc/memory.o \
+	cpc/diskimage/dsk.o cpc/diskimage/extdsk.o \
+	cpc/diskimage/iextdsk.o cpc/amsdos.o cpc/pal.o \
+	cpc/z80/z80.o cpc/riff.o cpc/snapv3.o cpc/yiq.o
+
+LIBS = 
+	
+GBA_O = crt0.S gba/main.o 
+
+ROMS_BIN = roms/amsdose/amsdos.rom roms/cpc464e/os.rom roms/cpc464e/basic.rom \
+	roms/cpc664e/os.rom roms/cpc664e/basic.rom roms/cpc6128e/basic.rom roms/cpc6128e/os.rom \
+	roms/kcc/kccbas.rom roms/kcc/kccos.rom roms/cpcplus/system.cpr
+
+PROG = arnold.bin
+
+$(PROG):	$(GBA_O) $(CPC_O) 
+		$(CC)  -o $(PROG) -b binary $(ROMS_BIN) $(CFLAGS) $(LFLAGS1) $(LFLAGS2) $(GBA_O) $(CPC_O)
+		objcopy --strip-all --target elf32-littlearm -O binary $(PROG) 
+
+clean:
+	rm cpc\*.o
+	rm cpc\debugger\*.o
+	rm cpc\diskimage\*.o
+	rm cpc\z80/*.o

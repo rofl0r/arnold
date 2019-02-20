@@ -17,12 +17,26 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "reg.h"
-#include <stdio.h>
 #include <stdlib.h>
 
-#define ARNOLD_REGISTRY_KEY "Arnold"
+
+/*----------------------------------------------------------------------------------------------------------*/
+/* length of string in bytes including null termination character; works for ASCII and UNICODE */
+DWORD StringLengthBytes(const TCHAR *sString)
+{
+	return ((_tcslen(sString)+1)*sizeof(TCHAR));
+}
+
+
+//#define ARNOLD_REGISTRY_KEY "Arnold"
+#define ARNOLD_REGISTRY_KEY PUB_szProfileArnold /* Troels K. */
+const TCHAR* PUB_szProfileArnold = _T("Arnold");
+
+
+HKEY CurrentKey;
 
 /*
 
@@ -36,7 +50,7 @@ if (RegOpenKeyEx(HKEY_USERS, ".Default", 0, KEY_READ,  &DefaultKey)==ERROR_SUCCE
 	{
 		HKEY ArnoldKey;
 
-		if (RegOpenKeyEx(SoftwareKey, ARNOLD_REGISTRY_KEY, 0, KEY_READ, &ArnoldKey)==ERROR_SUCCESS)
+		if (RegOpenKeyEx(SoftwareKey, PUB_szProfileArnold, 0, KEY_READ, &ArnoldKey)==ERROR_SUCCESS)
 		{
 			// got arnold key
 
@@ -60,12 +74,12 @@ BOOL	MyApp_Registry_CheckKeyPresent()
 	HKEY SoftwareKey;
 
 	// open Software tab for current user
-	if (RegOpenKeyEx(HKEY_CURRENT_USER,"Software", 0, KEY_READ, &SoftwareKey)==ERROR_SUCCESS)
+	if (RegOpenKeyEx(HKEY_CURRENT_USER,_T("Software"), 0, KEY_READ, &SoftwareKey)==ERROR_SUCCESS)
 	{
 		HKEY ArnoldKey;
 
 		// open Arnold key
-		if (RegOpenKeyEx(SoftwareKey, ARNOLD_REGISTRY_KEY, 0, KEY_READ, &ArnoldKey)==ERROR_SUCCESS)
+		if (RegOpenKeyEx(SoftwareKey, PUB_szProfileArnold, 0, KEY_READ, &ArnoldKey)==ERROR_SUCCESS)
 		{
 			// found Arnold key. Retrieve settings
 
@@ -87,12 +101,12 @@ BOOL	MyApp_Registry_CheckKeyPresent()
 	return Present;
 }
 
-BOOL	MyApp_Registry_CheckValuePresent(HKEY Key, char *ValueName)
+BOOL	MyApp_Registry_CheckValuePresent(const TCHAR *ValueName)
 {
 	DWORD Type;
 	DWORD Size;
 
-	if (RegQueryValueEx(Key, ValueName, 0, &Type, NULL, &Size)==ERROR_SUCCESS)
+	if (RegQueryValueEx(CurrentKey, ValueName, 0, &Type, NULL, &Size)==ERROR_SUCCESS)
 	{
 		return TRUE;
 	}
@@ -102,18 +116,18 @@ BOOL	MyApp_Registry_CheckValuePresent(HKEY Key, char *ValueName)
 
 
 // add a null-terminated string value to the selected key
-BOOL	MyApp_Registry_AddStringValueToKey(HKEY	Key, char *ValueName, char *ValueString)
+BOOL	MyApp_Registry_AddStringValueToKey(HKEY	Key, const TCHAR *ValueName, const TCHAR *ValueString)
 {
-	if (RegSetValueEx(Key, ValueName, 0, REG_SZ, ValueString, strlen(ValueString)+1)==ERROR_SUCCESS);
+	if (RegSetValueEx(Key, ValueName, 0, REG_SZ, (const BYTE *)ValueString, StringLengthBytes(ValueString))==ERROR_SUCCESS);
 		return TRUE;
 	
 	return FALSE;
 }
 
 // add a dword value to the selected key
-BOOL	MyApp_Registry_AddDWORDValueToKey(HKEY Key, char *ValueName, DWORD ValueData)
+BOOL	MyApp_Registry_AddDWORDValueToKey(HKEY Key, const TCHAR *ValueName, DWORD ValueData)
 {
-	if (RegSetValueEx(Key, ValueName, 0, REG_DWORD, (unsigned char *)&ValueData, sizeof(DWORD))==ERROR_SUCCESS);
+	if (RegSetValueEx(Key, ValueName, 0, REG_DWORD, (const BYTE *)&ValueData, sizeof(DWORD))==ERROR_SUCCESS);
 		return TRUE;
 		
 	return FALSE;
@@ -121,7 +135,7 @@ BOOL	MyApp_Registry_AddDWORDValueToKey(HKEY Key, char *ValueName, DWORD ValueDat
 
 
 // get value data from registry 
-BOOL MyApp_Registry_GetValue(HKEY Key, char *ValueName, char *pBuffer, int BufferSize)
+BOOL MyApp_Registry_GetValue(HKEY Key, const TCHAR *ValueName, char *pBuffer, int BufferSize)
 {
 	DWORD Type;
 	DWORD BuffSize = BufferSize;
@@ -136,7 +150,7 @@ BOOL MyApp_Registry_GetValue(HKEY Key, char *ValueName, char *pBuffer, int Buffe
 
 
 // get size of registry value
-int	MyApp_Registry_GetValueSize(HKEY Key, char *ValueName)
+int	MyApp_Registry_GetValueSize(HKEY Key, const TCHAR *ValueName)
 {
 	DWORD Type;
 	DWORD Size;
@@ -149,8 +163,7 @@ int	MyApp_Registry_GetValueSize(HKEY Key, char *ValueName)
 	return 0;
 }
 
-HKEY CurrentKey;
-char *pTempString;
+TCHAR *pTempString;
 
 BOOL MyApp_Registry_OpenKey()
 {
@@ -162,13 +175,13 @@ BOOL MyApp_Registry_OpenKey()
 	pTempString = NULL;
 
 	// get software key for current user
-	if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software", 0, KEY_CREATE_SUB_KEY, &SoftwareKey)==ERROR_SUCCESS)
+	if (RegOpenKeyEx(HKEY_CURRENT_USER, _T("Software"), 0, KEY_CREATE_SUB_KEY, &SoftwareKey)==ERROR_SUCCESS)
 	{
 		HKEY ArnoldKey;
 		DWORD DispositionValue;
 
 		// create Arnold key
-		if (RegCreateKeyEx(SoftwareKey, ARNOLD_REGISTRY_KEY, 0, "",REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS ,NULL, &ArnoldKey, &DispositionValue)==ERROR_SUCCESS)
+		if (RegCreateKeyEx(SoftwareKey, PUB_szProfileArnold, 0, (LPTSTR)_T(""),REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS ,NULL, &ArnoldKey, &DispositionValue)==ERROR_SUCCESS)
 		{
 			CurrentKey = ArnoldKey;
 
@@ -196,7 +209,7 @@ void MyApp_Registry_CloseKey()
 	}
 }
 
-void	MyApp_Registry_StoreStringToCurrentKey(char *KeyName, char *pString)
+void	MyApp_Registry_StoreStringToCurrentKey(const TCHAR *KeyName, const TCHAR *pString)
 {
 	if (CurrentKey!=0)
 	{
@@ -204,7 +217,7 @@ void	MyApp_Registry_StoreStringToCurrentKey(char *KeyName, char *pString)
 	}
 }
 
-void	MyApp_Registry_StoreIntToCurrentKey(char *KeyName, int Value)
+void	MyApp_Registry_StoreIntToCurrentKey(const TCHAR *KeyName, int Value)
 {
 	if (CurrentKey!=0)
 	{
@@ -212,18 +225,8 @@ void	MyApp_Registry_StoreIntToCurrentKey(char *KeyName, int Value)
 	}
 }
 
-BOOL	MyApp_Registry_CheckValueIsPresentInCurrentKey(char *ValueName)
-{
-	if (CurrentKey!=0)
-	{
-		return MyApp_Registry_CheckValuePresent(CurrentKey, ValueName);
-	}
 
-	return FALSE;
-}
-
-
-char *MyApp_Registry_GetStringFromCurrentKey(char *KeyName)
+TCHAR *MyApp_Registry_GetStringFromCurrentKey(const TCHAR *KeyName)
 {
 	if (CurrentKey!=0)
 	{
@@ -240,7 +243,7 @@ char *MyApp_Registry_GetStringFromCurrentKey(char *KeyName)
 
 			if (pTempString!=NULL)
 			{
-				MyApp_Registry_GetValue(CurrentKey, KeyName, pTempString, TextLength);
+				MyApp_Registry_GetValue(CurrentKey, KeyName, (char *)pTempString, TextLength);
 			}
 		}
 		else
@@ -254,7 +257,7 @@ char *MyApp_Registry_GetStringFromCurrentKey(char *KeyName)
 
 int TempValue;
 
-int MyApp_Registry_GetIntFromCurrentKey(char *KeyName)
+int MyApp_Registry_GetIntFromCurrentKey(const TCHAR *KeyName)
 {
 	if (CurrentKey!=0)
 	{
@@ -271,22 +274,21 @@ void	MyApp_Registry_InitialiseKey()
 	HKEY SoftwareKey;
 
 	// get software key for current user
-	if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software", 0, KEY_CREATE_SUB_KEY, &SoftwareKey)==ERROR_SUCCESS)
+	if (RegOpenKeyEx(HKEY_CURRENT_USER, _T("Software"), 0, KEY_CREATE_SUB_KEY, &SoftwareKey)==ERROR_SUCCESS)
 	{
 		HKEY ArnoldKey;
 		DWORD DispositionValue;
 
 		// create Arnold key
-		if (RegCreateKeyEx(SoftwareKey, ARNOLD_REGISTRY_KEY, 0, "",REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS ,NULL, &ArnoldKey, &DispositionValue)==ERROR_SUCCESS)
+		if (RegCreateKeyEx(SoftwareKey, PUB_szProfileArnold, 0, _T(""),REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS ,NULL, &ArnoldKey, &DispositionValue)==ERROR_SUCCESS)
 		{
 			// created a key or opened an existing one?
 			if (DispositionValue != REG_OPENED_EXISTING_KEY)
 			{
 				// created a new key
 
-				MyApp_Registry_AddDWORDValueToKey(ArnoldKey, "iCPCType", 0);
-				MyApp_Registry_AddDWORDValueToKey(ArnoldKey, "iCRTCType", 0);
-				MyApp_Registry_AddStringValueToKey(ArnoldKey, "sCartridgePath", "c:\\windows\\desktop");
+				MyApp_Registry_AddDWORDValueToKey(ArnoldKey, _T("iCPCType"), 0);
+				MyApp_Registry_AddDWORDValueToKey(ArnoldKey, _T("iCRTCType"), 0);
 			}
 
 			// close arnold key
@@ -296,4 +298,182 @@ void	MyApp_Registry_InitialiseKey()
 		// close software key
 		RegCloseKey(SoftwareKey);
 	}
+}
+
+/*----------------------------------------------------------------------------------------------------------*/
+
+const TCHAR *OpenString = _T("&Open");
+const TCHAR *OpenWithString = _T("Open with &Arnold");
+const TCHAR *DDE_DefaultKey = _T("[SetForeground][Open \"%1\"]");
+const TCHAR *DDE_AppName = _T("Arnold");
+const TCHAR *DDE_TopicName = _T("system");
+
+void RegisterExtension_OpenKeySetup(const EXTENSION_INFO *pExtensionInfo,HKEY hOpenKey, BOOL fOpenWith)
+{
+	DWORD dwDisposition;
+	HKEY hCommandKey;
+	HKEY hDDEKey;
+
+	if (!fOpenWith)
+	{
+		RegSetValueEx(hOpenKey, NULL, 0, REG_SZ, (const BYTE *)OpenString,StringLengthBytes(OpenString));
+	}
+
+	if (RegCreateKeyEx(hOpenKey, _T("command"), 0, _T(""),REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL,&hCommandKey, &dwDisposition)==ERROR_SUCCESS)
+	{
+		TCHAR Buffer[256];
+
+		_stprintf(Buffer,_T("\"%s\" \"%%1\""),pExtensionInfo->pApplicationPath);
+
+		RegSetValueEx(hCommandKey, NULL, 0, REG_SZ, (const BYTE *)Buffer, StringLengthBytes(Buffer));
+
+		RegCloseKey(hCommandKey);
+	}
+
+	if (RegCreateKeyEx(hOpenKey, _T("ddeexec"),0, _T(""),REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hDDEKey, &dwDisposition)==ERROR_SUCCESS)
+	{
+		HKEY hApplicationKey;
+
+		/* set the default key */
+		RegSetValueEx(hDDEKey, NULL, 0, REG_SZ, (const BYTE *)DDE_DefaultKey, StringLengthBytes(DDE_DefaultKey));
+
+		if (RegCreateKeyEx(hDDEKey, _T("application"),0, _T(""),REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hApplicationKey, &dwDisposition)==ERROR_SUCCESS)
+		{
+
+			RegSetValueEx(hApplicationKey, NULL, 0, REG_SZ, (const BYTE *)DDE_AppName, StringLengthBytes(DDE_AppName));
+
+			RegCloseKey(hApplicationKey);
+		}
+
+		if (RegCreateKeyEx(hDDEKey, _T("topic"),0, (LPTSTR)_T(""),REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hApplicationKey, &dwDisposition)==ERROR_SUCCESS)
+		{
+			RegSetValueEx(hApplicationKey, NULL, 0, REG_SZ, (const BYTE *)DDE_TopicName, StringLengthBytes(DDE_TopicName));
+
+			RegCloseKey(hApplicationKey);
+		}
+
+		RegCloseKey(hDDEKey);
+	}
+}
+
+
+void	RegisterExtension(const EXTENSION_INFO *pExtensionInfo, BOOL fOpenWith)
+{
+	HKEY hExtensionKey;
+	DWORD dwDisposition;
+	/* the actual link used */
+	TCHAR *pExtensionLinkName = NULL;
+
+	if (RegCreateKeyEx(HKEY_CLASSES_ROOT, pExtensionInfo->pExtensionKeyName,0, _T(""), REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hExtensionKey, &dwDisposition)==ERROR_SUCCESS)
+	{
+		/* create if it doesn't exist, otherwise just opens it */
+		BOOL fExists = FALSE;
+
+		if (dwDisposition==REG_OPENED_EXISTING_KEY)
+		{
+			/* if friendly then use existing key; don't replace with our own */
+			if (fOpenWith)
+			{
+				DWORD dwLength;
+				DWORD dwType;
+				dwLength = 0;
+
+				/* query existing link */
+				if (RegQueryValueEx(hExtensionKey, NULL, NULL, &dwType, NULL, &dwLength)==ERROR_SUCCESS)
+				{
+					pExtensionLinkName = malloc(dwLength);
+
+					if (pExtensionLinkName)
+					{
+						DWORD dwType;
+
+						RegQueryValueEx(hExtensionKey, NULL, NULL, &dwType, (BYTE *)pExtensionLinkName, &dwLength);
+		
+						fExists = TRUE;
+					}
+				}
+			}
+		}
+		
+		if (!fExists)
+		{
+			DWORD nLen = StringLengthBytes(pExtensionInfo->pExtensionLinkKeyName);
+			pExtensionLinkName = malloc(nLen);
+			
+			if (pExtensionLinkName)
+			{
+				memcpy(pExtensionLinkName, pExtensionInfo->pExtensionLinkKeyName,nLen);
+			}
+			
+			/* replace value of default key */
+			RegSetValueEx(hExtensionKey, NULL, 0, REG_SZ, (const BYTE *)pExtensionLinkName, nLen);
+		}
+
+		RegCloseKey(hExtensionKey);
+	}
+
+	if (pExtensionLinkName!=NULL)
+	{
+		DWORD dwDisposition;
+
+		/* create it if it doesn't exist, otherwise open it */
+		if (RegCreateKeyEx(HKEY_CLASSES_ROOT, pExtensionLinkName, 0, _T(""),REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS,NULL, &hExtensionKey,&dwDisposition)==ERROR_SUCCESS)
+		{
+			if (!fOpenWith)
+			{
+				/* if not friendly, replace description and icon for our own */
+				HKEY hDefaultIcon;
+				TCHAR Buffer[256];
+
+				/* set the description of the extension */
+				RegSetValueEx(hExtensionKey, NULL, 0, REG_SZ, (const BYTE *)pExtensionInfo->pExtensionDescription, StringLengthBytes(pExtensionInfo->pExtensionDescription));
+			
+				_stprintf(Buffer,_T("\"%s\",-%d"),pExtensionInfo->pApplicationPath,pExtensionInfo->nIconIndex);
+
+				if (RegCreateKeyEx(hExtensionKey,_T("DefaultIcon"), 0, _T(""),REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hDefaultIcon, &dwDisposition)==ERROR_SUCCESS)
+				{
+					RegSetValueEx(hDefaultIcon, NULL, 0, REG_SZ, (const BYTE *)Buffer, StringLengthBytes(Buffer));
+				
+					RegCloseKey(hDefaultIcon);
+				}
+			}		
+
+			{
+				HKEY hShellKey;
+
+				if (RegCreateKeyEx(hExtensionKey,_T("shell"), 0, _T(""), REG_OPTION_NON_VOLATILE,KEY_ALL_ACCESS, NULL, &hShellKey, &dwDisposition)==ERROR_SUCCESS)
+				{
+					HKEY hOpenKey;
+					const TCHAR *sKey;
+
+					/* if not friendly replace the default "open" with our own */
+					/* if friendly, create a open with */
+					if (!fOpenWith)
+					{
+						sKey = _T("open");
+					}
+					else
+					{
+						sKey = OpenWithString;
+					}
+
+					if (RegCreateKeyEx(hShellKey,sKey, 0, _T(""),REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL,&hOpenKey, &dwDisposition)==ERROR_SUCCESS)
+					{
+						RegisterExtension_OpenKeySetup(pExtensionInfo,hOpenKey, fOpenWith);
+
+						RegCloseKey(hOpenKey);
+
+					}
+
+					RegCloseKey(hShellKey);
+				}
+			}
+
+			RegCloseKey(hExtensionKey);
+		}
+
+		free(pExtensionLinkName);
+
+	}
+
 }

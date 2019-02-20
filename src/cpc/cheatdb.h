@@ -25,7 +25,7 @@
 
 #define CHEAT_DATABASE_POKE_ENTRY_FLAGS_ENTER_VALUE 0x001
 
-typedef struct CHEAT_DATABASE_POKE_ENTRY
+typedef struct
 {
 	unsigned char	Flags;
 	unsigned long	Addr;
@@ -33,10 +33,10 @@ typedef struct CHEAT_DATABASE_POKE_ENTRY
 	unsigned char	OldValue;
 } CHEAT_DATABASE_POKE_ENTRY;
 
-typedef struct CHEAT_DATABASE_ENTRY
+typedef struct _CHEAT_DATABASE_ENTRY
 {
-	struct	CHEAT_DATABASE_ENTRY *pNext;
-	struct	CHEAT_DATABASE_ENTRY *pPrev;
+	struct	_CHEAT_DATABASE_ENTRY *pNext;
+	struct	_CHEAT_DATABASE_ENTRY *pPrev;
 
 	unsigned char	*Name;
 	unsigned char	*Description;
@@ -48,12 +48,12 @@ typedef struct CHEAT_DATABASE_ENTRY
 	CHEAT_DATABASE_POKE_ENTRY	Parts[CHEAT_DATABASE_ENTRY_MAX_PARTS];
 } CHEAT_DATABASE_ENTRY;
 
-typedef struct CHEAT_DATABASE
+typedef struct
 {
-	struct CHEAT_DATABASE_ENTRY	*pFirst;
+	CHEAT_DATABASE_ENTRY	*pFirst;
 } CHEAT_DATABASE;
 
-CHEAT_DATABASE *CheatDatabase_Read(char *);
+CHEAT_DATABASE *CheatDatabase_Read(const unsigned char *pDataBase, const unsigned long Database_FileLength);
 void	CheatDatabase_Delete(CHEAT_DATABASE *pDatabase);
 void	CheatDatabase_Poke(CHEAT_DATABASE_ENTRY *pEntry);
 

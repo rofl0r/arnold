@@ -20,8 +20,6 @@
 #ifndef __AUDIO_EVENT_HEADER_INCLUDED__
 #define __AUDIO_EVENT_HEADER_INCLUDED__
 
-#include "debugger/debug.h"
-
 #define AUDIO_EVENT_PSG			0x0001
 #define AUDIO_EVENT_DIGIBLASTER	0x0002
 #define AUDIO_EVENT_TAPE		0x0004
@@ -64,7 +62,7 @@ void	AudioEvent_AddEventToBuffer(unsigned long, unsigned long, unsigned long);
 void	AudioEvent_Initialise(void);
 void	AudioEvent_Finish(void);
 
-void	AudioEvent_TraverseAudioEventsDebug(DEBUG_HANDLE DebugHandle);
+//void	AudioEvent_TraverseAudioEventsDebug(DEBUG_HANDLE DebugHandle);
 int		AudioEvent_TraverseAudioEventsAndBuildSampleData(int,int);
 void	AudioEvent_SetFormat(int SampleRate, int SampleBits, int SampleChannels);
 
