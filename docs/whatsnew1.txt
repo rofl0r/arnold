@@ -1,0 +1,243 @@
+12th March
+==========
+
+- fixes to CRTC Register 6 handling
+- fixes to CPC I/O handling (Madness and Hi-Tech demos run)
+Working on a good release for monday. Sound is one of my priorities
+to finally fix.
+
+8th March
+=========
+
+- ooops the last version was a bit messed up because of some
+changes I made, lots more things should work as they did before
+- this code has also been changed to make it more portable to other
+systems, as a result some things may not work as they did before,
+I'm working on making it much better. So please be patient. 
+Some ports are already being started :)
+
+1st March
+=========
+
+- improvements to CPC+ emulation
+- improvements to CRTC emulation
+- "unformatted" discs can be inserted.
+- FDC format command emulated
+- some bugs fixed in the Z80 emulation (Unique demo works perfectly)
+
+
+18th Jan
+========
+
+- improved CPC+ emulation again. Updated handling of writes
+to ASIC ram for some registers that are mirrored.
+Updated handling of reads from ASIC ram so that the correct
+values are returned when reading.
+
+8th Jan
+-------
+
+- Fixed CPC+ raster split (the comparison line is generated from CRTC
+Line Counter and Raster Counter)
+- Fixed CPC+ raster interrupt (the comparison line is generated from
+CRTC Line Counter and Raster Counter)
+- Fixed CRTC display when CPC+ enhanced features were enabled. It could
+have been wrong!!!
+- other fixes to cpc+ h/w implementation
+- re-programming of screen split on the same line as the split should
+be triggered now works. GPA CPC+ demo works perfectly.
+
+5th Jan 1999
+============
+
+- a couple of bug fixes
+- some minor improvements in the CRTC type 1 emulation
+(screen address changes should be correct)
+- minor improvements in the UI
+- fixed reg 8 delay (it was wrong with the last release) and implemented
+screen going black on ASIC CRTC when Reg 8 delay is set to non-display,
+and extend border is set in the ASIC hardware pixel scroll
+
+4th Jan 1999
+============
+
+It's another goodie!!!!!
+
+- Code to allow multiple VSYNCS per frame (Paradise demo etc); thanks
+to Ulrich.
+- Fixed problem with The-Demo not working in CPC+ mode.
+- adjusted screen offset to show CPC display better
+- in CPC+ mode, added code so that screen split fault is reproduced
+(when screen split line is 55 under standard screen settings).
+- in CPC+ mode, added code to handle re-programming of vertical scroll
+at any time (not sure if totally accurate - requires more testing)
+- CRTC Interlace Sync and Video Mode (out &bc00,8:out &bd00,3)
+I know of two demos that use this: BSC DEMO 7, 5kb Demo 1
+Both are very nice. For 5kb demo 1, run in CPC6128 mode with CRTC type 1.
+When this demo is run on a CPC/CPC+ with Type 0 or type 3 the screen
+will be blank as with the real demo.
+- fixed Vsync output when CRTC is operating in Interlace or Interlace
+and Video Sync Mode - it is correctly delayed by 1/2 scanline where appropiate
+- rendering of black in monitor vsync and hsync areas (The part of the Twinblast
+demo with lots of little bit scrolls looks correct now).
+(Try: out &bc00,8:out &bd00,3:out &bc00,9:out &bd00,6 to see what it this feature looks like 
+from BASIC). This is only noticeable if the VSYNC falls inside the screen area, 
+and the border is not black.
+- In CPC/CPC+ mode you can choose grey-scale monitor mode. (might be
+useful for screenshots in magazine's or fanzine's??). Not sure if this is completely accurate
+compared to a real CPC+ grey-scale/paper-white monitor. The RGB colours are converted to the YIQ
+colour model, which is used in television. The Y component is used to generate the grey colour.
+If you are running in 16-bit mode you can only have 32 grey-scales, so sometimes it may not look
+good.
+- In CPC mode you can choose green-screen monitor mode (some demos and programs support this and
+have special versions for green screen (Merlyn demo 3, Esc & KKB 1, Terrific Demo, Mega Party Demo)
+In CPC+ mode this is not selectable. The CPC+ didn't come with a Green Screen, and
+as far as I know cannot be connected to one without some additional circuitry. So if this
+is selected on CPC+ you get grey-scale monitor mode.
+- Code to allow multiple HSYNCS per line. This allows more parts of Chany's DreamEnd 
+megademo to look correct. 
+- when changing to full-screen mode, debugger windows are now closed down.
+- you can choose the Windows task priority. Currently there is a choice
+between Normal (the default - and what was used in previous versions), or
+Priority. Normal favours system resposiveness. Priority favours emulator
+responsiveness, and other system tasks will run slowly. Use this feature
+if you have a slow machine to get a little bit more CPU time for the 
+emu. This feature may be expanded to give more control in a future release.
+- More fixes to the CRTC emulation (0 and 3) 
+- CRTC1 implementation has begun, some demos that are specifically
+for CRTC1, or have a CRTC1 implementation work much better.
+ (allows VSYNC when Reg7>Reg4 and Reg5!=0. If Reg5>9 Reg7 can be 40.
+Reg7 can go as far as 42 when Reg5=31).
+- fixed some more of the CRTC type 0, type 1 and type 3 emulation.
+- Now that CRTC1 implementation has begun, and reg 8==3 emulation has
+also been done, when DreamEnd megademo is run in CPC mode, with CRTC type
+1 it will run the whole demo. Running in CPC mode with type 0 will
+not run the whole demo, and this is what should happen (it will show the "Sorry" screen). 
+Note in this demo, running it in CPC+ mode will not even get the "Sorry" screen. The CPC has
+hung waiting for a interrupt to occur which cannot because they have been disabled. This happens
+when it is run on a real CPC+.
+- improved the CRTC switching code. Previously if some CRTC registers
+had been setup, and then not changed again and a different CRTC was
+selected, chances were that the display could be wrong (e.g. if reg 8
+was programmed to blank the screen reg 8 bits 5,4 and another CRTC was
+selected that didn't support this, the screen would still be blanked
+instead of being visible. Now fixed!), 5kb demo 1 part 3 shows up now it the CRTC is changed.
+- CRTC code improved a bit so that some unnecessary calculations were
+reduced. (cleaner code, plus minor speed improvements)
+- code to allow HSYNCs to overlap (Now S&KOH main part - the bit with
+the picture in it looks correct. The best looking emulation currently is
+with CRTC type 1, as far as I can tell this is perfect!)	
+- improvements to interface (some bug fixes and speed improvements, plus some unnecessary stuff
+removed)
+- you can drag and drop files to the emu, the following are supported:
+Snapshots (64k or 128k), CPC+ Cartridges.
+- automatically changes to CPC+ mode when a cartridge is inserted.
+- CRTC type 4 is set to use the CRTC type 1 emulation because it appears
+to be very close in operation. The type 4 version of the S&KOH demo
+works under type 1 also. I don't have a CPC with a type 4 to test with.
+I guess the type 4 is very similar to the type 3 as well.
+
+
+NOTE: I've been changing the CRTC emulation code a bit, so some of
+it may be broken. I'm running a lot of testing programs on it to make
+sure it works correctly... the previous CRTC type 0 acted more like a type 3,
+but now it should start to work more like a type 0. The previous type 3
+was too "generous" and ran too many demos that it shouldn't have, now
+it runs more better. Some other demos will fail :(
+
+I've also been experimenting with improving the accuracy of the emulation,
+by only emulating the OUT commands with more accuracy. However it has
+made the emulation suffer quite a bit. With this accuracy more demos
+appear to work better as a result at the expense of speed. I'm working
+on a better solution that currently used.
+
+I'm also working on supporting other hardware devices. If you would
+like to see any done, please contact me.
+
+
+Dec 11
+======
+
+Last release before I take my Christmas Holidays. I hope to have
+a new release in the new year.
+
+- Crash problem when running the emulator on a machine without a sound card
+- Speeded up the CPC+ rendering a bit more
+- When "Insert System Cartridge" was selected, the cartridge directory
+was lost. Now fixed.
+
+Sound seems to be dropping some notes. I'm investigating this.
+I don't think the previous release had this problem.
+
+
+Dec 7
+=====
+
+- Roms with AMSDOS headers can be used.
+- Fixed some memory leaks.
+- Misc bug fixes.
+- Fixed some problems with the floppy disc emulation, more programs
+will load and run. (Bob Winner, Tensions are examples).
+- Settings are now stored in the registry.
+- Snapshot loading works.
+- Snapshot saving works. (choose 64k or 128k)
+- Screen grabbing working again.
+- CPC+ smooth vertical scroll added. 
+- CPC+ raster ints fixed. World of Sports now fully playable.
+- If a inserted disc image has been modified, it will ask you if you want
+to write an image out with the changes, this will happen when you choose
+another disc image, or when you quit.
+- Added a indicator to show when disc drive is active (SCROLL LOCK LED).
+- Sound should be the correct speed regardless of the speed of the emulation.
+- Digiblaster sound is now mixed in with the PSG sound. Digiblaster sound will only be audible
+when the Printer output mode is set to "Digiblaster"
+- Speeded up writing of wav files. (Note: Wav files are written when "Stop recording" has been selected, or the
+emulator has been quit)
+- The generated sound is a lot better than before, and most tunes should play ok.
+However there are still some problems that will need to be fixed. I'm currently working on this.
+- Printer output is now selectable. You can choose between Digiblaster interface (the default),
+or output data to a file (currently set to "printer.txt"). The digiblaster is a hardware card
+that plugs into the printer port. It has a D/A converter. Using the digiblaster you can play 8-bit sampled
+sound at a superior quality compared to output with the CPC Sound chip.
+- Expansion Roms can be disabled. (Go to Rom Settings dialog and put a check in the box)
+(useful if there is a program that will not run with expansion roms enabled)
+
+Nov 23
+======
+
+CPC+ mode is faster again. I added some code to reduce sprite overdraw.
+Fixed some bugs in FDC, plus extra code to protect against crashes.
+F4 now enters full-screen, with F5 as reset.
+You can record a wav of the PSG emulation. I'm using this for debugging
+purposes, and the sound isn't that good yet.
+You can also choose the resolution for full-screen mode. Screen
+is cropped if resolution chosen is too low. Support has been added
+for different "rendering resolutions", in a similar way to MTMW but
+it is not yet selectable.
+Sound is still enabled, and is fixed to the default settings.
+Fixed frame skip settings of None, 1,2,3,4 are available.
+
+Nov 12
+======
+
+You can change between Full-Screen and windowed by pressing F5
+at any time. At this time, if you want to load a disc image,
+you must switch back to windowed mode to do this. I plan
+to change this in the future.
+
+Also, the full-screen mode is set to 800x600x16. It is slower
+than windowed because it is copying more data accross (windowed
+mode misses every other pixel).
+
+In a future release you will be able to determine the resolution
+you want to use, plus other display attributes (scan-lines on/off,
+miss every other pixel etc), these will also be configurable
+in windowed mode too.
+
+In this release there is sampled music support, which may sound incorrect
+if the emulation is running too slow or too fast.
+
+I have written a PSG emulation, which is about 80% complete. This is
+not yet enabled.
+
+Plus in this release, you are stuck with audio enabled.

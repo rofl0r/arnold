@@ -1,0 +1,230 @@
+CORE FILES
+==========
+
+Z80
+===
+
+- rewrote the C version of the z80 emulation. It is faster and more accurate.
+- implemented Z80 Flag bit 5 and 3 results for some operations.
+
+Extra hardware
+==============
+
+- Can choose the hardware connected to the joystick port:
+* Joystick (standard joystick), 
+* Amx Mouse (A.M.X. Mouse hardware used in Amx Paint
+and Art Studio), 
+* Westphaser (Loriciel's Westphaser light-gun)  ** not working **
+* a spanish lightgun (name unknown) ** still got problems **
+
+- Kempston Mouse (can be used on Art Studio)
+
+- Inicron RAM-ROM hardware. 
+* 16 slots supported
+* all functions supported except ROM slot.
+* only difference: When RAM/ROM written to on a real CPC,
+the screen shows the data written. In the emulator this is not
+shown. 
+
+- Virgin/Magnum Lightphaser emulation
+* still got some problems with it
+
+- Vortex RAM Expansion
+* This appears to work with the roms that are on ftp.nvg.unit.no , but I am not sure
+that the emulation is correct. If anyone can help furthur please e-mail me.
+
+FDC
+===
+
+- Improved accuracy of FDC emulation
+* Overrun condition is set (Psyborg will run)
+* Data Transfer during execution phase of command takes 
+correct time. (Musical loaders now almost run at the correct speed).
+* delays and other  timings in the following commands are emulated. 
+	+ read id (discology can detect number of sectors per track now)
+	+ format
+
+- fixed bug where Xexor disc image would crash when loading
+- fixed a memory leak. If a track contained data and it was re-formatted,
+then data was not freed properly.
+
+- Simple floppy drive emulation. 
+* cannot seek beyond track 0 or maximum number of tracks supported by drive (43 for 3" drive)
+* seek and recalibrate commands take time - instead of being instantaneous.
+* change drive LED emulation. It is now done at the correct time (whenever
+a read/write operation is executed by the FDD). Changing the LED is slow,
+and it was being changed to often, now it is only updated once a frame,
+and is only set when a read/write operation is active on the drive.
+The Unique Megademo musical loader no longer slows down the emulation.
+
+General
+=======
+
+- improved accuracy of Multiface 2 emulation
+- a different multiface rom can be chosen for CPC and PLUS mode. (There are two
+versions of the Multiface 2, one for CPC and one for CPC+ models. The only different
+is the rom. The rom was re-written to interface with the different CPC+ roms).
+- changed memory granularity to 8k blocks to support Multiface 8K RAM and 8K ROM
+- cleaned up parts of the code
+- the amount of ram and configuration can be chosen. 
+upported options are:
+1. no extra ram (64k base ram only)
+2. 64k ram expansion (equivalent to a standard 128k machine)
+3. 256k silicon disk (Thankyou to Craig Harrison for letting me use his 256k silicon disk
+to confirm how the ram selection mechanism works with it)
+- changed the debugging code. It is now seperate to the core code.
+- you can load tape programs from sample files. ".voc" and ".wav" are the only supported formats
+currently. This feature works best with a good clear recording because there is no filtering
+applied to the sample data. All files will be validated before loading.
+- added support for CPCEMU style cheat database. See Misc->Cheats->CheatDatabase.
+- Simple Cheat finding system
+
+Sound/PSG
+=========
+
+- changed the conversion between PSG volume and sample output to be logarithmic.
+The sound is more accurate and dynamic.
+- improved the quality of the digiblaster sound output. 
+- handled PSG port 14 correctly. The keyboard will not work when Multiface is active, 
+with NWC's PC1512 demo. This is the correct behavior.
+- fixed many bugs, and improved sound output a lot.
+
+CRTC
+====
+
+- improved accuracy of CRTC type 0 and 1.
+- implemented CRTC type 2 emulation.
+- implemented a partial simulation of the TV/Monitor. Effects which are
+due to the response of the monitor should appear more accuratly (effects where
+HSYNC and VSYNC are missed)
+
+
+CPC+
+====
+
+- implemented undocumented features of CPC+ CRTC. (There are two status
+registers which expose some of the internal comparisons of the CRTC).
+
+- fixed DMA emulation. (Prehistorik II now works!)
+
+- implemented 8255 bug where keyboard cannot be read.
+
+TZX/Tape
+========
+
+- implemented full TZX tape image support. The current set of approx. 8 CPC tapes
+which are in this format load and run correctly. TZX files are validated, so any dodgy
+files that cannot be handled are not loaded.
+
+YM3/YM5/StSound
+===============
+
+- you can now record in YM5 format. You can set the properties before recording.
+
+KC Compact
+==========
+
+- implemented initial hardware emulation. The demo software which is available
+from Andreas Kruger's website works perfectly.
+- implemented partial Z8536 CIO chip. Programmable interrupts and some port features are done.
+
+Windows version
+===============
+
+- the screen rendering method can be set in windowed and full-screen.
+Low = original Arnold windowed display (every other horizontal pixel is missed to keep
+aspect ratio)
+High = all pixels plotted, with black lines inbetween to emulate effect of tv
+Higer = all pixels plotted, lines are plotted in between.
+- the emulator could crash if you ran it in 640x480 resolution from the desktop,
+without reduced aspect. Now fixed.
+- the emulator display was corrupted when switching between full-screen and windowed when using
+a Riva TNT card. Now Fixed.
+- cleaned up the DirectX code more, now there should be a lot less problems switching between fullscreen
+and windowed in all colour depths
+- implemented speed throttling. 
+- multiface rom(s) and settings  can be accessed with "Multiface Settings" on the Misc menu.
+
+
+Debugger
+========
+
+- registers can be edited. Click in edit box and type new values.
+
+- some buttons removed from debugger dialog. Select views from the menu.
+
+- Debugger Memory Dump View
+* data can be edited in memory dump window.
+* TAB toggles between editing Memory Address, data bytes and text.
+* if memory address is edited, then memdump address will change.
+* Cursor keys select bytes and move around memory. 
+* Page up and page down to move up and down memory faster. 
+* Text and data can be entered at any time. 
+* Use mouse to select items. 
+* View can be toggled between bytes and words ("V").
+* windows fully resizeable
+* removed toolbar. Right Click for a menu.
+* Mem dump set address: Can enter a equation and the result will be the new address.
+
+
+- Data search
+* Can search for data. You can enter numbers in hex, decimal or binary, seperated with ",".
+* Up to 16 bytes of data can be searched for. If you use "?" instead of a number, the byte at this
+position will be ignored when searching. e.g. #06,?,#ed will search for any sequence with #06
+as first byte, second byte can be any value, and #ed as the last byte.
+
+
+
+- Debugger Dissassembly View
+* dissassembly shows PC (">") and breakpoint locations ("*"). Breakpoints
+are only shown in Z80 view. 
+* Viewing of Opcodes ("O") and ASCII ("A") can be toggled.
+* Breakpoints can be toggled at cursor position ("B"). (Z80 view only) 
+* Dissassembly shows all undocumented instructions.
+* Can move up and down view using cursor keys.
+* can select any line with the mouse.
+* windows fully resizeable
+* removed toolbar. Right click for a menu
+* press "V" to toggle dissassembly of z80 , dma channel 0, dma channel 1 or dma channel 2
+instructions.
+* page up and page down to move through dissassembly faster
+
+
+- new Expression Evaluator
+* can enter expressions to assign values to registers and more.
+To specify a hex number, prefix with "#". To specify a binary
+number prefix with "%". Decimal numbers do not need a prefix.
+To use a register in an equation register use register name. 
+You can specify 8-bit register names or 16-bit register names.
+
+Most registers are named as you expect, here are a list
+of the other registers and values you can use:
+
+Register names:
+
+ALT_AF		AF' (alternative registers)
+ALT_BC		BC'
+ALT_DE		DE'
+ALT_HL		HL'
+HIX			IX high byte
+LIX			IX low byte
+HIY			IY high byte
+LIY			IY low byte
+DMA0_PC		DMA channel 0 Program Counter
+DMA1_PC		DMA channel 1 Program Counter
+DMA2_PC		DMA channel 2 Program Counter 
+
+- CRTC/CPC/CPC+ views
+* ASIC DMA dissassembly has moved to new dissassembly view. 
+ASIC DMA data is shown in view. (Addr, Prescale etc)
+(can edit values. Click on numbers and type new values.)
+(TAB cycles through values or click with the mouse to select
+variables that have changed are shown in red)
+
+Linux version
+=============
+
+- Changed Makefile so that the object files were not re-built
+each time make was invoked.
+- Updated host code for new core code changes
+- can close display without using CTRL+C

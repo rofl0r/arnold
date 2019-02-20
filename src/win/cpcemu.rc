@@ -1,0 +1,880 @@
+//Microsoft Developer Studio generated resource script.
+//
+#include "resrc1.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "resource.h"
+
+#include <windows.h>
+#include <commdlg.h>
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.K.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENG)
+//#ifdef _WIN32
+//LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
+//#pragma code_page(1252)
+//#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Toolbar
+//
+
+//IDR_TOOLBAR3 TOOLBAR DISCARDABLE  16, 15
+//BEGIN
+//    BUTTON      ID_BUTTON_SET_ADDR
+//    BUTTON      ID_BUTTON_DECREASE_WIDTH
+//    BUTTON      ID_BUTTON_MODE0
+//    BUTTON      ID_BUTTON_MODE1
+//    BUTTON      ID_BUTTON_MODE2
+//    BUTTON      ID_BUTTON_MODE3
+//    BUTTON      ID_BUTTON_INCREASE_WIDTH
+//END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDR_TOOLBAR3            BITMAP  DISCARDABLE     "toolbar3.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MENU1 MENU DISCARDABLE 
+BEGIN
+    POPUP "File"
+    BEGIN
+        POPUP "Disk Drive A"
+        BEGIN
+            POPUP "Blank Disk"
+            BEGIN
+                MENUITEM "Unformatted",                 ID_FILE_DRIVEA_INSERTNEWDISK_UNFORMATTED
+
+            END
+            MENUITEM "Insert Disk...",              ID_FILE_DRIVEA_INSERTDISK
+
+            MENUITEM "Remove Disk",                 ID_FILE_DRIVEA_REMOVEDISK
+
+            MENUITEM "Turn over disk",              ID_FILE_DRIVEA_TURNOVERDISK
+
+        END
+        POPUP "Disk Drive B"
+        BEGIN
+            POPUP "Blank Disk"
+            BEGIN
+                MENUITEM "Unformatted",                 ID_FILE_DRIVEB_INSERTNEWDISK_UNFORMATTED
+
+            END
+            MENUITEM "Insert Disk...",              ID_FILE_DRIVEB_INSERTDISK
+
+            MENUITEM "Remove Disk",                 ID_FILE_DRIVEB_REMOVEDISK
+
+            MENUITEM "Turn over disk",              ID_FILE_DRIVEB_TURNOVERDISK
+
+        END
+        POPUP "Cartridge"
+        BEGIN
+            MENUITEM "Insert Cartridge...",         ID_FILE_CARTRIDGE_INSERTCARTRIDGE
+
+            MENUITEM "Insert System Cartridge",     ID_FILE_CARTRIDGE_INSERTSYSTEMCARTRIDGE
+
+        END
+        POPUP "Snapshot"
+        BEGIN
+            MENUITEM "Open Snapshot...",            ID_FILE_OPENSNAPSHOT
+            MENUITEM "Write 64k Snapshot...",       ID_FILE_SAVESNAPSHOT
+            MENUITEM "Write 128k Snapshot...",      ID_FILE_SAVESNAPSHOT_128K
+
+            POPUP "Set Snapshot Version to Write"
+            BEGIN
+                MENUITEM "Version 2",                   ID_FILE_SNAPSHOT_SETVERSIONTOWRITE_VERSION2
+
+                MENUITEM "Version 3",                   ID_FILE_SNAPSHOT_SETVERSIONTOWRITE_VERSION3
+
+            END
+        END
+        POPUP "Tape"
+        BEGIN
+            MENUITEM "Insert Tape Image ...",       ID_FILE_TAPEIMAGE_INSERT
+            MENUITEM "Insert Sample ...",           ID_FILE__INSERTSAMPLE
+            MENUITEM "Remove Tape",                 ID_FILE_TAPEIMAGE_REMOVE
+            MENUITEM "Rewind Tape to Start",        ID_FILE_TAPEIMAGE_REWINDTOSTART
+
+            MENUITEM "Play button is pressed on Tape recorder", 
+                                                    ID_FILE_TAPEIMAGE_PLAYBUTTONISPRESSEDONTAPERECORDER
+
+        END
+        MENUITEM "Rom Settings...",             ID_FILE_INSERTROM
+        MENUITEM "Write Screen Snapshot ...",   ID_FILE_WRITESCREENSNAPSHOT
+    END
+    POPUP "Settings"
+    BEGIN
+        MENUITEM "Reset",                       ID_MISC_RESET
+        POPUP "Cheats"
+        BEGIN
+            MENUITEM "Cheat Database...",           ID_MISC_CHEATS_CHEATDATABASE
+
+            MENUITEM "Cheat System",                ID_MISC_CHEATS_CHEATSYSTEM
+            , GRAYED
+        END
+        POPUP "Amstrad settings"
+        BEGIN
+            POPUP "CPC Type"
+            BEGIN
+                MENUITEM "CPC 464",                     ID_CPCTYPE_CPC464
+                MENUITEM "CPC 664",                     ID_CPCTYPE_CPC664
+                MENUITEM "CPC 6128",                    ID_CPCTYPE_CPC6128
+                MENUITEM "CPC 464+",                    ID_CPCTYPE_464PLUS
+                MENUITEM "CPC 6128+",                   ID_CPCTYPE_6128PLUS
+                MENUITEM "KC Compact",                  ID_CPCTYPE_KCCOMPACT
+            END
+            POPUP "CRTC Type"
+            BEGIN
+                MENUITEM "Type 0 (HD6845SP/UM6845)",    ID_CRTCTYPE_TYPE0
+                MENUITEM "Type 1 (UM6845R)",            ID_CRTCTYPE_TYPE1
+                MENUITEM "Type 2 (MC6845)",             ID_CRTCTYPE_TYPE2
+                MENUITEM "Type 3 (ASIC CRTC)",          ID_CRTCTYPE_TYPEASIC
+                MENUITEM "Type 4 (Pre-ASIC)",           ID_CRTCTYPE_TYPEPREASIC
+                , GRAYED
+            END
+            POPUP "Multiface"
+            BEGIN
+                MENUITEM "Multiface Stop",              ID_MISC_MULTIFACESTOP
+
+                MENUITEM "Multiface Settings..",        ID_MISC_MULTIFACE_SETTINGS
+
+            END
+            MENUITEM "Inicron RAM-ROM Settings ...", 
+                                                    ID_MISC_INICRONRAMROMSETTINGS
+
+            POPUP "Ram Config"
+            BEGIN
+                MENUITEM "64k ram expansion",           ID_MISC_RAMCONFIG_128K
+
+                MENUITEM "256k Ram Expansion",          ID_MISC_RAMCONFIG_256KRAMEXPANSION
+                , GRAYED
+                MENUITEM "256k Silicon Disk",           ID_MISC_RAMCONFIG_256KSILICONDISK
+
+            END
+            POPUP "Monitor Type"
+            BEGIN
+                MENUITEM "Colour",                      ID_MISC_MONITORTYPE_COLOUR
+
+                MENUITEM "Green Screen",                ID_MISC_MONITORTYPE_GREENSCREEN
+
+                MENUITEM "Grey Scale",                  ID_MISC_MONITORTYPE_GREYSCALE
+
+            END
+            POPUP "Monitor/Display Brightness", GRAYED
+            BEGIN
+                MENUITEM "Max",                         ID_MISC_MONITORDISPLAYBRIGHTNESS_MAX
+
+                MENUITEM "Min",                         ID_MISC_MONITORDISPLAYBRIGHTNESS_MIN
+
+                MENUITEM "Middle",                      ID_MISC_MONITORDISPLAYBRIGHTNESS_MIDDLE
+
+            END
+            POPUP "Printer Output"
+            BEGIN
+                MENUITEM "File",                        ID_MISC_PRINTEROUTPUT_FILE
+
+                MENUITEM "Digiblaster",                 ID_MISC_PRINTEROUTPUT_DIGIBLASTER
+
+            END
+            POPUP "Hardware On Joystick Port"
+            BEGIN
+                MENUITEM "Joystick",                    ID_MISC_HARDWAREONJOYSTICKPORT_JOYSTICK
+
+                MENUITEM "Amx Mouse",                   ID_MISC_HARDWAREONJOYSTICKPORT_AMXMOUSE
+
+                MENUITEM "Westphaser",                  ID_MISC_HARDWAREONJOYSTICKPORT_WESTPHASER
+                , GRAYED
+                MENUITEM "Spanish Lightgun",            ID_MISC_HARDWAREONJOYSTICKPORT_SPANISHLIGHTGUN
+                , GRAYED
+            END
+        END
+        POPUP "Emulation Settings"
+        BEGIN
+            MENUITEM "Full Screen",                 ID_MISC_FULLSCREEN
+            MENUITEM "Use Joystick/Joypad",         ID_MISC_USEJOYSTICK
+            POPUP "Frame Skip"
+            BEGIN
+                MENUITEM "None",                        ID_MISC_FRAMESKIP_NONE
+
+                MENUITEM "1",                           ID_MISC_FRAMESKIP_1
+                MENUITEM "2",                           ID_MISC_FRAMESKIP_2
+                MENUITEM "3",                           ID_MISC_FRAMESKIP_3
+                MENUITEM "4",                           ID_MISC_FRAMESKIP_4
+            END
+            MENUITEM "Lock Speed",                  ID_MISC_LOCK_SPEED
+            POPUP "Task Priority"
+            BEGIN
+                MENUITEM "Normal",                      ID_MISC_TASKPRIORITY_NORMAL
+
+                MENUITEM "Priority",                    ID_MISC_TASKPRIORITY_PRIORITY
+
+            END
+            MENUITEM "Sound Active",                ID_MISC_SOUND, GRAYED
+            POPUP "Rendering Accuracy"
+            BEGIN
+                MENUITEM "Low",                         ID_MISC_RENDERINGACCURACY_LOW
+
+                MENUITEM "High",                        ID_MISC_RENDERINGACCURACY_HIGH
+
+                MENUITEM "Higher",                      ID_MISC_RENDERINGACCURACY_HIGHER
+
+            END
+            POPUP "Sound Recording"
+            BEGIN
+                POPUP "STSound output"
+                BEGIN
+                    MENUITEM "Start Recording...",          ID_MISC_STSOUNDOUTPUT_STARTRECORDING
+
+                    MENUITEM "Stop Recording",              ID_MISC_STSOUNDOUTPUT_STOPRECORDING
+
+                    MENUITEM "Properties",                  ID_MISC_STSOUNDOUTPUT_PROPERTIES
+
+                END
+                POPUP "Record Sound As Wav"
+                BEGIN
+                    MENUITEM "Start Recording...",          ID_MISC_RECORDSOUNDASWAV_STARTRECORDING
+
+                    MENUITEM "Stop Recording",              ID_MISC_RECORDSOUNDASWAV_STOPRECORDING
+
+                END
+            END
+        END
+    END
+    POPUP "Debug"
+    BEGIN
+        MENUITEM "FDC Debug log",               ID_DEBUG_FDCDEBUG, GRAYED
+        MENUITEM "ASIC Debug log",              ID_DEBUG_ASICDEBUG, GRAYED
+        MENUITEM "CRTC Debug log",              ID_DEBUG_CRTCDEBUG, GRAYED
+        MENUITEM "Audio Event Debug log",       ID_DEBUG_AUDIOEVENTDEBUGLOG
+        , GRAYED
+        MENUITEM "Debug Display",               ID_DEBUG_DEBUGDISPLAY
+    END
+END
+
+IDR_MENU2 MENU DISCARDABLE 
+BEGIN
+    POPUP "View"
+    BEGIN
+        MENUITEM "Open Dissassembly View",      ID_VIEW_OPENDISSASSEMBLYWINDOW
+
+        MENUITEM "Open Memory Dump View",       ID_VIEW_OPENMEMORYDUMPWINDOW
+        MENUITEM "Open CPC Hardware View",      ID_VIEW_OPENCPCHARDWAREWINDOW
+
+        MENUITEM "Open CPC+ Hardware View",     ID_VIEW_OPENCPCPLUSHARDWAREVIEW
+
+        MENUITEM "Open CRTC View",              ID_VIEW_OPENCRTCVIEW
+        MENUITEM "Open Graphics Viewer",        IDC_DEBUGGER_SHOWGFX
+    END
+    POPUP "Control", GRAYED
+    BEGIN
+        MENUITEM "Breakpoints",                 ID_MENUITEM40141
+    END
+END
+
+IDR_MENU_MEMDUMP MENU DISCARDABLE 
+BEGIN
+    POPUP "MemDump"
+    BEGIN
+        MENUITEM "Go to Address...",            ID_MEMDUMP_GOTOADDRESS
+        MENUITEM "Search for data..",           ID_MEMDUMP_SEARCHFORDATA
+    END
+END
+
+IDR_MENU_DISSASSEMBLE MENU DISCARDABLE 
+BEGIN
+    POPUP "Dissassemble"
+    BEGIN
+        MENUITEM "Go To Address...",            ID_DISSASSEMBLE_GOTOADDRESS
+    END
+END
+
+IDR_MENU_SHOWASGFX MENU DISCARDABLE 
+BEGIN
+    POPUP "ShowAsGfx"
+    BEGIN
+        MENUITEM "Go to Address...",            ID_SHOWASGFX_SET_ADDR
+        POPUP "Mode"
+        BEGIN
+            MENUITEM "Mode 0",                      ID_SHOWASGFX_MODE_MODE0
+            MENUITEM "Mode 1",                      ID_SHOWASGFX_MODE_MODE1
+            MENUITEM "Mode 2",                      ID_SHOWASGFX_MODE_MODE2
+            MENUITEM "Mode 3",                      ID_SHOWASGFX_MODE_MODE3
+        END
+        POPUP "Width"
+        BEGIN
+            MENUITEM "Increase",                    ID_SHOWASGFX_INCREASEWIDTH
+
+            MENUITEM "Decrease",                    ID_SHOWASGFX_DECREASEWIDTH
+
+        END
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_DIALOG_DEBUGGER DIALOGEX 0, 0, 299, 125
+STYLE DS_MODALFRAME | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_TOOLWINDOW | WS_EX_CONTROLPARENT
+CAPTION "Debugger"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    EDITTEXT        IDC_EDIT_REG_BC,150,22,20,12,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOHSCROLL
+    LTEXT           "HL",IDC_STATIC,55,21,12,8
+    CONTROL         "DE",IDC_STATIC,"Static",SS_LEFTNOWORDWRAP | WS_GROUP,95,
+                    21,12,8
+    LTEXT           "BC",IDC_STATIC,135,21,10,8
+    LTEXT           "AF",IDC_STATIC,15,21,10,8
+    LTEXT           "IX",IDC_STATIC,95,50,10,8
+    LTEXT           "IY",IDC_STATIC,135,50,10,8
+    LTEXT           "HL'",IDC_STATIC,55,35,10,8
+    LTEXT           "DE'",IDC_STATIC,95,35,15,8
+    LTEXT           "BC'",IDC_STATIC,135,35,13,8
+    LTEXT           "PC",IDC_STATIC,55,50,10,8
+    LTEXT           "SP",IDC_STATIC,15,50,10,8
+    EDITTEXT        IDC_EDIT_REG_DE,110,21,20,12,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_REG_HL,70,21,20,12,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_REG_ALTHL,70,35,20,12,ES_MULTILINE | 
+                    ES_UPPERCASE | ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_REG_ALTDE,110,35,20,12,ES_MULTILINE | 
+                    ES_UPPERCASE | ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_REG_PC,70,50,20,12,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_REG_ALTBC,150,35,20,12,ES_MULTILINE | 
+                    ES_UPPERCASE | ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_REG_SP,30,50,20,12,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_REG_AF,30,21,20,12,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_REG_ALTAF,30,35,20,12,ES_MULTILINE | 
+                    ES_UPPERCASE | ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_REG_IX,110,50,20,12,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_REG_IY,150,50,20,12,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOHSCROLL
+    LTEXT           "AF'",IDC_STATIC,15,35,13,9
+    CTEXT           "I",IDC_STATIC,15,66,8,8
+    CTEXT           "R",IDC_STATIC,55,66,8,8
+    EDITTEXT        IDC_EDIT_REG_I,30,66,20,13,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_REG_IM,110,66,20,12,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_REG_R,70,66,20,13,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOHSCROLL
+    LTEXT           "IM",IDC_STATIC,95,66,10,8
+    EDITTEXT        IDC_EDIT_REG_IFF1,30,81,20,12,ES_MULTILINE | 
+                    ES_UPPERCASE | ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_REG_IFF2,110,81,20,12,ES_MULTILINE
+    LTEXT           "IFF1",IDC_STATIC,10,81,18,8
+    LTEXT           "IFF2",IDC_STATIC,85,81,19,8
+    LTEXT           "Flags",IDC_STATIC_FLAGS,200,45,45,8
+    PUSHBUTTON      "Step Into",IDC_BUTTON_STEP_INTO,195,85,45,15
+    PUSHBUTTON      "Run To..",IDC_BUTTON_RUN_TO,239,85,40,15
+    LTEXT           "Static",IDC_STATIC_DISSASSEMBLY,200,15,75,10
+    PUSHBUTTON      "Go",IDC_BUTTON_DEBUG_GO,195,70,45,15
+    PUSHBUTTON      "Break",IDC_BUTTON_DEBUG_BREAK,239,70,40,15
+    GROUPBOX        "Flags",IDC_STATIC,195,35,90,20
+    GROUPBOX        "Current instruction",IDC_STATIC,195,5,90,25
+    GROUPBOX        "Registers",IDC_STATIC,5,5,175,95
+END
+
+IDD_DIALOG_ENTER_HEX DIALOG DISCARDABLE  0, 0, 141, 50
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION
+CAPTION "Enter Equation"
+FONT 8, "Courier"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,7,26,60,14
+    PUSHBUTTON      "Cancel",IDCANCEL,67,26,67,14
+    EDITTEXT        IDC_EDIT_HEX_VALUE,7,7,127,13,ES_AUTOHSCROLL
+END
+
+IDD_DIALOG_EXPANSIONROMS DIALOG DISCARDABLE  0, 0, 234, 111
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Expansion Roms"
+FONT 8, "Courier"
+BEGIN
+    LTEXT           "1",IDC_STATIC,5,15,8,8
+    LTEXT           "Static",IDC_STATIC_ROM1,20,15,52,8
+    PUSHBUTTON      "Load",IDC_BUTTON_ROM1,75,15,22,10
+    LTEXT           "2",IDC_STATIC,5,25,8,8
+    LTEXT           "Static",IDC_STATIC_ROM2,20,25,52,9
+    PUSHBUTTON      "Load",IDC_BUTTON_ROM2,75,25,22,10
+    LTEXT           "3",IDC_STATIC,5,35,8,11
+    LTEXT           "Static",IDC_STATIC_ROM3,20,35,52,9
+    PUSHBUTTON      "Load",IDC_BUTTON_ROM3,75,35,22,10
+    LTEXT           "4",IDC_STATIC,5,45,8,11
+    LTEXT           "Static",IDC_STATIC_ROM4,20,45,52,9
+    PUSHBUTTON      "Load",IDC_BUTTON_ROM4,75,45,22,10
+    LTEXT           "5",IDC_STATIC,5,55,8,11
+    LTEXT           "Static",IDC_STATIC_ROM5,20,55,52,9
+    PUSHBUTTON      "Load",IDC_BUTTON_ROM5,75,55,22,10
+    LTEXT           "6",IDC_STATIC,5,65,8,8
+    LTEXT           "Static",IDC_STATIC_ROM6,20,65,52,9
+    PUSHBUTTON      "Load",IDC_BUTTON_ROM6,75,65,22,10
+    LTEXT           "7",IDC_STATIC,5,75,8,8
+    LTEXT           "Static",IDC_STATIC_ROM7,20,75,52,9
+    PUSHBUTTON      "Load",IDC_BUTTON_ROM7,75,75,22,10
+    LTEXT           "8",IDC_STATIC,5,85,8,11
+    LTEXT           "Static",IDC_STATIC_ROM8,20,85,52,9
+    PUSHBUTTON      "Load",IDC_BUTTON_ROM8,75,85,22,10
+    LTEXT           "9",IDC_STATIC,120,15,8,8
+    LTEXT           "Static",IDC_STATIC_ROM9,130,15,52,9
+    PUSHBUTTON      "Load",IDC_BUTTON_ROM9,190,15,22,10
+    LTEXT           "10",IDC_STATIC,115,25,8,11
+    LTEXT           "Static",IDC_STATIC_ROM10,130,25,52,9
+    PUSHBUTTON      "Load",IDC_BUTTON_ROM10,190,25,22,10
+    LTEXT           "11",IDC_STATIC,115,35,8,11
+    LTEXT           "Static",IDC_STATIC_ROM11,130,35,52,9
+    PUSHBUTTON      "Load",IDC_BUTTON_ROM11,190,35,22,10
+    LTEXT           "12",IDC_STATIC,115,45,8,11
+    LTEXT           "Static",IDC_STATIC_ROM12,130,45,52,9
+    PUSHBUTTON      "Load",IDC_BUTTON_ROM12,190,45,22,10
+    LTEXT           "13",IDC_STATIC,115,55,8,8
+    LTEXT           "Static",IDC_STATIC_ROM13,130,55,52,9
+    PUSHBUTTON      "Load",IDC_BUTTON_ROM13,190,55,22,10
+    LTEXT           "14",IDC_STATIC,115,65,8,8
+    LTEXT           "Static",IDC_STATIC_ROM14,130,65,52,9
+    PUSHBUTTON      "Load",IDC_BUTTON_ROM14,190,65,22,10
+    LTEXT           "15",IDC_STATIC,115,75,8,8
+    LTEXT           "Static",IDC_STATIC_ROM15,130,75,52,9
+    PUSHBUTTON      "Load",IDC_BUTTON_ROM15,190,75,22,10
+    CONTROL         "Check1",IDC_CHECK_ROM2,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,100,25,8,8
+    CONTROL         "Check1",IDC_CHECK_ROM3,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,100,35,8,8
+    CONTROL         "Check1",IDC_CHECK_ROM4,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,100,45,8,8
+    CONTROL         "Check1",IDC_CHECK_ROM5,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,100,55,8,8
+    CONTROL         "Check1",IDC_CHECK_ROM6,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,100,65,9,9
+    CONTROL         "Check1",IDC_CHECK_ROM1,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,100,15,8,8
+    CONTROL         "Check1",IDC_CHECK_ROM7,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,100,75,8,8
+    CONTROL         "Check1",IDC_CHECK_ROM8,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,100,85,8,8
+    CONTROL         "Check1",IDC_CHECK_ROM9,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,215,15,8,8
+    CONTROL         "Check1",IDC_CHECK_ROM10,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,215,25,8,8
+    CONTROL         "Check1",IDC_CHECK_ROM11,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,215,35,8,8
+    CONTROL         "Check1",IDC_CHECK_ROM12,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,215,45,8,8
+    CONTROL         "Check1",IDC_CHECK_ROM13,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,215,55,8,8
+    CONTROL         "Check1",IDC_CHECK_ROM14,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,215,65,8,8
+    CONTROL         "Check1",IDC_CHECK_ROM15,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,215,75,8,8
+    LTEXT           "16",IDC_STATIC,115,85,8,8
+    LTEXT           "Static",IDC_STATIC_ROM16,130,85,52,9
+    PUSHBUTTON      "Load",IDC_BUTTON_ROM16,190,85,22,10
+    CONTROL         "Check1",IDC_CHECK_ROM16,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,215,85,8,8
+END
+
+IDD_DIALOG_DEBUG_CONDITION DIALOG DISCARDABLE  0, 0, 209, 142
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Set Condition"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    DEFPUSHBUTTON   "Set",IDOK,150,10,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,150,25,50,14
+    GROUPBOX        "Addr",IDC_STATIC_ADDR,5,5,138,62
+    COMBOBOX        IDC_COMBO_ADDR,58,17,77,17,CBS_DROPDOWN | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT_ADDR_VALUE1,58,32,31,13,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_ADDR_VALUE2,58,47,31,13,ES_AUTOHSCROLL
+    LTEXT           "Condition",IDC_STATIC,13,17,30,8
+    LTEXT           "Value1",IDC_STATIC,13,32,25,9
+    LTEXT           "Value2",IDC_STATIC,13,52,25,8
+    GROUPBOX        "Data",IDC_STATIC,5,70,138,62
+    COMBOBOX        IDC_COMBO_DATA,58,82,77,17,CBS_DROPDOWN | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT_DATA_VALUE1,58,97,31,13,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_DATA_VALUE2,58,112,31,13,ES_AUTOHSCROLL
+    LTEXT           "Condition",IDC_STATIC,13,82,30,8
+    LTEXT           "Value1",IDC_STATIC,13,97,25,9
+    LTEXT           "Value2",IDC_STATIC,13,117,25,8
+END
+
+IDD_DIALOG_CHEAT_DATABASE DIALOG DISCARDABLE  0, 0, 283, 149
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Cheat Database"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    DEFPUSHBUTTON   "Poke",ID_POKE,104,125,50,17
+    CONTROL         "List1",IDC_LIST_CHEATS,"SysListView32",LVS_REPORT | 
+                    LVS_NOSORTHEADER | WS_BORDER | WS_TABSTOP,7,7,269,111
+    DEFPUSHBUTTON   "Open Database...",ID_OPEN_DATABASE,7,125,77,17
+END
+
+IDD_DIALOG_DEBUG_HOOKS DIALOG DISCARDABLE  0, 0, 202, 81
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Debug Hooks"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    PUSHBUTTON      "Memory Read",IDC_BUTTON_MEMORY_READ,10,10,59,17
+    CONTROL         "Enable Memory Read check",IDC_CHECK_MEMORY_READ,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,75,15,112,8
+    PUSHBUTTON      "Memory Write",IDC_BUTTON_MEMORY_WRITE,10,25,59,17
+    PUSHBUTTON      "IO Read",IDC_BUTTON_IO_READ,10,40,59,17
+    PUSHBUTTON      "IO Write",IDC_BUTTON_IO_WRITE,10,55,60,14
+    CONTROL         "Enable Memory Write check",IDC_CHECK_MEMORY_WRITE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,75,30,112,8
+    CONTROL         "Enable IO Read check",IDC_CHECK_IO_READ,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,75,45,112,8
+    CONTROL         "Enable IO Write check",IDC_CHECK_IO_WRITE,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,75,60,112,8
+END
+
+IDD_DIALOG_CONDITIONS DIALOG DISCARDABLE  0, 0, 234, 149
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    DEFPUSHBUTTON   "Add",IDC_BUTTON_ADD,157,7,50,14
+    CONTROL         "List1",IDC_LIST1,"SysListView32",WS_BORDER | WS_TABSTOP,
+                    13,15,135,94
+    GROUPBOX        "Conditions",IDC_STATIC,7,7,145,108
+END
+
+IDD_DIALOG_ZIP DIALOG DISCARDABLE  0, 0, 184, 94
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Select Item From Zip File"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,127,59,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,127,73,50,14
+    CONTROL         "Tree1",IDC_TREE_ZIP,"SysTreeView32",TVS_HASBUTTONS | 
+                    TVS_HASLINES | TVS_LINESATROOT | WS_BORDER | WS_TABSTOP,
+                    7,7,113,80
+END
+
+IDD_DIALOG_YM5 DIALOG DISCARDABLE  0, 0, 186, 95
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION
+CAPTION "YM5 Properties"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,100,80,41,14
+    LTEXT           "Name",IDC_STATIC,7,7,24,8
+    LTEXT           "Author",IDC_STATIC,7,27,27,9
+    LTEXT           "Comment",IDC_STATIC,5,45,38,9
+    EDITTEXT        IDC_EDIT_NAME,45,5,135,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_AUTHOR,45,25,135,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_COMMENT,45,45,135,12,ES_AUTOHSCROLL
+    CONTROL         "Start Recording when silence ends",
+                    IDC_CHECK_RECORDING_FLAG1,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,5,65,130,10
+    DEFPUSHBUTTON   "Cancel",IDCANCEL,140,80,41,14
+END
+
+IDD_DIALOG_MULTIFACE_SETTINGS DIALOG DISCARDABLE  0, 0, 190, 79
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Multiface Settings"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    PUSHBUTTON      "Load",IDC_BUTTON_ROM1,140,15,29,10
+    PUSHBUTTON      "Load",IDC_BUTTON_ROM2,140,30,29,10
+    LTEXT           "CPC Rom",IDC_STATIC,10,15,40,10
+    LTEXT           "CPC+ Rom",IDC_STATIC,10,30,40,8
+    CONTROL         "Multiface can be detected after a reset",IDC_CHECK1,
+                    "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,7,53,
+                    143,11
+    CONTROL         "Multiface hardware is active",
+                    IDC_CHECK_MULTIFACE_HARDWARE_IS_ACTIVE,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,66,116,8
+    LTEXT           "Static",IDC_STATIC_CPCROMSTATUS,55,15,70,8
+    LTEXT           "Static",IDC_STATIC_CPCPLUSROMSTATUS,55,30,73,8
+END
+
+IDD_DIALOG_RAM_ROM DIALOG DISCARDABLE  0, 0, 264, 87
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Inicron RAM-ROM Settings"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    CONTROL         "Check1",IDC_CHECK_BANK1,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,32,67,11,8
+    CONTROL         "BANK2",IDC_CHECK_BANK2,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,47,67,11,8
+    CONTROL         "Check1",IDC_CHECK_BANK3,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,63,67,11,8
+    CONTROL         "Check1",IDC_CHECK_BANK4,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,77,67,11,8
+    CONTROL         "Check1",IDC_CHECK_BANK0,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,17,67,11,8
+    CONTROL         "Check1",IDC_CHECK_BANK5,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,92,67,11,8
+    CONTROL         "Check1",IDC_CHECK_BANK6,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,107,67,11,8
+    CONTROL         "Check1",IDC_CHECK_BANK8,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,137,67,11,8
+    CONTROL         "Check1",IDC_CHECK_BANK9,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,152,67,11,8
+    CONTROL         "Check1",IDC_CHECK_BANK10,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,167,67,11,8
+    CONTROL         "Check1",IDC_CHECK_BANK11,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,182,67,11,8
+    CONTROL         "Check1",IDC_CHECK_BANK7,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,122,67,11,8
+    CONTROL         "Check1",IDC_CHECK_BANK12,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,197,67,11,8
+    CONTROL         "Check1",IDC_CHECK_BANK13,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,212,67,11,8
+    CONTROL         "Check1",IDC_CHECK_BANK14,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,227,67,11,8
+    CONTROL         "Check1",IDC_CHECK_BANK15,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,243,67,11,8
+    CTEXT           "0",IDC_STATIC,17,57,8,10
+    CTEXT           "1",IDC_STATIC,33,57,8,10
+    CTEXT           "2",IDC_STATIC,47,57,8,10
+    CTEXT           "3",IDC_STATIC,63,57,8,10
+    CTEXT           "4",IDC_STATIC,77,57,8,10
+    CTEXT           "5",IDC_STATIC,93,57,8,10
+    CTEXT           "6",IDC_STATIC,107,57,8,10
+    CTEXT           "7",IDC_STATIC,123,57,8,10
+    CTEXT           "8",IDC_STATIC,137,57,8,10
+    CTEXT           "9",IDC_STATIC,153,57,8,10
+    CTEXT           "10",IDC_STATIC,167,57,8,10
+    CTEXT           "11",IDC_STATIC,183,57,8,10
+    CTEXT           "12",IDC_STATIC,197,57,8,10
+    CTEXT           "13",IDC_STATIC,213,57,8,10
+    CTEXT           "14",IDC_STATIC,227,57,8,10
+    CTEXT           "15",IDC_STATIC,243,57,8,10
+    GROUPBOX        "Slot On",IDC_STATIC,7,46,250,35
+    CONTROL         "On",IDC_CHECK_RAM_ON,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,14,17,43,8
+    CONTROL         "Write Enable",IDC_CHECK_RAM_WRITE_ENABLE,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,30,71,8
+    CONTROL         "On",IDC_CHECK_EPROM_ON,"Button",BS_AUTOCHECKBOX | 
+                    WS_DISABLED | WS_TABSTOP,149,32,29,8
+    EDITTEXT        IDC_EDIT_EPROM_SLOT,202,15,44,12,ES_AUTOHSCROLL | 
+                    WS_DISABLED
+    GROUPBOX        "RAM",IDC_STATIC,8,7,115,38
+    GROUPBOX        "EPROM",IDC_STATIC,127,7,129,38
+    LTEXT           "Slot",IDC_STATIC,150,17,38,9,WS_DISABLED
+END
+
+IDD_DIALOG_EMULATOR_SETTINGS DIALOG DISCARDABLE  0, 0, 148, 191
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Emulator Settings"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    CONTROL         "Full Screen",IDC_CHECK_FULL_SCREEN,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,23,142,60,10
+    COMBOBOX        IDC_COMBO1,23,156,100,20,CBS_DROPDOWN | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT_FRAME_SKIP,60,25,25,15,ES_AUTOHSCROLL
+    LTEXT           "Frame Skip",IDC_STATIC,15,30,40,8
+    GROUPBOX        "Display Settings",IDC_STATIC,7,126,125,50
+    GROUPBOX        "Rendering Settings",IDC_STATIC,7,91,125,30
+    GROUPBOX        "Speed settings",IDC_STATIC,10,15,125,60
+    CONTROL         "Priority to emulation",IDC_CHECK_PRIORITY,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,15,45,115,10
+    CONTROL         "Black Scan lines",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,13,106,105,10
+    CONTROL         "Lock Speed",IDC_CHECK_LOCK_SPEED,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,15,60,70,10
+END
+
+IDD_DIALOG_CPC_SETTINGS DIALOG DISCARDABLE  0, 0, 189, 165
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "CPC Settings"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    COMBOBOX        IDC_COMBO_CPC_TYPE,60,10,100,15,CBS_DROPDOWN | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO_CRTC_TYPE,60,30,100,15,CBS_DROPDOWN | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "CPC Type",IDC_STATIC,20,10,35,10
+    LTEXT           "CRTC Type",IDC_STATIC,15,30,40,10
+    COMBOBOX        IDC_COMBO_MONITOR_TYPE,60,50,100,15,CBS_DROPDOWN | 
+                    CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Monitor Type",IDC_STATIC,10,50,45,10
+    LTEXT           "CPC Name",IDC_STATIC,15,70,35,10
+    COMBOBOX        IDC_COMBO_CPC_NAME,60,70,100,15,CBS_DROPDOWN | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_DIALOG_DEBUGGER, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 292
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 118
+    END
+
+    IDD_DIALOG_ENTER_HEX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 134
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 43
+    END
+
+    IDD_DIALOG_EXPANSIONROMS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 227
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 104
+    END
+
+    IDD_DIALOG_DEBUG_CONDITION, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 202
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 135
+    END
+
+    IDD_DIALOG_CHEAT_DATABASE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 276
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 142
+    END
+
+    IDD_DIALOG_DEBUG_HOOKS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 194
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 74
+    END
+
+    IDD_DIALOG_CONDITIONS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 227
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 142
+    END
+
+    IDD_DIALOG_ZIP, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 177
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 87
+    END
+
+    IDD_DIALOG_YM5, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 88
+    END
+
+    IDD_DIALOG_MULTIFACE_SETTINGS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 183
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 72
+    END
+
+    IDD_DIALOG_RAM_ROM, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 257
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 80
+    END
+
+    IDD_DIALOG_EMULATOR_SETTINGS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 141
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 184
+    END
+
+    IDD_DIALOG_CPC_SETTINGS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 182
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 158
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "resrc1.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""resource.h""\r\n"
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+#endif    // English (U.K.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

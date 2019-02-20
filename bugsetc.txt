@@ -1,0 +1,33 @@
+TO BE DONE:
+-----------
+
+Windows:
+
+- add lots of shortcut key combinations to make it easier to use Arnold
+without mouse
+
+
+BUGS
+----
+
+Core:
+
+- likely to be some bugs in sample and .cdt/.tzx tape image handling
+I am planning a total rewrite
+
+- bugs in Multiface II emulation
+
+- disk drive and disk image emulation is broken; I will be doing a total
+rewrite
+
+- no sounds from tape during loading
+
+- sound generation still has problems and glitches
+
+Windows:
+
+- not possible to define keys or define the keys to act as joystick
+
+- doesn't remember Multiface II settings and some display
+settings; interface needs a complete rewrite
+

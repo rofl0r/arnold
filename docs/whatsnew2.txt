@@ -1,0 +1,71 @@
+Dec 7
+=====
+
+- Roms with AMSDOS headers can be used.
+- Fixed some memory leaks.
+- Misc bug fixes.
+- Fixed some problems with the floppy disc emulation, more programs
+will load and run. (Bob Winner, Tensions are examples).
+- Settings are now stored in the registry.
+- Snapshot loading works.
+- Snapshot saving works. (choose 64k or 128k)
+- Screen grabbing working again.
+- CPC+ smooth vertical scroll added. 
+- CPC+ raster ints fixed. World of Sports now fully playable.
+- If a inserted disc image has been modified, it will ask you if you want
+to write an image out with the changes, this will happen when you choose
+another disc image, or when you quit.
+- Added a indicator to show when disc drive is active (SCROLL LOCK LED).
+- Sound should be the correct speed regardless of the speed of the emulation.
+- Digiblaster sound is now mixed in with the PSG sound. Digiblaster sound will only be audible
+when the Printer output mode is set to "Digiblaster"
+- Speeded up writing of wav files. (Note: Wav files are written when "Stop recording" has been selected, or the
+emulator has been quit)
+- The generated sound is a lot better than before, and most tunes should play ok.
+However there are still some problems that will need to be fixed. I'm currently working on this.
+- Printer output is now selectable. You can choose between Digiblaster interface (the default),
+or output data to a file (currently set to "printer.txt"). The digiblaster is a hardware card
+that plugs into the printer port. It has a D/A converter. Using the digiblaster you can play 8-bit sampled
+sound at a superior quality compared to output with the CPC Sound chip.
+- Expansion Roms can be disabled. (Go to Rom Settings dialog and put a check in the box)
+(useful if there is a program that will not run with expansion roms enabled)
+
+Nov 23
+======
+
+CPC+ mode is faster again. I added some code to reduce sprite overdraw.
+Fixed some bugs in FDC, plus extra code to protect against crashes.
+F4 now enters full-screen, with F5 as reset.
+You can record a wav of the PSG emulation. I'm using this for debugging
+purposes, and the sound isn't that good yet.
+You can also choose the resolution for full-screen mode. Screen
+is cropped if resolution chosen is too low. Support has been added
+for different "rendering resolutions", in a similar way to MTMW but
+it is not yet selectable.
+Sound is still enabled, and is fixed to the default settings.
+Fixed frame skip settings of None, 1,2,3,4 are available.
+
+Nov 12
+======
+
+You can change between Full-Screen and windowed by pressing F5
+at any time. At this time, if you want to load a disc image,
+you must switch back to windowed mode to do this. I plan
+to change this in the future.
+
+Also, the full-screen mode is set to 800x600x16. It is slower
+than windowed because it is copying more data accross (windowed
+mode misses every other pixel).
+
+In a future release you will be able to determine the resolution
+you want to use, plus other display attributes (scan-lines on/off,
+miss every other pixel etc), these will also be configurable
+in windowed mode too.
+
+In this release there is sampled music support, which may sound incorrect
+if the emulation is running too slow or too fast.
+
+I have written a PSG emulation, which is about 80% complete. This is
+not yet enabled.
+
+Plus in this release, you are stuck with audio enabled.

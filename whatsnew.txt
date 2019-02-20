@@ -1,0 +1,61 @@
+27-January-2002
+---------------
+
+Core:
+- fixed a bug in the AY-3-8912 I/O port handlers. Now emulated exactly like the hardware. Thankyou
+to Russell Marks for his discoveries about the AY-3-8912 I/O port operation. [Russell Marks, Kevin Thacker]
+
+Windows
+- changed resource file so it could compile if MFC was not installed with Visual studio
+- changed makefile.w32 so resources can be compiled with MingW
+
+Linux:
+- incorporates latest changes from Andreas Micklei (see whatsnew.linux for more details)
+
+
+21-October-2001
+===============
+
+Core:
+- fixed a bug in rendering. Buffer could be overrun. Fixes problems in 15-bit display depth. [Kevin Thacker]
+- fixed a bug in the tape-image code, more Speedlock v1 programs should load now. [Kevin Thacker]
+
+
+20-October-2001
+===============
+
+Emulation Core:
+- tape image block "0x010" was not handled correctly. fixed. [Kevin Thacker]
+- first block of tape image data was always being skipped. fixed [Kevin Thacker]
+
+Unix port:
+- drive LED simulated using keyboard LEDs [Andreas Micklei]
+- simple launcher (unix/launcher) [Andreas Micklei]
+- start of GTK+ interface [Andreas Micklei]
+- SDL version [Andreas Micklei]
+- configuration script for making Arnold [Andreas Micklei]
+
+30-September-2001
+=================
+
+- fixed graphics drawing in 24-bit and 32-bit display depths
+- fixed rendering accuracy selections
+- fixed snapshot loading/saving
+- snapshots are more compatible with original CPCEMU file format
+- added support for snapshot V3 format (as used in No$CPC) these can be read
+and written now. The CPC+ chunk is not compatible with No$CPC as this does
+not seem to follow the published document. V3 can be used to snapshot CPC+ programs/demos
+- added snapshot command-line option to unix version
+- fixed some sound bugs
+
+02-September-2001
+=================
+
+- source release under Gnu Public License
+- implemented Z80 interrupt Interrupt Mode 0 (usable in CPC+ mode)
+- reverted monitor emulation back to original; no black bar down right side
+- numerous fixes ("Simply the Best" demo now shows the scroller)
+- provided makefile for MingW (doesn't include resources and no command-line); when I
+  work out how to get the resources to compile I will add them
+- provided makefile for linux/unix (may require adaption for different flavours of unix/linux)
+- provided workspace and project compatible with Microsoft Visual Studio V6

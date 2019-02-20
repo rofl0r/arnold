@@ -1,0 +1,12 @@
+Andreas Micklei's Arnold/Linux Changelog:
+
+19-January-2002
+===============
+
+Linux port:
+- Sound output via SDL is working (at least on my machine)
+- GUI improvements
+- Option to throttle emulator to original CPC speed
+- <CTRL>M stripped from line endings of source files to make certain versions
+  of GCC happy (untested, as I use RedHats GCC 2.96)
+
