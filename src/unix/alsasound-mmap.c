@@ -17,13 +17,28 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
-#define HAVE_ALSA 1
-#ifdef HAVE_ALSA
 
 #include "alsasound-mmap.h"
 #include "alsasound-common.h"
-#include "../cpc/host.h"
 #include "display.h"
+#include "../cpc/host.h"
+
+void	alsa_mmap_close_audio(void)
+{
+	alsa_close_audio();
+}
+
+#ifndef HAVE_ALSA
+
+BOOL    alsa_mmap_AudioPlaybackPossible(void) { return FALSE; }
+SOUND_PLAYBACK_FORMAT *alsa_mmap_GetSoundPlaybackFormat(void) { return NULL; }
+BOOL	alsa_mmap_LockAudioBuffer(unsigned char **pBlock1, unsigned long
+*pBlock1Size, unsigned char **pBlock2, unsigned long *pBlock2Size, int
+AudioBufferSize) { return FALSE; }
+void	alsa_mmap_UnLockAudioBuffer(void) {}
+
+#else
+
 #include "gtkui.h"
 #include <sys/time.h>
 #include <unistd.h>
@@ -40,11 +55,6 @@
 static int commitBufferSize;
 static int skipfirst = 1;
 static signed short dummybuffer[1760*2];
-
-void	alsa_mmap_close_audio(void)
-{
-	alsa_close_audio();
-}
 
 BOOL	alsa_mmap_AudioPlaybackPossible(void)
 {

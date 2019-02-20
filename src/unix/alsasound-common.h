@@ -19,8 +19,6 @@
  */
 #ifndef __ALSASOUND_COMMON_HEADER_INCLUDED__
 #define __ALSASOUND_COMMON_HEADER_INCLUDED__
-#define HAVE_ALSA 1
-//#undef HAVE_ALSA
 #ifdef HAVE_ALSA
 
 #include "../cpc/host.h"
@@ -45,8 +43,6 @@ extern unsigned int periods;                            /* number of periods */
 extern snd_output_t *output;
 extern snd_pcm_uframes_t offset;
 
-extern BOOL alsa_audiodev_is_open;
-
 
 int set_hwparams(snd_pcm_t *handle,
                         snd_pcm_hw_params_t *params,
@@ -55,6 +51,10 @@ int set_hwparams(snd_pcm_t *handle,
 int set_swparams(snd_pcm_t *handle, snd_pcm_sw_params_t *swparams);
 
 int xrun_recovery(snd_pcm_t *handle, int err);
+
+#endif	/* HAVE_ALSA */
+
+extern BOOL alsa_audiodev_is_open;
 
 BOOL	alsa_open_audio(BOOL use_mmap);
 
@@ -72,6 +72,5 @@ void	alsa_UnLockAudioBuffer(void);
 
 BOOL	alsa_Throttle(void);
 
-#endif	/* HAVE_ALSA */
 #endif  /* __ALSASOUND_COMMON_HEADER_INCLUDED__ */
 

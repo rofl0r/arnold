@@ -17,11 +17,10 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
-#define HAVE_ALSA 1
-#ifdef HAVE_ALSA
+#ifndef ALSASOUND_MMAP_H
+#define ALSASOUND_MMAP_H
 
 #include "../cpc/host.h"
-#include <alsa/asoundlib.h>
 
 void	alsa_mmap_close_audio(void);
 
@@ -37,5 +36,5 @@ void	alsa_mmap_UnLockAudioBuffer(void);
 
 BOOL	alsa_mmap_Throttle(void);
 
-#endif	/* HAVE_ALSA */
+#endif
 

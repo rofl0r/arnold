@@ -44,14 +44,13 @@
 //#define USE_OSS_SOUND
 #endif
 
-#if 0
-#define SOUND_PLUGIN_OSS 1
-#define SOUND_PLUGIN_ALSA 2
-#define SOUND_PLUGIN_ALSA_MMAP 3
-#define SOUND_PLUGIN_SDL 4
+#ifdef HAVE_ALSA
+# define SOUND_PLUGIN_DEFAULT SOUND_PLUGIN_ALSA
+#else
+# define SOUND_PLUGIN_DEFAULT SOUND_PLUGIN_SDL
 #endif
 
-int sound_plugin = SOUND_PLUGIN_OSS;
+int sound_plugin = SOUND_PLUGIN_DEFAULT;
 
 static GRAPHICS_BUFFER_INFO BufferInfo;
 static GRAPHICS_BUFFER_COLOUR_FORMAT BufferColourFormat;

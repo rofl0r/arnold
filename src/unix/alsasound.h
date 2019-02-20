@@ -17,11 +17,11 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
-#define HAVE_ALSA 1
-#ifdef HAVE_ALSA
+
+#ifndef ALSASOUND_H
+#define ALSASOUND_H
 
 #include "../cpc/host.h"
-#include <alsa/asoundlib.h>
 
 BOOL	alsa_AudioPlaybackPossible(void);
 
@@ -31,5 +31,5 @@ AudioBufferSize);
 
 void	alsa_UnLockAudioBuffer(void);
 
-#endif	/* HAVE_ALSA */
+#endif
 

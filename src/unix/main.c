@@ -195,7 +195,7 @@ int main(int argc, char *argv[])
 		printf("-cpctype <integer> = specify CPC type (0=CPC464, 1=CPC664, 2=CPC6128, 3=CPC464+, 4=CPC6128+\n");
 		printf("-snapshort <string> = specify snapshot to load\n");
 		printf("-kbdtype <integer> = specify keyboard type (0=QWERTY, 1=QWERTZ, 2=AZERTY)\n");
-		printf("-soundplugin <integer> = specify sound output plugin\n                         (0=NONE, 1=OSS, 2=ALSA, 3=ALSA_MMAP, 4=SDL)\n");
+		printf("-soundplugin <string> = specify sound output plugin\n                         (NONE, OSS, ALSA, ALSAMMAP, SDL, PULSE, AUTO)\n");
 #ifdef HAVE_SDL
 		printf("-doublesize double the size of the emulator screen\n");
 		printf("-fullscreen fullscreen mode\n");
@@ -399,7 +399,14 @@ void init_main(int argc, char *argv[]) {
 		if ( kbdtype ) kbd = atoi(kbdtype);
 		printf("kbdtype: %i\n",kbd);
 
-		if ( soundplugin ) sound_plugin = atoi(soundplugin);
+		if ( soundplugin ) {
+			sound_plugin = getSoundplugin(soundplugin);
+		} else {
+			sound_plugin = SOUND_PLUGIN_AUTO;
+		}
+		if ( sound_plugin == SOUND_PLUGIN_AUTO ) {
+			sound_plugin = autoDetectSoundplugin();
+		}
 		printf("soundplugin: %i (%s)\n",sound_plugin,soundpluginNames[sound_plugin]);
 
 

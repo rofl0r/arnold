@@ -17,12 +17,27 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
-#define HAVE_ALSA 1
-#ifdef HAVE_ALSA
+
+#include "../cpc/host.h"
+
+BOOL alsa_audiodev_is_open = FALSE;
+
+BOOL	alsa_Throttle(void)
+{
+	if (!alsa_audiodev_is_open) return FALSE;
+	return TRUE;
+}
+
+#ifndef HAVE_ALSA
+
+BOOL    alsa_open_audio(BOOL use_mmap) { return FALSE; }
+void    alsa_close_audio(void) {}
+SOUND_PLAYBACK_FORMAT *alsa_GetSoundPlaybackFormat(void) { return NULL; }
+
+#else
 
 #define __ALSASOUND_COMMON_C__ 1
 
-#include "../cpc/host.h"
 #include "display.h"
 #include "gtkui.h"
 #include <sys/time.h>
@@ -57,8 +72,6 @@ unsigned int periods = 2;			 /* number of periods */
 
 snd_output_t *output = NULL;
 snd_pcm_uframes_t offset;
-
-BOOL alsa_audiodev_is_open = FALSE;
 
 int set_hwparams(snd_pcm_t *handle,
                         snd_pcm_hw_params_t *params,
@@ -173,7 +186,6 @@ int set_swparams(snd_pcm_t *handle, snd_pcm_sw_params_t *swparams)
  
 int xrun_recovery(snd_pcm_t *handle, int err)
 {
-	printf("xrun_recovery\n");
         if (err == -EPIPE) {    /* under-run */
                 err = snd_pcm_prepare(handle);
                 if (err < 0)
@@ -217,11 +229,11 @@ BOOL	alsa_open_audio(BOOL use_mmap) {
 
 	if ((err = set_hwparams(playback_handle, hwparams, access)) < 0) {
 		printf("Setting of hwparams failed: %s\n", snd_strerror(err));
-		exit(EXIT_FAILURE);
+		return 0;
 	}
 	if ((err = set_swparams(playback_handle, swparams)) < 0) {
 		printf("Setting of swparams failed: %s\n", snd_strerror(err));
-		exit(EXIT_FAILURE);
+		return 0;
 	}
 	snd_pcm_dump(playback_handle, output);
 
@@ -266,12 +278,6 @@ SOUND_PLAYBACK_FORMAT *alsa_GetSoundPlaybackFormat(void)
 	SoundFormat.Frequency = rate;
 	fprintf(stderr,"alsa_GetSoundPlaybackFormat channels:%i, BitsPerSample: %i, Frequency: %i\n", SoundFormat.NumberOfChannels, SoundFormat.BitsPerSample, SoundFormat.Frequency);
 	return &SoundFormat;
-}
-
-BOOL	alsa_Throttle(void)
-{
-	if (!alsa_audiodev_is_open) return FALSE;
-	return TRUE;
 }
 
 #endif	/* HAVE_ALSA */

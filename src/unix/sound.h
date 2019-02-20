@@ -22,19 +22,26 @@
 #define __SOUND_HEADER_INCLUDED__
 
 #include "../cpc/cpcglob.h"
+#include "../cpc/host.h"
 
-#define SOUND_PLUGIN_NONE 0
-#define SOUND_PLUGIN_OSS 1
-#define SOUND_PLUGIN_ALSA 2
-#define SOUND_PLUGIN_ALSA_MMAP 3
-#define SOUND_PLUGIN_SDL 4
+enum {
+	SOUND_PLUGIN_NONE=0,
+	SOUND_PLUGIN_OSS,
+	SOUND_PLUGIN_ALSA,
+	SOUND_PLUGIN_ALSA_MMAP,
+	SOUND_PLUGIN_SDL,
+	SOUND_PLUGIN_AUTO,
+	SOUND_PLUGIN_MAX = SOUND_PLUGIN_AUTO
+};
 
-extern char *soundpluginNames[];
+extern const char *soundpluginNames[];
 
 extern int sound_plugin;
 
 static SOUND_PLAYBACK_FORMAT SoundFormat;
 void convert8to16bit(signed short *ptr, int cptr);
+int getSoundplugin(const char *s);
+int autoDetectSoundplugin();
 BOOL sound_throttle(void);
 #endif
 

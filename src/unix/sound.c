@@ -19,17 +19,21 @@
  */
 
 #include "../cpc/cpcglob.h"
+#include "sound.h"
 #include "alsasound-common.h"
-
-#define SOUND_PLUGIN_NONE 0
-#define SOUND_PLUGIN_OSS 1
-#define SOUND_PLUGIN_ALSA 2
-#define SOUND_PLUGIN_ALSA_MMAP 3
-#define SOUND_PLUGIN_SDL 4
+#include "osssound.h"
+#include <string.h>
 
 extern int sound_plugin;
 
-char *soundpluginNames[] = {"NONE", "OSS", "ALSA", "ALSA_MMAP", "SDL"};
+const char *soundpluginNames[] = {
+	[SOUND_PLUGIN_NONE] = "NONE",
+	[SOUND_PLUGIN_OSS] = "OSS",
+	[SOUND_PLUGIN_ALSA] ="ALSA",
+	[SOUND_PLUGIN_ALSA_MMAP] = "ALSAMMAP",
+	[SOUND_PLUGIN_SDL] = "SDL",
+	[SOUND_PLUGIN_AUTO] = "AUTO"
+};
 
 void convert8to16bit(signed short *ptr, int cptr) {
 	signed short *dest;
@@ -46,16 +50,35 @@ void convert8to16bit(signed short *ptr, int cptr) {
 	}
 }
 
+int getSoundplugin(const char *s) {
+	int i;
+	for (i=0; i<SOUND_PLUGIN_MAX; i++) {
+		if (!strcmp(soundpluginNames[i],s)) {
+			return i;
+		}
+	}
+	return SOUND_PLUGIN_AUTO;
+}
+
+int autoDetectSoundplugin() {
+	if (alsa_AudioPlaybackPossible()) {
+		return SOUND_PLUGIN_ALSA;
+	}
+	if (oss_AudioPlaybackPossible()) {
+		return SOUND_PLUGIN_OSS;
+	}
+	return SOUND_PLUGIN_NONE;
+}
+
 BOOL sound_throttle(void) {
 	switch(sound_plugin) {
 		case SOUND_PLUGIN_OSS:
-			return TRUE;
+			return oss_Throttle();
 		case SOUND_PLUGIN_ALSA:
 			return alsa_Throttle();
 		case SOUND_PLUGIN_ALSA_MMAP:
 			return alsa_Throttle();
-		case SOUND_PLUGIN_SDL:
-			return FALSE;
+		case SOUND_PLUGIN_SDL: /* fall through */
 		default:
 			return FALSE;
 	}
