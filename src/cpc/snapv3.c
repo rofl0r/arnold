@@ -123,7 +123,7 @@ void	SnapshotV3_HandleChunk(RIFF_CHUNK *pCurrentChunk,unsigned long Size)
 
 			unsigned char ch;
 			unsigned long nOutputLength = 64*1024;
-			unsigned char *pOutputData;
+			unsigned char *pOutputData = NULL;
 
 			/* length of block to decompress */
 			unsigned long MemBank = (ChunkName>>24) & 0x0ff;
