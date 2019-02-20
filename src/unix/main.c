@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
 		printf("-crtctype <integer> = specify crtc type (0,1,2,3,4)\n");
 		printf("-tape <string> = specify tape image\n");
 		printf("-cpctype <integer> = specify CPC type (0=CPC464, 1=CPC664, 2=CPC6128, 3=CPC464+, 4=CPC6128+\n");
-		printf("-snapshort <string> = specify snapshot to load\n");
+		printf("-snapshot <string> = specify snapshot to load\n");
 		printf("-kbdtype <integer> = specify keyboard type (0=QWERTY, 1=QWERTZ, 2=AZERTY)\n");
 		printf("-soundplugin <string> = specify sound output plugin\n                         (NONE, OSS, ALSA, ALSAMMAP, SDL, PULSE, AUTO)\n");
 #ifdef HAVE_SDL
