@@ -309,7 +309,7 @@ unsigned long YMOutput_GenerateHeaderOutputSize(int nVersion)
 
 	if (nVersion==3)
 	{
-		nSize = strlen((char *) YM3_Ident_Text);
+		nSize = strlen(YM3_Ident_Text);
 	}
 	else if (nVersion == 5)
 	{
@@ -319,20 +319,20 @@ unsigned long YMOutput_GenerateHeaderOutputSize(int nVersion)
 		/* write name of song */
 		if (YM5_SongName!=NULL)
 		{
-			nSize += strlen((char *) YM5_SongName);
+			nSize += strlen(YM5_SongName);
 		}
 		nSize++;
 
 		/* write author name */
 		if (YM5_AuthorName!=NULL)
 		{
-			nSize += strlen((char *) YM5_AuthorName);
+			nSize += strlen(YM5_AuthorName);
 		}
 		nSize++;
 
 		if (YM5_Comments!=NULL)
 		{
-			nSize += strlen((char *) YM5_Comments);
+			nSize += strlen(YM5_Comments);
 		}
 		nSize++;
 	}
@@ -351,7 +351,7 @@ unsigned long YMOutput_GenerateTrailerOutputSize(int nVersion)
 	if (nVersion == 5)
 	{
 		/* version 5 */
-		nSize = strlen((char *) YM5_EndFileText);
+		nSize = strlen(YM5_EndFileText);
 	}
 	
 	return nSize;
@@ -364,7 +364,7 @@ void YMOutput_GenerateHeaderData(unsigned char *pData, int nVersion, int nVBL)
 
 	if (nVersion == 3)
 	{
-		memcpy(pData, YM3_Ident_Text, strlen((char *) YM3_Ident_Text));
+		memcpy(pData, YM3_Ident_Text, strlen(YM3_Ident_Text));
 	}
 	else
 	{
@@ -395,7 +395,7 @@ void YMOutput_GenerateHeaderData(unsigned char *pData, int nVersion, int nVBL)
 		/* write name of song */
 		if (YM5_SongName!=NULL)
 		{
-			int nStringLen = strlen((char *) YM5_SongName);
+			int nStringLen = strlen(YM5_SongName);
 			memcpy(pData, YM5_SongName, nStringLen);
 			pData+=nStringLen;
 		}
@@ -406,7 +406,7 @@ void YMOutput_GenerateHeaderData(unsigned char *pData, int nVersion, int nVBL)
 		/* write author name */
 		if (YM5_AuthorName!=NULL)
 		{
-			int nStringLen = strlen((char *) YM5_AuthorName);
+			int nStringLen = strlen(YM5_AuthorName);
 			memcpy(pData, YM5_AuthorName, nStringLen);
 			pData+=nStringLen;
 		}
@@ -416,7 +416,7 @@ void YMOutput_GenerateHeaderData(unsigned char *pData, int nVersion, int nVBL)
 
 		if (YM5_Comments!=NULL)
 		{
-			int nStringLen = strlen((char *) YM5_Comments);
+			int nStringLen = strlen(YM5_Comments);
 			memcpy(pData, YM5_Comments, nStringLen);
 			pData+=nStringLen;
 		}
@@ -437,7 +437,7 @@ void YMOutput_GenerateTrailerData(unsigned char *pData, int nVersion)
 	if (nVersion == 5)
 	{
 		/* version 5 */
-		memcpy(pData, (char *) YM5_EndFileText, strlen((char *) YM5_EndFileText));
+		memcpy(pData, YM5_EndFileText, strlen(YM5_EndFileText));
 	}
 }
 

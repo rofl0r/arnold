@@ -902,7 +902,7 @@ void            ExtDskInternal_Dsk2ExtDskInternal(DISKIMAGE_UNIT *pUnit, const u
                         DSKHEADER *pHeader = (DSKHEADER *)pDiskImage;
                         int TrackSize;
                         int     TotalTracks;
-                        DSKTRACKHEADER *pTrack = (DSKTRACKHEADER *)((long)pHeader + sizeof(DSKHEADER));
+                        DSKTRACKHEADER *pTrack = (DSKTRACKHEADER *)((int)pHeader + sizeof(DSKHEADER));
 
                         TrackSize = (pHeader->TrackSizeHigh<<8) | (pHeader->TrackSizeLow);
                         TotalTracks = (pHeader->NumTracks * pHeader->NumSides);
@@ -944,11 +944,11 @@ void            ExtDskInternal_Dsk2ExtDskInternal(DISKIMAGE_UNIT *pUnit, const u
                                         pSectorData = ExtDskInternal_GetPointerToSectorData(pExtDsk, TrackIndex, j);
 
                                         Sector = (char *)pTrack + sizeof(DSKTRACKHEADER) + SectorSize*j;
-
+          
 										memcpy(pSectorData, Sector, SectorSize);
                                 }
-
-                                pTrack = (DSKTRACKHEADER *)((long)pTrack + TrackSize);
+                                
+                                pTrack = (DSKTRACKHEADER *)((int)pTrack + TrackSize);
                         }
                 }
         }
@@ -971,10 +971,10 @@ void            ExtDskInternal_ExtDsk2ExtDskInternal(DISKIMAGE_UNIT *pUnit, cons
                         int i;
                         EXTDSKHEADER *pHeader = (EXTDSKHEADER *)pDiskImage;
                         int     TotalTracks;
-                        EXTDSKTRACKHEADER *pTrack = (EXTDSKTRACKHEADER *)((long)pHeader + sizeof(EXTDSKHEADER));
+                        EXTDSKTRACKHEADER *pTrack = (EXTDSKTRACKHEADER *)((int)pHeader + sizeof(EXTDSKHEADER));
 
                         TotalTracks = (pHeader->NumTracks * pHeader->NumSides);
-
+                                        
                         for (i=0; i<TotalTracks; i++)
                         {
                                 int j;
@@ -1027,7 +1027,7 @@ void            ExtDskInternal_ExtDsk2ExtDskInternal(DISKIMAGE_UNIT *pUnit, cons
 
                                         }
 
-                                        pTrack = (EXTDSKTRACKHEADER *)((long)pTrack + ((pHeader->TrackSizeTable[i] & 0x0ff)<<8));
+                                        pTrack = (EXTDSKTRACKHEADER *)((int)pTrack + ((pHeader->TrackSizeTable[i] & 0x0ff)<<8));
                                 }
                         }
                 }
@@ -1083,7 +1083,7 @@ void  ExtDskInternal_Dif2ExtDskInternal(DISKIMAGE_UNIT *pUnit,const unsigned cha
 					ExtDskInternal_AddSectorToTrack(pExtDsk, i, &LocalCHRN,
 						pDiskImage[Position+7],LocalCHRN.N);
 
-					pSectorData = (unsigned char *) ExtDskInternal_GetPointerToSectorData(pExtDsk, i, j);
+					pSectorData = ExtDskInternal_GetPointerToSectorData(pExtDsk, i, j);
 					if  (LocalCHRN.ST2 & 0x80)
 					{
 

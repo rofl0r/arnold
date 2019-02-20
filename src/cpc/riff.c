@@ -50,13 +50,13 @@ unsigned int Riff_GetChunkName(RIFF_CHUNK *pChunk)
 /* return pointer to chunk data */
 unsigned char   *Riff_GetChunkDataPtr(RIFF_CHUNK *pChunk)
 {
-        return (unsigned char *)((long)pChunk + sizeof(RIFF_CHUNK));
+        return (unsigned char *)((int)pChunk + sizeof(RIFF_CHUNK));
 }
 
 /* get next chunk after chunk specified */
 RIFF_CHUNK      *Riff_GetNextChunk(RIFF_CHUNK *pChunk)
 {
-        return (RIFF_CHUNK *)((long)pChunk + Riff_GetChunkLength(pChunk) + sizeof(RIFF_CHUNK));
+        return (RIFF_CHUNK *)((int)pChunk + Riff_GetChunkLength(pChunk) + sizeof(RIFF_CHUNK));
 }
 
 
@@ -67,7 +67,7 @@ RIFF_CHUNK      *Riff_FindNamedSubChunk(RIFF_CHUNK *pHeader, unsigned int ChunkN
 {
         /* pointer to data to start searching from
          is pointer to data, +4 for the AMS! type. */
-        RIFF_CHUNK *pChunk = (RIFF_CHUNK *)((long)Riff_GetChunkDataPtr(pHeader) + 4);
+        RIFF_CHUNK *pChunk = (RIFF_CHUNK *)((int)Riff_GetChunkDataPtr(pHeader) + 4);
         
         /* get length of RIFF chunk */
         int ParentChunkLength = Riff_GetChunkLength(pHeader);
@@ -85,7 +85,7 @@ RIFF_CHUNK      *Riff_FindNamedSubChunk(RIFF_CHUNK *pHeader, unsigned int ChunkN
                 /* next chunk */
                 pChunk = Riff_GetNextChunk(pChunk);
         }
-        while (((long)pChunk-(long)pHeader)<ParentChunkLength);
+        while (((int)pChunk-(int)pHeader)<ParentChunkLength);
 
         /* couldn't find named chunk */
         return NULL;

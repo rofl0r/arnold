@@ -188,7 +188,7 @@ restart:
 	// FIXME: Quickhack to get rid of click sound when playing
 	// unitialized auio buffer on first entry.
 	if (skipfirst) {
-		*pBlock1 = (unsigned char *) dummybuffer;
+		*pBlock1 = dummybuffer;
 		*pBlock1Size = AudioBufferSize;
 		*pBlock2 = NULL;
 		*pBlock2Size = 0;
