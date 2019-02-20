@@ -24,6 +24,7 @@
 
 #include "extdsk.h"
 #include "../host.h"
+#include <stdint.h>
 
 static int      GetSectorSize(int);
 
@@ -88,7 +89,7 @@ int		ExtDsk_Validate(const unsigned char *pDiskImage, const unsigned long DiskIm
 
 								thisTrackSize = 0;
 
-								pTrack = (EXTDSKTRACKHEADER *)((int)pHeader + CurrentSize + sizeof(EXTDSKTRACKHEADER));
+								pTrack = (EXTDSKTRACKHEADER *)((uintptr_t)pHeader + CurrentSize + sizeof(EXTDSKTRACKHEADER));
 
 								/* check track header text is present */
 								if (memcmp(pTrack->TrackHeader,"Track-Info",10)!=0)

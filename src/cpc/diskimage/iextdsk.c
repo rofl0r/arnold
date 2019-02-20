@@ -22,6 +22,7 @@
 #include "iextdsk.h"
 #include "extdsk.h"
 #include "dsk.h"
+#include <stdint.h>
 
 #ifndef max
 #define max(a,b) ((a<b) ? b : a )
@@ -902,7 +903,7 @@ void            ExtDskInternal_Dsk2ExtDskInternal(DISKIMAGE_UNIT *pUnit, const u
                         DSKHEADER *pHeader = (DSKHEADER *)pDiskImage;
                         int TrackSize;
                         int     TotalTracks;
-                        DSKTRACKHEADER *pTrack = (DSKTRACKHEADER *)((int)pHeader + sizeof(DSKHEADER));
+                        DSKTRACKHEADER *pTrack = (DSKTRACKHEADER *)((uintptr_t)pHeader + sizeof(DSKHEADER));
 
                         TrackSize = (pHeader->TrackSizeHigh<<8) | (pHeader->TrackSizeLow);
                         TotalTracks = (pHeader->NumTracks * pHeader->NumSides);
@@ -948,7 +949,7 @@ void            ExtDskInternal_Dsk2ExtDskInternal(DISKIMAGE_UNIT *pUnit, const u
 										memcpy(pSectorData, Sector, SectorSize);
                                 }
                                 
-                                pTrack = (DSKTRACKHEADER *)((int)pTrack + TrackSize);
+                                pTrack = (DSKTRACKHEADER *)((uintptr_t)pTrack + TrackSize);
                         }
                 }
         }
@@ -971,7 +972,7 @@ void            ExtDskInternal_ExtDsk2ExtDskInternal(DISKIMAGE_UNIT *pUnit, cons
                         int i;
                         EXTDSKHEADER *pHeader = (EXTDSKHEADER *)pDiskImage;
                         int     TotalTracks;
-                        EXTDSKTRACKHEADER *pTrack = (EXTDSKTRACKHEADER *)((int)pHeader + sizeof(EXTDSKHEADER));
+                        EXTDSKTRACKHEADER *pTrack = (EXTDSKTRACKHEADER *)((uintptr_t)pHeader + sizeof(EXTDSKHEADER));
 
                         TotalTracks = (pHeader->NumTracks * pHeader->NumSides);
                                         
@@ -1027,7 +1028,7 @@ void            ExtDskInternal_ExtDsk2ExtDskInternal(DISKIMAGE_UNIT *pUnit, cons
 
                                         }
 
-                                        pTrack = (EXTDSKTRACKHEADER *)((int)pTrack + ((pHeader->TrackSizeTable[i] & 0x0ff)<<8));
+                                        pTrack = (EXTDSKTRACKHEADER *)((uintptr_t)pTrack + ((pHeader->TrackSizeTable[i] & 0x0ff)<<8));
                                 }
                         }
                 }
