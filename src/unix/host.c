@@ -30,6 +30,7 @@
 #include <string.h>
 
 #include "sdlsound.h"
+#include "global.h"
 
 #ifdef HAVE_SDL
 #define USE_SDL_SOUND
@@ -175,13 +176,15 @@ BOOL	Host_ProcessSystemEvents(void)
 	 * own event loop. */
 #ifdef HAVE_GTK
 #ifdef HAVE_SDL
-	sdl_ProcessSystemEvents();
+	sdl_ProcessSystemEvents();		/* SDL    /    GTK+ */
 #else
-	XWindows_ProcessSystemEvents();
+	XWindows_ProcessSystemEvents();		/* no SDL /    GTK+ */
 #endif
-	return TRUE;	/* always break */
+	return TRUE;	/* always break if we use GTK+ */
+#elif HAVE_SDL 
+	return sdl_ProcessSystemEvents();	/* SDL    / no GTK+ */
 #else
-	return XWindows_ProcessSystemEvents();
+	return XWindows_ProcessSystemEvents();  /* no SDL / no GTK+ */
 #endif
 }
 
@@ -232,6 +235,8 @@ void	Host_DoDriveLEDIndicator(int Drive, BOOL State)
 
 void	Host_SetDirectory(char *Directory)
 {
+	/* fprintf(stderr,"Host_SetDirectory(%s)\n",Directory); */
+	strncpy(currentDir, Directory, MAXCURDIR);
 	chdir(Directory);
 }
 
@@ -258,6 +263,13 @@ void	Host_UnLockAudioBuffer(void)
 {
 #ifdef USE_SDL_SOUND
 	sdl_UnLockAudioBuffer();
+#endif
+}
+
+void	quit(void)
+{
+#ifdef HAVE_GTK
+	gtk_main_quit();
 #endif
 }
 

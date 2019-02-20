@@ -23,7 +23,9 @@
 /* defines to control parts of CPC emulation etc */
 
 /* define for "least-significant-byte" first/little endian machines */ 
+#ifndef WORDS_BIGENDIAN
 #define CPC_LSB_FIRST
+#endif
 
 /*#define DEBUG_MODE*/
 

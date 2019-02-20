@@ -23,11 +23,49 @@
 #include "../cpc/host.h"
 
 #include "global.h"
+#include "roms.h"
+
+/* only for debugging */
+#if 0
+#define	DBG_BUILTIN(a) fprintf(stderr,"BUILTIN: %s\n",a)
+#else
+#define	DBG_BUILTIN(a)
+#endif
+
+/*
+void	dbgl(unsigned char *location, unsigned long length) {
+	fprintf(stderr, "Location: %08x, Length: %i\n", location, length);
+}
+*/
+
+BOOL	loadBuiltin(unsigned char **pLocation, unsigned long *pLength,
+	rom_t *rom)
+{
+	unsigned char	*pData;
+
+	pData = (unsigned char *)malloc(rom->size);
+
+	if (pData!=NULL)
+	{
+		memcpy(pData, rom->start, rom->size);
+					
+		*pLocation = pData;
+		*pLength = rom->size;
+
+		/*dbgl(*pLocation,*pLength);*/
+
+		return TRUE;
+	}
+
+	return FALSE;
+}
 
 BOOL	Host_LoadFile(char *Filename, unsigned char **pLocation, unsigned long *pLength)
 {
 	FILE	*fh;
 	unsigned char	*pData;
+	roms_t	*pRoms = NULL;
+
 
 	*pLocation = NULL;
 	*pLength = 0;
@@ -36,6 +74,7 @@ BOOL	Host_LoadFile(char *Filename, unsigned char **pLocation, unsigned long *pLe
 	{
 		if (strlen(Filename)!=0)
 		{
+			/* fprintf(stderr,"Host_LoadFile(%s)\n",Filename); */
 			fh = fopen(Filename,"rb");
 
 			if (fh!=NULL)
@@ -67,6 +106,38 @@ BOOL	Host_LoadFile(char *Filename, unsigned char **pLocation, unsigned long *pLe
 				}
 
 				fclose(fh);
+			} else if (currentDir[0] == BUILTIN[0])
+			{
+				DBG_BUILTIN(Filename);
+				if (!strcmp(currentDir,"^/amsdose/")) {
+					if (!strcmp(Filename,"amsdos.rom")) {
+						return loadBuiltin(pLocation, pLength, &rom_amsdos);
+					}
+				} else if (strcmp(currentDir,"^/cpc464e/")==0) {
+					pRoms = &roms_cpc464;
+				} else if (strcmp(currentDir,"^/cpc664e/")==0) {
+					pRoms = &roms_cpc664;
+				} else if (strcmp(currentDir,"^/cpc6128e/")==0){
+					pRoms = &roms_cpc6128;
+				} else if (strcmp(currentDir,"^/kcc/")==0) {
+					pRoms = &roms_kcc;
+				} else if (strcmp(currentDir,"^/cpcplus/")==0) {
+					if (!strcmp(Filename,"system.cpr")) {
+						return loadBuiltin(pLocation, pLength,
+							&cartridge_cpcplus);
+					}
+				}
+				if (pRoms != NULL) {
+					if (!strcmp(Filename,"os.rom")
+						| !strcmp(Filename,"kccos.rom")) {
+						DBG_BUILTIN("OS");
+						return loadBuiltin(pLocation, pLength, &pRoms->os);
+					} else if (!strcmp(Filename,"basic.rom")
+						| !strcmp(Filename,"kccbas.rom")) {
+						DBG_BUILTIN("Basic");
+						return loadBuiltin(pLocation, pLength, &pRoms->basic);
+					}
+				}
 			}
 		}
 	}
@@ -78,6 +149,7 @@ HOST_FILE_HANDLE	Host_OpenFile(char *Filename, int Access)
 {
 	HOST_FILE_HANDLE fh;
 
+	/* fprintf(stderr,"Host_OpenFile(%s)\n",Filename); */
 	if (Access == HOST_FILE_ACCESS_READ)
 	{
 		fh = (HOST_FILE_HANDLE)fopen(Filename,"rb");

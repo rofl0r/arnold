@@ -35,6 +35,10 @@ void sdl_SwapGraphicsBuffers(void);
 BOOL sdl_ProcessSystemEvents(void);
 void sdl_Throttle(void);
 extern int sdl_LockSpeed;
+#define QWERTY 0
+#define QWERTZ 1
+#define AZERTY 2
+void sdl_InitialiseKeyboardMapping(int layout);
 #else
 #include "../cpc/host.h"
 #include <X11/Xlib.h>

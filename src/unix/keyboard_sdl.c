@@ -28,6 +28,8 @@ SDL_Joystick *joystick1, *joystick2;
 // is assumed to be jitter
 #define JOYDEAD 3200
 
+extern void quit(void);		// FIXME
+
 // State is True for Key Pressed, False for Key Release.
 // theEvent holds the keyboard event.
 void	HandleKey(SDL_KeyboardEvent *theEvent)
@@ -41,6 +43,7 @@ void	HandleKey(SDL_KeyboardEvent *theEvent)
 	SDL_keysym	*keysym = &theEvent->keysym;
 	SDLKey	keycode = keysym->sym;
 
+	/* Handle Function keys to control emulator */
 	if (keycode == SDLK_F1 && theEvent->type == SDL_KEYDOWN ) {
 		CPC_Reset();
 	} else if (keycode == SDLK_F2 && theEvent->type == SDL_KEYDOWN ) {	
@@ -53,6 +56,9 @@ void	HandleKey(SDL_KeyboardEvent *theEvent)
 			sdl_SetDisplayWindowed(screen->w,screen->h,
 				screen->format->BitsPerPixel);
 		}
+	} else if (keycode == SDLK_F4 && theEvent->type == SDL_KEYDOWN ) {
+		quit();
+	/* Handle CPC keys */
 	} else {
 		//printf("Keycode: <%04x> <%04x> <%04x> <%04x>\n",
 		//	keysym->scancode, keysym->sym, keysym->mod, keysym->unicode );
@@ -172,16 +178,22 @@ void	sdl_EnableJoysticks(BOOL state)
 	SDL_JoystickEventState((state == TRUE) ? SDL_ENABLE : SDL_DISABLE);
 }
 
-void	sdl_InitialiseKeyboardMapping()
+// forward declarations
+void	sdl_InitialiseKeyboardMapping_qwertz();
+void	sdl_InitialiseKeyboardMapping_azerty();
+
+void	sdl_InitialiseKeyboardMapping(int layout)
 {
 	int	 i;
 
+	printf("sdl_InitialiseKeyboardMapping(%i)\n",layout);
 	//printf("SDLK_LAST: %i 0x%04x\n", SDLK_LAST, SDLK_LAST);
 	for (i=0; i<SDLK_LAST; i++)
 	{
 		KeySymToCPCKey[i] = CPC_KEY_NULL;
 	}
 	
+	/* International key mappings */
 	KeySymToCPCKey[SDLK_0] = CPC_KEY_ZERO;
 	KeySymToCPCKey[SDLK_1] = CPC_KEY_1;
 	KeySymToCPCKey[SDLK_2] = CPC_KEY_2;
@@ -266,5 +278,63 @@ void	sdl_InitialiseKeyboardMapping()
 	KeySymToCPCKey[SDLK_INSERT] = CPC_KEY_JOY_FIRE1;
 	KeySymToCPCKey[SDLK_HOME] = CPC_KEY_JOY_UP;
 	KeySymToCPCKey[SDLK_PAGEUP] = CPC_KEY_JOY_FIRE2;	
+
+	KeySymToCPCKey[0x0134] = CPC_KEY_COPY;			/* Alt */
+	KeySymToCPCKey[0x0137] = CPC_KEY_COPY;			/* Compose */
+
+	switch (layout) {
+		case QWERTZ:
+			sdl_InitialiseKeyboardMapping_qwertz();
+			break;
+		case AZERTY:
+			sdl_InitialiseKeyboardMapping_azerty();
+			break;
+	}
+}
+
+void	sdl_InitialiseKeyboardMapping_qwertz()
+{
+	/* German key mappings */
+	KeySymToCPCKey[0x00fc] =CPC_KEY_AT;			/* ue */
+	KeySymToCPCKey[0x002b] =CPC_KEY_OPEN_SQUARE_BRACKET;	/* Plus */
+	KeySymToCPCKey[0x00f6] =CPC_KEY_COLON;			/* oe */
+	KeySymToCPCKey[0x00e4] =CPC_KEY_SEMICOLON;		/* ae */
+	KeySymToCPCKey[0x0023] =CPC_KEY_CLOSE_SQUARE_BRACKET;	/* Hash */
+	KeySymToCPCKey[0x00df] =CPC_KEY_MINUS;			/* sz */
+	KeySymToCPCKey[0x00b4] =CPC_KEY_HAT;			/* Accent */
+	KeySymToCPCKey[0x005e] =CPC_KEY_CLR;			/* Hat */
+	KeySymToCPCKey[0x003c] =CPC_KEY_FORWARD_SLASH;		/* Less */
+
+	/* The next one might break US keyboards?!? */
+	KeySymToCPCKey[SDLK_MINUS] = CPC_KEY_BACKSLASH;
+}
+
+void	sdl_InitialiseKeyboardMapping_azerty()
+{
+	// Ajout Ramlaid
+	KeySymToCPCKey[SDLK_LALT] = CPC_KEY_COPY;
+	
+	KeySymToCPCKey[SDLK_AMPERSAND]  = CPC_KEY_1;
+	KeySymToCPCKey[SDLK_WORLD_73]   = CPC_KEY_2;
+	KeySymToCPCKey[SDLK_QUOTEDBL]   = CPC_KEY_3;
+	KeySymToCPCKey[SDLK_QUOTE]      = CPC_KEY_4;
+	KeySymToCPCKey[SDLK_LEFTPAREN]  = CPC_KEY_5;
+	KeySymToCPCKey[SDLK_MINUS]      = CPC_KEY_6;
+	KeySymToCPCKey[SDLK_WORLD_72]   = CPC_KEY_7;
+	KeySymToCPCKey[SDLK_UNDERSCORE] = CPC_KEY_8;
+	KeySymToCPCKey[SDLK_WORLD_71]   = CPC_KEY_9;
+	KeySymToCPCKey[SDLK_WORLD_64]   = CPC_KEY_ZERO;
+	
+	KeySymToCPCKey[SDLK_RIGHTPAREN] = CPC_KEY_MINUS;
+	KeySymToCPCKey[SDLK_EQUALS]     = CPC_KEY_HAT;
+	KeySymToCPCKey[SDLK_CARET]      = CPC_KEY_AT;
+	KeySymToCPCKey[SDLK_DOLLAR]     = CPC_KEY_OPEN_SQUARE_BRACKET;
+	KeySymToCPCKey[SDLK_WORLD_89]   = CPC_KEY_SEMICOLON;
+	KeySymToCPCKey[SDLK_ASTERISK]   = CPC_KEY_CLOSE_SQUARE_BRACKET;
+	KeySymToCPCKey[SDLK_COMMA]      = CPC_KEY_COMMA;
+	KeySymToCPCKey[SDLK_SEMICOLON]  = CPC_KEY_DOT;
+	KeySymToCPCKey[SDLK_COLON]      = CPC_KEY_COLON;
+	KeySymToCPCKey[SDLK_EXCLAIM]    = CPC_KEY_BACKSLASH;
+	KeySymToCPCKey[SDLK_LESS]       = CPC_KEY_FORWARD_SLASH;
 }				
 

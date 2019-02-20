@@ -4,6 +4,12 @@ AC_INIT(unix/main.c)
 dnl Checks for programs.
 AC_PROG_CC
 
+dnl Checks for endianness
+AC_C_BIGENDIAN
+
+dnl Checks for target
+AC_CANONICAL_SYSTEM
+
 dnl Checks for libraries.
 dnl Replace `main' with a function in -lX11:
 dnl AC_CHECK_LIB(X11, main)

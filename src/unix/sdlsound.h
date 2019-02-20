@@ -23,6 +23,9 @@
 #include <SDL.h>
 
 #define AUDIO_WATERMARK 2048	/* FIXME */
+//#define AUDIO_WATERMARK 4096	/* FIXME */
+//#define AUDIO_WATERMARK 8192	/* FIXME */
+//#define AUDIO_WATERMARK 1024	/* FIXME */
 
 long audio_waterlevel;
 

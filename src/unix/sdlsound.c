@@ -36,7 +36,7 @@ static SOUND_PLAYBACK_FORMAT SoundFormat;
 
 const int audio_NumberOfChannels = 2;
 //static const int audio_NumberOfChannels = 1;
-//const int audio_BitsPerSample = 16;
+//static const int audio_BitsPerSample = 16;
 static const int audio_BitsPerSample = 8;
 static const int audio_Frequency = 44100;
 //const int audio_Frequency = 22050;
@@ -47,7 +47,9 @@ static const int audio_bufsize = 8192;
 //static const int audio_bufsize = 4096;
 //const int audio_bufsize = 1024;
 //static const int audio_callbacksize = 4096;
-static const int audio_callbacksize = 1024;
+//static const int audio_callbacksize = 1024;
+//static const int audio_callbacksize = 2048;
+static const int audio_callbacksize = AUDIO_WATERMARK/2;
 static SDL_AudioSpec audioSpec;
 static BOOL audio_open = FALSE;
 static Uint8 *audio_chunk;
@@ -55,6 +57,7 @@ static Uint8 *audio_chunk;
 static Uint32 audio_len;
 static Uint8 *audio_pos;
 static Uint8 *audio_rec;
+static void *(*samplecpy)(void *dest, const void *src, size_t n) = memcpy;
 
 BOOL	sdl_open_audio(SDL_AudioSpec *audioSpec) {
 	BOOL status;
@@ -66,6 +69,8 @@ BOOL	sdl_open_audio(SDL_AudioSpec *audioSpec) {
 		fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
 		return FALSE;
 	}
+	fprintf(stderr, "Opened Audio device: %i/%0x/%i\n",
+		audioSpec->freq, audioSpec->format, audioSpec->samples);
 	if (audio_chunk != NULL) free(audio_chunk);
 	audio_chunk = malloc(audio_bufsize);
 	if (audio_chunk == NULL) {
@@ -86,6 +91,13 @@ BOOL	sdl_open_audio(SDL_AudioSpec *audioSpec) {
 void	sdl_close_audio(void) {
 	SDL_CloseAudio();
 	audio_open = FALSE;
+}
+
+void	halfcpy(Uint8 *dst, Uint8 *src, int len) {
+	int i;
+	while(len-- > 0) {
+		*dst++ = *src++/2;
+	}
 }
 
 void	fill_audio(void *userdata, Uint8 *stream, int len) {
@@ -114,13 +126,19 @@ void	fill_audio(void *userdata, Uint8 *stream, int len) {
 #endif
 	audio_waterlevel -= len;	// FIXME
 	if ( audio_pos + len < audio_chunk + audio_bufsize ) {
-		memcpy(stream, audio_pos, len);
+		//memcpy(stream, audio_pos, len);
+		//halfcpy(stream, audio_pos, len);
+		*samplecpy(stream, audio_pos, len);
 		audio_pos += len;
 		//fprintf(stderr,",");
 	} else {
 		remain = (audio_chunk + audio_bufsize) - audio_pos;
-		memcpy(stream, audio_pos, remain);
-		memcpy(stream + remain, audio_chunk, len - remain);
+		//memcpy(stream, audio_pos, remain);
+		//halfcpy(stream, audio_pos, remain);
+		*samplecpy(stream, audio_pos, remain);
+		//memcpy(stream + remain, audio_chunk, len - remain);
+		//halfcpy(stream + remain, audio_chunk, len - remain);
+		*samplecpy(stream + remain, audio_chunk, len - remain);
 		audio_pos = audio_chunk + len - remain;
 		//fprintf(stderr,"'");
 	}
@@ -153,6 +171,7 @@ BOOL	sdl_AudioPlaybackPossible(void)
 		audioSpec.format = AUDIO_S16;
 	} else {
 		audioSpec.format = AUDIO_S8;
+		samplecpy = halfcpy;
 	}
 	audioSpec.channels = audio_NumberOfChannels;
 	//audioSpec.samples = audio_BitsPerSample;
