@@ -47,15 +47,5 @@ typedef unsigned char BYTE;
 typedef unsigned short WORD;
 #endif
 
-/*#ifndef LONG
-typedef unsigned int	LONG;
-#endif
-
-#define DEBUGGING
-
-BOOL	LoadFile(char *, unsigned char **, unsigned long *);
-BOOL	SaveFile(char *,char *,int);
-*/
-
 #endif
 
