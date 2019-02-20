@@ -54,7 +54,7 @@ void	alsa_mmap_UnLockAudioBuffer(void) {}
 
 static int commitBufferSize;
 static int skipfirst = 1;
-static signed short dummybuffer[1760*2];
+static unsigned char dummybuffer[1760*2*sizeof(signed short)];
 
 BOOL	alsa_mmap_AudioPlaybackPossible(void)
 {
