@@ -19,6 +19,7 @@
  */
 /* Snapshot V3 format as used by No$CPC v1.8 */
 
+#include "diskimage/diskimg.h"
 #include "cpcglob.h"
 #include "snapv3.h"
 #include "riff.h"
