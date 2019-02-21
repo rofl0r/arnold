@@ -16,7 +16,19 @@ dnl AC_CHECK_LIB(Xext, main)
 dnl Replace `main' with a function in -libs:
 dnl AC_CHECK_LIB(ibs, main)
 dnl AM_PATH_GTK(1.2.0,AC_DEFINE(HAVE_GTK),AC_MSG_RESULT(GTK GUI will not be built!))
-AM_PATH_GTK_2_0(2.2.0,AC_DEFINE(HAVE_GTK),AC_MSG_RESULT(GTK GUI will not be built!))
+
+AC_ARG_ENABLE(gtk,
+  AC_HELP_STRING(
+    [--disable-gtk],
+    [disable the gtk library, [default=enabled]]
+  ),
+  [enable_gtk=$enableval],
+  [enable_gtk=yes]
+)
+
+if test "$enable_gtk" = yes; then
+  AM_PATH_GTK_2_0(2.2.0,AC_DEFINE(HAVE_GTK),AC_MSG_RESULT(GTK GUI will not be built!))
+fi
 AM_PATH_SDL(1.2.0,AC_DEFINE(HAVE_SDL),AC_MSG_RESULT(SDL will be disables. Using plain X11 code instead!))
 AM_PATH_ALSA(1.0.0,AC_DEFINE(HAVE_ALSA),AC_MSG_RESULT(ALSA will be disables. Using SDL sound instead!))
 AC_CHECK_HEADER(sys/soundcard.h,AC_DEFINE(HAVE_SYS_SOUNDCARD_H),AC_MSG_RESULT(OSS sound support will not be built!))
