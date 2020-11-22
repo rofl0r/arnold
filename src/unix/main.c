@@ -243,11 +243,10 @@ void init_main(int argc, char *argv[]) {
 	BOOL doubled = FALSE;
 	BOOL fullscreen = FALSE;
 #endif
-	do {
-		int this_option_optind = optind ? optind : 1;
-		int option_index = 0;
-		c = getopt_long_only (argc, argv, "",
-			long_options, &option_index);
+	int option_index = 0;
+
+	while((c = getopt_long_only (argc, argv, "",
+			long_options, &option_index)) != -1) {
 		printf("c: %i %c\n", c, c);
 		switch(c) {
 			case 'h':
@@ -294,7 +293,7 @@ void init_main(int argc, char *argv[]) {
 				break;
 
 		}
-	} while (c != -1);
+	}
 	printf("tape: %s\n", tape);
 
 	CPCEmulation_InitialiseDefaultSetup();
