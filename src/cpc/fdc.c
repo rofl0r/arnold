@@ -200,7 +200,7 @@ void	FDC_SetDataRegister(unsigned char Data)
 }
 
 /*-----------------------------------------------------------------------*/
-INLINE void	FDC_SeekComplete(int DriveIndex)
+static INLINE void	FDC_SeekComplete(int DriveIndex)
 {
 	{
 		int ST0;

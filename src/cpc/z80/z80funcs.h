@@ -381,7 +381,7 @@ INLINE static void OR_A_n(void)
 
 
 
-INLINE void RRA() 
+static INLINE void RRA() 
 {                               
         RR(R.AF.B.h);
                                                                 

@@ -60,7 +60,7 @@ static int		TapeImage_GetBlockLength(unsigned char *pBlock);
 static BOOL TapeImage_HandleBlock(void);
 
 
-INLINE int	TapeImage_GetByte(unsigned char *pPtr)
+static INLINE int	TapeImage_GetByte(unsigned char *pPtr)
 {
 	int Byte = pPtr[0] & 0x0ff;
 
@@ -68,7 +68,7 @@ INLINE int	TapeImage_GetByte(unsigned char *pPtr)
 }
 
 /* get word from tape image */
-INLINE int	TapeImage_GetWord(unsigned char *pPtr)
+static INLINE int	TapeImage_GetWord(unsigned char *pPtr)
 {
 	int Word;
 
@@ -79,7 +79,7 @@ INLINE int	TapeImage_GetWord(unsigned char *pPtr)
 }
 
 /* get value from tape image */
-INLINE	int TapeImage_GetValue(unsigned char *pPtr, int NoOfBytes)
+static INLINE	int TapeImage_GetValue(unsigned char *pPtr, int NoOfBytes)
 {
 	int Value = 0;
 	int i;
