@@ -408,10 +408,11 @@ void init_main(int argc, char *argv[]) {
 		}
 		printf("soundplugin: %i (%s)\n",sound_plugin,soundpluginNames[sound_plugin]);
 
-
-#ifdef HAVE_GTK
-		fprintf(stderr, "Initializing GTK+\n");
-		gtkui_init(argc, argv);
+#ifdef HAVE_XINITTHREADS
+		extern void XInitThreads(void);
+		XInitThreads();
+#elif defined(HAVE_GTK) && defined(HAVE_SDL)
+	#warning "XInitThreads not found, but having both SDL and GTK active-will probably crash at runtime"
 #endif
 
 #ifdef HAVE_SDL
@@ -424,6 +425,11 @@ void init_main(int argc, char *argv[]) {
 		sdl_InitialiseKeyboardMapping(0);
 		sdl_InitialiseJoysticks();
 		atexit(SDL_Quit);
+#endif
+
+#ifdef HAVE_GTK
+		fprintf(stderr, "Initializing GTK+\n");
+		gtkui_init(argc, argv);
 #endif
 
 		Host_InitDriveLEDIndicator();

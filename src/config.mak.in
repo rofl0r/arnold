@@ -1,8 +1,8 @@
 CC = @CC@
 
 #use this for RedHat/SuSE Linux
-X11INC = -I@x_includes@
-X11LIB = -L@x_libraries@
+X11INC = @X_CFLAGS@
+X11LIB = @X_LIBS@
 
 # Comment the following two lines to disable GTK+
 GTKINC = @GTK_CFLAGS@

@@ -10,7 +10,7 @@ AC_C_BIGENDIAN
 
 dnl Checks for libraries.
 dnl Replace `main' with a function in -lX11:
-dnl AC_CHECK_LIB(X11, main)
+AC_CHECK_LIB(X11, XInitThreads, AC_DEFINE(HAVE_XINITTHREADS))
 dnl Replace `main' with a function in -lXext:
 dnl AC_CHECK_LIB(Xext, main)
 dnl Replace `main' with a function in -libs:
@@ -34,9 +34,9 @@ AM_PATH_ALSA(1.0.0,AC_DEFINE(HAVE_ALSA),AC_MSG_RESULT(ALSA will be disables. Usi
 AC_CHECK_HEADER(sys/soundcard.h,AC_DEFINE(HAVE_SYS_SOUNDCARD_H),AC_MSG_RESULT(OSS sound support will not be built!))
 
 dnl Checks for header files.
-AC_PATH_X
-AC_SUBST(x_includes)
-AC_SUBST(x_libraries)
+AC_PATH_XTRA
+dnl AC_SUBST(X_CFLAGS)
+dnl AC_SUBST(X_LIBS)
 dnl AC_HEADER_STDC
 dnl AC_CHECK_HEADERS(fcntl.h malloc.h sys/ioctl.h sys/time.h unistd.h)
 
