@@ -73,13 +73,13 @@ extern char _binary_roms_cpcplus_system_cpr_end[];
 extern int *_binary_roms_cpcplus_system_cpr_size;
 
 /* KCC */
-extern char _binary_roms_kcc_kccos_rom_start[];
-extern char _binary_roms_kcc_kccos_rom_end[];
-extern int *_binary_roms_kcc_kccos_rom_size;
+extern char _binary_roms_kcc_os_rom_start[];
+extern char _binary_roms_kcc_os_rom_end[];
+extern int *_binary_roms_kcc_os_rom_size;
 
-extern char _binary_roms_kcc_kccbas_rom_start[];
-extern char _binary_roms_kcc_kccbas_rom_end[];
-extern int *_binary_roms_kcc_kccbas_rom_size;
+extern char _binary_roms_kcc_basic_rom_start[];
+extern char _binary_roms_kcc_basic_rom_end[];
+extern int *_binary_roms_kcc_basic_rom_size;
 
 /*
  * functions
@@ -137,13 +137,13 @@ void roms_init() {
 	cartridge_cpcplus.size = (int) &_binary_roms_cpcplus_system_cpr_size;
 	
 	/* kcc */
-	roms_kcc.os.start = _binary_roms_kcc_kccos_rom_start;
-	roms_kcc.os.end = _binary_roms_kcc_kccos_rom_end;
-	roms_kcc.os.size = (int) &_binary_roms_kcc_kccos_rom_size;
+	roms_kcc.os.start = _binary_roms_kcc_os_rom_start;
+	roms_kcc.os.end = _binary_roms_kcc_os_rom_end;
+	roms_kcc.os.size = (int) &_binary_roms_kcc_os_rom_size;
 
-	roms_kcc.basic.start = _binary_roms_kcc_kccbas_rom_start;
-	roms_kcc.basic.end = _binary_roms_kcc_kccbas_rom_end;
-	roms_kcc.basic.size = (int) &_binary_roms_kcc_kccbas_rom_size;
+	roms_kcc.basic.start = _binary_roms_kcc_basic_rom_start;
+	roms_kcc.basic.end = _binary_roms_kcc_basic_rom_end;
+	roms_kcc.basic.size = (int) &_binary_roms_kcc_basic_rom_size;
 
 	/* debugging output */
 	printf("----------------------------------------------------------\n");
