@@ -26,60 +26,36 @@
  * References to statically linked external binary rom and cartridge data
  */
 
+#define BINARY_DATA_DECL(NAME) \
+extern char _binary_ ## NAME ## _start []; \
+extern char _binary_ ## NAME ## _end []; \
+extern int* _binary_ ## NAME ## _size []
+
 /* Amsdos */
-extern char _binary_roms_amsdose_amsdos_rom_start[];
-extern char _binary_roms_amsdose_amsdos_rom_end[];
-extern int *_binary_roms_amsdose_amsdos_rom_size;
+BINARY_DATA_DECL(roms_amsdose_amsdos_rom);
 
 /* CPC464 */
-extern char _binary_roms_cpc464e_os_rom_start[];
-extern char _binary_roms_cpc464e_os_rom_end[];
-extern int *_binary_roms_cpc464e_os_rom_size;
-
-extern char _binary_roms_cpc464e_basic_rom_start[];
-extern char _binary_roms_cpc464e_basic_rom_end[];
-extern int *_binary_roms_cpc464e_basic_rom_size;
+BINARY_DATA_DECL(roms_cpc464e_os_rom);
+BINARY_DATA_DECL(roms_cpc464e_basic_rom);
 
 /* CPC664 */
-extern char _binary_roms_cpc664e_os_rom_start[];
-extern char _binary_roms_cpc664e_os_rom_end[];
-extern int *_binary_roms_cpc664e_os_rom_size;
-
-extern char _binary_roms_cpc664e_basic_rom_start[];
-extern char _binary_roms_cpc664e_basic_rom_end[];
-extern int *_binary_roms_cpc664e_basic_rom_size;
+BINARY_DATA_DECL(roms_cpc664e_os_rom);
+BINARY_DATA_DECL(roms_cpc664e_basic_rom);
 
 /* CPC6128 */
-extern char _binary_roms_cpc6128e_os_rom_start[];
-extern char _binary_roms_cpc6128e_os_rom_end[];
-extern int *_binary_roms_cpc6128e_os_rom_size;
-
-extern char _binary_roms_cpc6128e_basic_rom_start[];
-extern char _binary_roms_cpc6128e_basic_rom_end[];
-extern int *_binary_roms_cpc6128e_basic_rom_size;
+BINARY_DATA_DECL(roms_cpc6128e_os_rom);
+BINARY_DATA_DECL(roms_cpc6128e_basic_rom);
 
 /* CPC6128 spanish */
-extern char _binary_roms_cpc6128s_os_rom_start[];
-extern char _binary_roms_cpc6128s_os_rom_end[];
-extern int *_binary_roms_cpc6128s_os_rom_size;
-
-extern char _binary_roms_cpc6128s_basic_rom_start[];
-extern char _binary_roms_cpc6128s_basic_rom_end[];
-extern int *_binary_roms_cpc6128s_basic_rom_size;
+BINARY_DATA_DECL(roms_cpc6128s_os_rom);
+BINARY_DATA_DECL(roms_cpc6128s_basic_rom);
 
 /* CPCplus */
-extern char _binary_roms_cpcplus_system_cpr_start[];
-extern char _binary_roms_cpcplus_system_cpr_end[];
-extern int *_binary_roms_cpcplus_system_cpr_size;
+BINARY_DATA_DECL(roms_cpcplus_system_cpr);
 
 /* KCC */
-extern char _binary_roms_kcc_os_rom_start[];
-extern char _binary_roms_kcc_os_rom_end[];
-extern int *_binary_roms_kcc_os_rom_size;
-
-extern char _binary_roms_kcc_basic_rom_start[];
-extern char _binary_roms_kcc_basic_rom_end[];
-extern int *_binary_roms_kcc_basic_rom_size;
+BINARY_DATA_DECL(roms_kcc_os_rom);
+BINARY_DATA_DECL(roms_kcc_basic_rom);
 
 /*
  * functions
