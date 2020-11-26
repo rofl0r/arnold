@@ -141,9 +141,9 @@ void printroms(char *name, roms_t *roms) {
 }
 
 void printrom(char *s1, char *s2, rom_t *rom) {
-	printf("%s %s: %08x to %08x, %d (0x%04x) bytes\n",
+	printf("%s %s: %p to %p, %d (0x%04x) bytes\n",
 		s1, s2,
-		(unsigned int) rom->start, (unsigned int) rom->end,
+		rom->start, rom->end,
 		rom->size, rom->size);
 }
 
