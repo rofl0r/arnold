@@ -21,15 +21,15 @@
 #include "roms.h"
 
 #include <stdio.h>
+#include <stdint.h>
 
 /*
  * References to statically linked external binary rom and cartridge data
  */
 
 #define BINARY_DATA_DECL(NAME) \
-extern char _binary_ ## NAME ## _start []; \
-extern char _binary_ ## NAME ## _end []; \
-extern int* _binary_ ## NAME ## _size []
+extern unsigned char _binary_ ## NAME ## _start []; \
+extern unsigned char _binary_ ## NAME ## _end [];
 
 /* Amsdos */
 BINARY_DATA_DECL(roms_amsdose_amsdos_rom);
@@ -68,7 +68,7 @@ void roms_init() {
 #define SETUP_ROM(RNAME, BNAME) do { \
 	RNAME.start = BNAME ## _start; \
 	RNAME.end = BNAME ## _end; \
-	RNAME.size = (int) & BNAME ## _size; \
+	RNAME.size =  (uintptr_t)(BNAME ## _end) - (uintptr_t)(BNAME ## _start); \
 	} while(0)
 
 #define SETUP_ROMS(RNAME, SUFFIX) do { \
