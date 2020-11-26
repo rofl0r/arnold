@@ -89,61 +89,37 @@ void printroms(char *name, roms_t *roms);
 void printrom(char *s1, char *s2, rom_t *rom);
 
 void roms_init() {
+#define SETUP_ROM(RNAME, BNAME) do { \
+	RNAME.start = BNAME ## _start; \
+	RNAME.end = BNAME ## _end; \
+	RNAME.size = (int) & BNAME ## _size; \
+	} while(0)
+
+#define SETUP_ROMS(RNAME, SUFFIX) do { \
+	SETUP_ROM(roms_ ## RNAME .os, _binary_roms_ ## RNAME ## SUFFIX ## _os_rom); \
+	SETUP_ROM(roms_ ## RNAME .basic, _binary_roms_ ## RNAME ## SUFFIX ## _basic_rom); \
+	} while(0)
 
 	/* Amsdos */
-	rom_amsdos.start = _binary_roms_amsdose_amsdos_rom_start;
-	rom_amsdos.end = _binary_roms_amsdose_amsdos_rom_end;
-	rom_amsdos.size = (int) &_binary_roms_amsdose_amsdos_rom_size;
+	SETUP_ROM(rom_amsdos, _binary_roms_amsdose_amsdos_rom);
 
 	/* CPC 464 */
-	roms_cpc464.os.start = _binary_roms_cpc464e_os_rom_start;
-	roms_cpc464.os.end = _binary_roms_cpc464e_os_rom_end;
-	roms_cpc464.os.size = (int) &_binary_roms_cpc464e_os_rom_size;
+	SETUP_ROMS(cpc464, e);
 
-	roms_cpc464.basic.start = _binary_roms_cpc464e_basic_rom_start;
-	roms_cpc464.basic.end = _binary_roms_cpc464e_basic_rom_end;
-	roms_cpc464.basic.size = (int) &_binary_roms_cpc464e_basic_rom_size;
-	
 	/* CPC 664 */
-	roms_cpc664.os.start = _binary_roms_cpc664e_os_rom_start;
-	roms_cpc664.os.end = _binary_roms_cpc664e_os_rom_end;
-	roms_cpc664.os.size = (int) &_binary_roms_cpc664e_os_rom_size;
-
-	roms_cpc664.basic.start = _binary_roms_cpc664e_basic_rom_start;
-	roms_cpc664.basic.end = _binary_roms_cpc664e_basic_rom_end;
-	roms_cpc664.basic.size = (int) &_binary_roms_cpc664e_basic_rom_size;
+	SETUP_ROMS(cpc664, e);
 
 	/* CPC 6128 */
-	roms_cpc6128.os.start = _binary_roms_cpc6128e_os_rom_start;
-	roms_cpc6128.os.end = _binary_roms_cpc6128e_os_rom_end;
-	roms_cpc6128.os.size = (int) &_binary_roms_cpc6128e_os_rom_size;
-
-	roms_cpc6128.basic.start = _binary_roms_cpc6128e_basic_rom_start;
-	roms_cpc6128.basic.end = _binary_roms_cpc6128e_basic_rom_end;
-	roms_cpc6128.basic.size = (int) &_binary_roms_cpc6128e_basic_rom_size;
+	SETUP_ROMS(cpc6128, e);
 
 	/* CPC 6128 spanish */
-	roms_cpc6128s.os.start = _binary_roms_cpc6128s_os_rom_start;
-	roms_cpc6128s.os.end = _binary_roms_cpc6128s_os_rom_end;
-	roms_cpc6128s.os.size = (int) &_binary_roms_cpc6128s_os_rom_size;
+	SETUP_ROMS(cpc6128s, );
 
-	roms_cpc6128s.basic.start = _binary_roms_cpc6128s_basic_rom_start;
-	roms_cpc6128s.basic.end = _binary_roms_cpc6128s_basic_rom_end;
-	roms_cpc6128s.basic.size = (int) &_binary_roms_cpc6128s_basic_rom_size;
-	
 	/* CPC plus */
-	cartridge_cpcplus.start = _binary_roms_cpcplus_system_cpr_start;
-	cartridge_cpcplus.end = _binary_roms_cpcplus_system_cpr_end;
-	cartridge_cpcplus.size = (int) &_binary_roms_cpcplus_system_cpr_size;
-	
-	/* kcc */
-	roms_kcc.os.start = _binary_roms_kcc_os_rom_start;
-	roms_kcc.os.end = _binary_roms_kcc_os_rom_end;
-	roms_kcc.os.size = (int) &_binary_roms_kcc_os_rom_size;
+	SETUP_ROM(cartridge_cpcplus, _binary_roms_cpcplus_system_cpr);
 
-	roms_kcc.basic.start = _binary_roms_kcc_basic_rom_start;
-	roms_kcc.basic.end = _binary_roms_kcc_basic_rom_end;
-	roms_kcc.basic.size = (int) &_binary_roms_kcc_basic_rom_size;
+	/* kcc */
+	SETUP_ROMS(kcc, );
 
 	/* debugging output */
 	printf("----------------------------------------------------------\n");
