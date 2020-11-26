@@ -122,16 +122,16 @@ void roms_init() {
 	SETUP_ROMS(kcc, );
 
 	/* debugging output */
-	printf("----------------------------------------------------------\n");
-	printf("Compiled in ROMS:\n");
-	printrom("  Amsdos", "   ", &rom_amsdos);
+	printf   ("----------------------------------------------------------\n");
+	printf   ("Compiled in ROMS:\n");
+	printrom ("  Amsdos", "    ", &rom_amsdos);
 	printroms("  464  ", &roms_cpc464);
 	printroms("  664  ", &roms_cpc664);
 	printroms("  6128 ", &roms_cpc6128);
 	printroms("  6128s", &roms_cpc6128s);
-	printrom("  plus ", "Cart ", &cartridge_cpcplus);
+	printrom ("  plus ", "Cart ", &cartridge_cpcplus);
 	printroms("  kcc  ", &roms_kcc);
-	printf("----------------------------------------------------------\n");
+	printf   ("----------------------------------------------------------\n");
 
 }
 
