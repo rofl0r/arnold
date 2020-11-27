@@ -22,9 +22,9 @@
 
 typedef struct
 {
-        unsigned long                             BPP;                    /* Bits per pixel for this element */
-        unsigned long   Mask;                   /* Mask */
-        unsigned long                             Shift;                  /* Shift */
+        unsigned                             BPP;                    /* Bits per pixel for this element */
+        unsigned   Mask;                   /* Mask */
+        unsigned                             Shift;                  /* Shift */
 } GRAPHICS_ELEMENT_FORMAT;
 
 typedef struct
@@ -37,21 +37,21 @@ typedef struct
 } GRAPHICS_FORMAT;
 
 /* element in range 0..255 */
-static INLINE unsigned long PackElementIntoDestinationImageFormat(unsigned
-long Element, GRAPHICS_ELEMENT_FORMAT *pFormat)
+static INLINE unsigned PackElementIntoDestinationImageFormat(unsigned
+Element, GRAPHICS_ELEMENT_FORMAT *pFormat)
 {
         return  (((Element>>(8-pFormat->BPP))<<pFormat->Shift) & pFormat->Mask);
 }
 
-static INLINE unsigned long UnPackElementFromSourceImageFormat(unsigned
-long PackedImageData, GRAPHICS_ELEMENT_FORMAT *pFormat)
+static INLINE unsigned UnPackElementFromSourceImageFormat(unsigned
+PackedImageData, GRAPHICS_ELEMENT_FORMAT *pFormat)
 {
         return ((PackedImageData & pFormat->Mask)>>pFormat->Shift)<<(8-pFormat->BPP);
 }
 
 /* writes out packed image data low byte first up to high byte */
 static INLINE void WritePackedImageData(unsigned char *pDest, unsigned
-long PackedImageData, int NoOfBytes)
+PackedImageData, int NoOfBytes)
 {
         int Shift = 0;
 
@@ -65,16 +65,16 @@ long PackedImageData, int NoOfBytes)
         }
 }
 
-static INLINE unsigned long ReadPackedImageData(unsigned char *pSource,
+static INLINE unsigned ReadPackedImageData(unsigned char *pSource,
 int NoOfBytes)
 {
-        unsigned long PackedImageData=0;
+        unsigned PackedImageData=0;
         int Shift = 0;
         int i;
 
         for (i=0; i<NoOfBytes; i++)
         {
-                unsigned long   PackedImageByte;
+                unsigned PackedImageByte;
 
                 PackedImageByte = pSource[i] & 0x0ff;
 
@@ -88,28 +88,28 @@ int NoOfBytes)
 
 
 /* r,g,b are in range 0..255 */
-static INLINE unsigned long PackRGBIntoDestinationImageFormat(unsigned
-long r, unsigned long g, unsigned long b, GRAPHICS_FORMAT *pFormat) 
+static INLINE unsigned PackRGBIntoDestinationImageFormat(unsigned
+r, unsigned g, unsigned b, GRAPHICS_FORMAT *pFormat) 
 {
         return (PackElementIntoDestinationImageFormat(r, &pFormat->Red) |
                         PackElementIntoDestinationImageFormat(g, &pFormat->Green) |
                         PackElementIntoDestinationImageFormat(b, &pFormat->Blue));
 }
 
-static INLINE void     GetRGBFromSourceImageFormat(unsigned long
-PackedImageData, unsigned long *r, unsigned long *g, unsigned long *b, GRAPHICS_FORMAT *pFormat)
+static INLINE void     GetRGBFromSourceImageFormat(unsigned
+PackedImageData, unsigned *r, unsigned *g, unsigned *b, GRAPHICS_FORMAT *pFormat)
 {
         *r = UnPackElementFromSourceImageFormat(PackedImageData, &pFormat->Red);
         *g = UnPackElementFromSourceImageFormat(PackedImageData, &pFormat->Green);
         *b = UnPackElementFromSourceImageFormat(PackedImageData, &pFormat->Blue);
 }
 
-static INLINE void CalcShiftAndBPPFromMask(unsigned long Mask, unsigned
-long *BPP, unsigned long *Shift)
+static INLINE void CalcShiftAndBPPFromMask(unsigned Mask, unsigned
+*BPP, unsigned *Shift)
 {
-        unsigned long LocalShift = 0;
-        unsigned long LocalBPP = 0;
-        unsigned long LocalMask = Mask;
+        unsigned LocalShift = 0;
+        unsigned LocalBPP = 0;
+        unsigned LocalMask = Mask;
 
         if (LocalMask!=0)
         {
@@ -132,9 +132,9 @@ long *BPP, unsigned long *Shift)
 }
 
 
-static INLINE void     BuildFormatInfoFromColourMasks(unsigned long
+static INLINE void     BuildFormatInfoFromColourMasks(unsigned
 RedMask,
-unsigned long GreenMask, unsigned long BlueMask, unsigned long AlphaMask, GRAPHICS_FORMAT *pFormat)
+unsigned GreenMask, unsigned BlueMask, unsigned AlphaMask, GRAPHICS_FORMAT *pFormat)
 {
         int TotalBPP;
         int BPP;

@@ -45,7 +45,7 @@ visible portion is somewhat smaller */
 
 void    CPC_BuildModeRenderTables(void);
 PIXEL_DATA *CPC_GetModePixelData(int ModeIndex);
-unsigned long *CPC_GetModePackedPixelData(int ModeIndex);
+unsigned *CPC_GetModePackedPixelData(int ModeIndex);
 
 #define	X_CRTC_CHAR_OFFSET	8
 #ifdef SIMPLE_MONITOR_EMULATION	
@@ -91,7 +91,7 @@ typedef struct
 			unsigned char	pad0;
 		} element;
 
-		unsigned long PackedColour;
+		unsigned PackedColour;
 
 	} u;
 } RGBCOLOUR;
@@ -101,7 +101,7 @@ typedef struct
 {
 	union
 	{
-		unsigned long PackedElements;
+		unsigned PackedElements;
 
 		RGBCOLOUR SeperateElements;
 	} RGB;
@@ -125,10 +125,10 @@ void	Render_Flip(void);
 void	Render_SetColourTable(const RGBCOLOUR *pColours, int NoOfColours);
 
 void	Render_SetPixelTranslation(int Mode);
-void	Render_PutData(int HorizontalCount,unsigned long Data, int Offset,int InBorder,int,int);
+void	Render_PutData(int HorizontalCount,unsigned Data, int Offset,int InBorder,int,int);
 
-void	Render_PutDataWord(int HorizontalCount,unsigned long GraphicsData, int Line);
-void	Render_PutDataWordPLUS(int HorizontalCount,unsigned long GraphicsData,int Line);
+void	Render_PutDataWord(int HorizontalCount,unsigned GraphicsData, int Line);
+void	Render_PutDataWordPLUS(int HorizontalCount,unsigned GraphicsData,int Line);
 void	Render_PutBorder(int HorizontalCount, int Line);
 
 void	Render_DumpLine(int LineNum);
@@ -147,19 +147,19 @@ void	Render_NextLine(void);
 void	Render_SetHorizontalPixelScroll(int PixelScroll);
 
 void    Render_PlotText(char *pString, int X, int Y);
-void	Render_Put8Pixels(int X, int Y, unsigned long  PackedPixels);
+void	Render_Put8Pixels(int X, int Y, unsigned PackedPixels);
 
 void	Render_SetPixelPos(int X, int Y);
 void	Render_PutPixelToPos(int Pixel);
-void	Render_PutDataWordPLUSMask(int HorizontalCount,unsigned long GraphicsData, int Line, unsigned long Mask);
+void	Render_PutDataWordPLUSMask(int HorizontalCount,unsigned GraphicsData, int Line, unsigned Mask);
 
 int	Render_SetDisplayWindowed(void);
 int	Render_SetDisplayFullScreen(int, int,int);
 void	Render_DumpLine(int);
 void	Render_Finish(void);
 
-void	Render_PutPixels(int X, int Y, int *pPixels, unsigned long Mask);
-void	Render_PutDataWordPLUSMaskWithPixels(int HorizontalCount,unsigned long GraphicsData, int Line, unsigned long Mask, int *pPixels);
+void	Render_PutPixels(int X, int Y, int *pPixels, unsigned Mask);
+void	Render_PutDataWordPLUSMaskWithPixels(int HorizontalCount,unsigned GraphicsData, int Line, unsigned Mask, int *pPixels);
 void	Render_ClearDisplay(void);
 BOOL	Render_IsRendererActive(void);
 
@@ -168,13 +168,13 @@ void	Render_MarkPaletteEntryForHostUse(int Index);
 /* TrueColour */
 void Render_TrueColourRGB_PutSync(int,int);
 void Render_TrueColourRGB_PutBorder(int,int);
-void Render_TrueColourRGB_PutDataWord(int,unsigned long,int);
-void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long GraphicsData, int Line, unsigned long Mask, int *pPixels);
+void Render_TrueColourRGB_PutDataWord(int,unsigned,int);
+void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned GraphicsData, int Line, unsigned Mask, int *pPixels);
 
 void Render_Paletted_PutSync(int,int);
 void Render_Paletted_PutBorder(int,int);
-void Render_Paletted_PutDataWord(int,unsigned long,int);
-void Render_Paletted_PutDataWordPLUS(int HorizontalCount,unsigned long GraphicsData, int Line, unsigned long Mask, int *pPixels);
+void Render_Paletted_PutDataWord(int,unsigned,int);
+void Render_Paletted_PutDataWordPLUS(int HorizontalCount,unsigned GraphicsData, int Line, unsigned Mask, int *pPixels);
 
 #define RENDERING_ACCURACY_LOW  0x0001
 #define RENDERING_ACCURACY_HIGH 0x0002

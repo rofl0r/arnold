@@ -1506,7 +1506,7 @@ void    ASIC_WriteRam(int Addr,int Data)
                 ASIC_Data.ASIC_Ram[Addr+1] &= 0x00f;
                         
                 {
-                        unsigned long PackedRGBLookup;
+                        unsigned PackedRGBLookup;
 
 //#ifdef CPC_LSB_FIRST
 //						PackedRGBLookup = ((unsigned long *)(ASIC_Data.ASIC_Ram + Addr))[0];
@@ -2007,7 +2007,7 @@ void    ASIC_SetMonitorColourMode(MONITOR_COLOUR_MODE MonitorMode)
 							ASIC_PackedRGBColour[i].u.element.Blue = DestRGB.B;
                         }
 
-						memcpy(&ASIC_DisplayColours, &ASIC_PackedRGBColour, 4096*sizeof(unsigned long));
+						memcpy(&ASIC_DisplayColours, &ASIC_PackedRGBColour, 4096*sizeof(unsigned));
 
               }
                 break;
@@ -2015,7 +2015,7 @@ void    ASIC_SetMonitorColourMode(MONITOR_COLOUR_MODE MonitorMode)
                 case MONITOR_MODE_GREEN_SCREEN:
                 case MONITOR_MODE_GREY_SCALE:
                 {
-              			memcpy(&ASIC_DisplayColours, &ASIC_PackedRGBGreyScale, 4096*sizeof(unsigned long));
+              			memcpy(&ASIC_DisplayColours, &ASIC_PackedRGBGreyScale, 4096*sizeof(unsigned));
 
                 }
                 break;
@@ -2034,10 +2034,10 @@ void	ASIC_UpdateColours(void)
         for (i=0; i<32; i++)
         {
 
-            unsigned long PackedRGBLookup;
+            unsigned PackedRGBLookup;
 
 #ifdef CPC_LSB_FIRST
-						PackedRGBLookup = ((unsigned long *)(ASIC_Data.ASIC_Ram + 0x02400 + (i<<1)))[0];
+						PackedRGBLookup = ((unsigned *)(ASIC_Data.ASIC_Ram + 0x02400 + (i<<1)))[0];
 #else
 						PackedRGBLookup = ASIC_Data.ASIC_Ram[0x02400 + (i<<1)] | ((ASIC_Data.ASIC_Ram[0x02400 + (i<<1) + 1])<<8);
 #endif

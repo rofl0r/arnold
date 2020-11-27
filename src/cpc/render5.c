@@ -59,24 +59,24 @@ static int Render_CPCXOffset, Render_CPCYOffset;
 
 static void	Render_SetColourNULL(const RGBCOLOUR *pColour,/*int Red, 
 int Green, int Blue,*/ int Index);
-static void Render_PutDataWordNULL(int, unsigned long, int);
+static void Render_PutDataWordNULL(int, unsigned, int);
 static void Render_PutSyncNULL(int, int);
 static void Render_PutBorderNULL(int, int);
-static void Render_PutDataWordPLUSNULL(int HorizontalCount,unsigned long GraphicsData, int Line, unsigned long Mask, int *pPixels);
+static void Render_PutDataWordPLUSNULL(int HorizontalCount,unsigned GraphicsData, int Line, unsigned Mask, int *pPixels);
 
 static void (*pRender_DumpScreen)(void) = NULL;
 static void (*pRender_SetColour)(const RGBCOLOUR *pColour,/*int, int, 
 int,*/ int)=Render_SetColourNULL;
-static void (*pRender_PutDataWord)(int, unsigned long, int)=Render_PutDataWordNULL;
+static void (*pRender_PutDataWord)(int, unsigned, int)=Render_PutDataWordNULL;
 static void (*pRender_PutSync)(int, int)=Render_PutSyncNULL;
 static void (*pRender_PutBorder)(int, int)=Render_PutBorderNULL;
-static void (*pRender_PutDataWordPLUS)(int,unsigned long, int, unsigned long, int *) = Render_PutDataWordPLUSNULL;
+static void (*pRender_PutDataWordPLUS)(int,unsigned, int, unsigned, int *) = Render_PutDataWordPLUSNULL;
 
 /* start of screen buffer */
 static unsigned char    *pScreenBase = NULL;
 /* number of bytes in screen buffer width */
-static unsigned long    ScreenPitch = 0;
-static unsigned long ScreenHeight = 0;
+static unsigned    ScreenPitch = 0;
+static unsigned ScreenHeight = 0;
 static unsigned char *pScreenLine;
 
 /* current graphics format */
@@ -94,7 +94,7 @@ static PALETTE_ENTRY_RGB888    UnConvertedColourTable[32];
 /* **** RGB stuff **** */
 
 /* each element contains colours packed into destination image format */
-static unsigned long    ConvertedColourTable[32];
+static unsigned    ConvertedColourTable[32];
 
 /* TrueColour RGB version of set colour */
 static void Render_TrueColourRGB_SetColour(const RGBCOLOUR *pColour, 
@@ -106,7 +106,7 @@ static void Render_TrueColourRGB_Setup(void);
 /* this array is indexed with the pen index to display on this
 screen, this then gives the index within the palette below for
 the actual colour */
-static signed long PaletteRemap[32];
+static signed int PaletteRemap[32];
 
 
 /* colours in palette */
@@ -128,31 +128,31 @@ static void Render_Paletted_Setup(void);
 /* TrueColour RGB Stuff */
 
 #define Render_TrueColourRGB_WriteColourToScreenBuffer(pScreen,ColourIndex) \
-        ((unsigned long *)pScreen)[0] = ConvertedColourTable[ColourIndex]
+        ((unsigned *)pScreen)[0] = ConvertedColourTable[ColourIndex]
 
 
 /* given a R,G,B in 8:8:8 format, these tables will give the corresponding
 R,G,B in X:Y:Z format */
-static unsigned long RedConversionTable[256];
-static unsigned long GreenConversionTable[256];
-static unsigned long BlueConversionTable[256];
+static unsigned RedConversionTable[256];
+static unsigned GreenConversionTable[256];
+static unsigned BlueConversionTable[256];
 
 
-static void    Render_TrueColourRGB_BuildConversionTable(unsigned long
+static void    Render_TrueColourRGB_BuildConversionTable(unsigned
 *pTable, GRAPHICS_ELEMENT_FORMAT *pElement)
 {
     int i;
     
     /* max value colour element can take */
-    unsigned long MaxValue = 0x0ffffffff>>(32-pElement->BPP);
+    unsigned MaxValue = 0x0ffffffff>>(32-pElement->BPP);
 
     /* this fraction is added each time through the loop. The upper
     16-bits hold the integer part and the lower 16-bits hold the fractional 
     part. The following calculation works as long as the element has less
     than 16 bits for it's representation. (16-bit R, 16-bit G, 16-bit B is massive!!!) */
-    unsigned long AddFraction = ((MaxValue+1)<<16)>>8;
+    unsigned AddFraction = ((MaxValue+1)<<16)>>8;
 
-    unsigned long CurrentValue = 0;
+    unsigned CurrentValue = 0;
 
     for (i=0; i<256; i++)
     {
@@ -184,8 +184,8 @@ static void Render_TrueColourRGB_ConvertColoursToNewFormat(GRAPHICS_FORMAT
 
     for (i=0; i<32; i++)
     {
-            unsigned long r, g, b;
-			unsigned long PackedColourData;
+            unsigned r, g, b;
+			unsigned PackedColourData;
 
 			r = UnConvertedColourTable[i].RGB.SeperateElements.u.element.Red;
 			g = UnConvertedColourTable[i].RGB.SeperateElements.u.element.Green;
@@ -487,7 +487,7 @@ Green, int Blue,*/ int Index)
 {
 }
 
-static void Render_PutDataWordNULL(int HorizontalCount, unsigned long GraphicsWord, int Line)
+static void Render_PutDataWordNULL(int HorizontalCount, unsigned GraphicsWord, int Line)
 {
 }
 
@@ -499,7 +499,7 @@ static void Render_PutBorderNULL(int HorizontalCount, int Line)
 {
 }
 
-static void Render_PutDataWordPLUSNULL(int HorizontalCount,unsigned long GraphicsData, int Line, unsigned long Mask, int *pPixels)
+static void Render_PutDataWordPLUSNULL(int HorizontalCount,unsigned  GraphicsData, int Line, unsigned Mask, int *pPixels)
 {
 }
 
@@ -519,7 +519,7 @@ Blue,*/ int Index)
 	pRender_SetColour(pColour,/*Red,Green,Blue,*/Index);
 }
 
-void    Render_PutDataWord(int HorizontalCount,unsigned long GraphicsData, int Line)
+void    Render_PutDataWord(int HorizontalCount,unsigned GraphicsData, int Line)
 {
 	pRender_PutDataWord(HorizontalCount, GraphicsData, Line);
 }
@@ -535,13 +535,13 @@ void    Render_PutBorder(int HorizontalCount, int Line)
 }
 
 /* faster, but may not be accurate enough */
-void    Render_PutDataWordPLUSMaskWithPixels(int HorizontalCount,unsigned long GraphicsData, int Line, unsigned long Mask, int *pPixels)
+void    Render_PutDataWordPLUSMaskWithPixels(int HorizontalCount,unsigned GraphicsData, int Line, unsigned Mask, int *pPixels)
 {
 	pRender_PutDataWordPLUS(HorizontalCount,GraphicsData, Line, Mask, pPixels);
 }
 
 
-unsigned long *pPackedPixels;
+unsigned *pPackedPixels;
 PIXEL_DATA *pPixelData;
 int CurrentMode;
 int CurrentModeMask;
@@ -580,14 +580,14 @@ void    Render_SetPixelTranslation(int ModeIndex)
 #define GENERIC
 
 #ifdef GENERIC
-void    Render_TrueColourRGB_PutDataWord(int HorizontalCount,unsigned long GraphicsData, int Line)
+void    Render_TrueColourRGB_PutDataWord(int HorizontalCount,unsigned GraphicsData, int Line)
 {
     int i;
     PIXEL_DATA *pThisPixelData;
 
 	Render_CalcRenderAddress(HorizontalCount,Line);
 
-    pThisPixelData = &pPixelData[(unsigned long)((GraphicsData>>8) & 0x0ff)];
+    pThisPixelData = &pPixelData[(unsigned)((GraphicsData>>8) & 0x0ff)];
 
     for (i=0; i<8; i+=PIXEL_STEP)
     {
@@ -598,7 +598,7 @@ void    Render_TrueColourRGB_PutDataWord(int HorizontalCount,unsigned long Graph
         pScreen+=BytesPerPixel;
     }
 
-    pThisPixelData = &pPixelData[(unsigned long)(GraphicsData & 0x0ff)];
+    pThisPixelData = &pPixelData[(unsigned)(GraphicsData & 0x0ff)];
 
     for (i=0; i<8; i+=PIXEL_STEP)
     {
@@ -612,17 +612,17 @@ void    Render_TrueColourRGB_PutDataWord(int HorizontalCount,unsigned long Graph
 	Render_UpdateRenderAddress;
 }
 #else
-void    Render_TrueColourRGB_PutDataWord(int HorizontalCount,unsigned long GraphicsData, int Line)
+void    Render_TrueColourRGB_PutDataWord(int HorizontalCount,unsigned GraphicsData, int Line)
 {
 	int ScreenPixel;
-	unsigned long PackedPixels;
-	unsigned long Pixel;
+	unsigned PackedPixels;
+	unsigned Pixel;
 	Render_CalcRenderAddress(HorizontalCount,Line);
 
 
 	if (PIXEL_STEP == 1) /* Fixed! RFB */
 	{
-		PackedPixels = pPackedPixels[(unsigned long)((GraphicsData>>8) & 0x0ff)];
+		PackedPixels = pPackedPixels[(unsigned)((GraphicsData>>8) & 0x0ff)];
 		
 		 Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>4;
@@ -630,7 +630,7 @@ void    Render_TrueColourRGB_PutDataWord(int HorizontalCount,unsigned long Graph
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>4;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[0] = ScreenPixel;
+		((unsigned *)pScreen)[0] = ScreenPixel;
 
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>4;
@@ -638,7 +638,7 @@ void    Render_TrueColourRGB_PutDataWord(int HorizontalCount,unsigned long Graph
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>4;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[1] = ScreenPixel;
+		((unsigned *)pScreen)[1] = ScreenPixel;
 
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>4;
@@ -646,7 +646,7 @@ void    Render_TrueColourRGB_PutDataWord(int HorizontalCount,unsigned long Graph
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>4;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[2] = ScreenPixel;
+		((unsigned *)pScreen)[2] = ScreenPixel;
 
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>4;
@@ -654,11 +654,11 @@ void    Render_TrueColourRGB_PutDataWord(int HorizontalCount,unsigned long Graph
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>4;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[3] = ScreenPixel;
+		((unsigned *)pScreen)[3] = ScreenPixel;
 		
 		pScreen += (4 * 4);
 		
-		PackedPixels = pPackedPixels[(unsigned long)(GraphicsData & 0x0ff)];
+		PackedPixels = pPackedPixels[(unsigned)(GraphicsData & 0x0ff)];
 		
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>4;
@@ -666,7 +666,7 @@ void    Render_TrueColourRGB_PutDataWord(int HorizontalCount,unsigned long Graph
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>4;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[0] = ScreenPixel;
+		((unsigned *)pScreen)[0] = ScreenPixel;
 
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>4;
@@ -674,7 +674,7 @@ void    Render_TrueColourRGB_PutDataWord(int HorizontalCount,unsigned long Graph
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>4;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[1] = ScreenPixel;
+		((unsigned *)pScreen)[1] = ScreenPixel;
 
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>4;
@@ -682,7 +682,7 @@ void    Render_TrueColourRGB_PutDataWord(int HorizontalCount,unsigned long Graph
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>4;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[2] = ScreenPixel;
+		((unsigned *)pScreen)[2] = ScreenPixel;
 
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>4;
@@ -690,7 +690,7 @@ void    Render_TrueColourRGB_PutDataWord(int HorizontalCount,unsigned long Graph
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>4;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[3] = ScreenPixel;
+		((unsigned *)pScreen)[3] = ScreenPixel;
 		
 		pScreen += (4 * 4);
 	}
@@ -698,7 +698,7 @@ void    Render_TrueColourRGB_PutDataWord(int HorizontalCount,unsigned long Graph
     {
 		
 
-	 PackedPixels = pPackedPixels[(unsigned long)((GraphicsData>>8) & 0x0ff)];
+	 PackedPixels = pPackedPixels[(unsigned)((GraphicsData>>8) & 0x0ff)];
 
 
 #ifndef CPC_LSB_FIRST
@@ -714,7 +714,7 @@ void    Render_TrueColourRGB_PutDataWord(int HorizontalCount,unsigned long Graph
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>8;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[0] = ScreenPixel;
+		((unsigned *)pScreen)[0] = ScreenPixel;
 
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>8;
@@ -722,9 +722,9 @@ void    Render_TrueColourRGB_PutDataWord(int HorizontalCount,unsigned long Graph
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>8;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[1] = ScreenPixel;
+		((unsigned *)pScreen)[1] = ScreenPixel;
 
-   		PackedPixels = pPackedPixels[(unsigned long)(GraphicsData & 0x0ff)];
+   		PackedPixels = pPackedPixels[(unsigned)(GraphicsData & 0x0ff)];
 
 #ifndef CPC_LSB_FIRST
 	PackedPixels = (((PackedPixels & 0x0000FF00) >> 8) |
@@ -739,7 +739,7 @@ void    Render_TrueColourRGB_PutDataWord(int HorizontalCount,unsigned long Graph
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>8;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[2] = ScreenPixel;
+		((unsigned *)pScreen)[2] = ScreenPixel;
 
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>8;
@@ -747,7 +747,7 @@ void    Render_TrueColourRGB_PutDataWord(int HorizontalCount,unsigned long Graph
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>8;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[3] = ScreenPixel;
+		((unsigned *)pScreen)[3] = ScreenPixel;
 
 		pScreen+=(4*4);
     }
@@ -757,7 +757,7 @@ void    Render_TrueColourRGB_PutDataWord(int HorizontalCount,unsigned long Graph
 #endif
 
 #define CPC_WRITE_PIXEL_INC(ci, dest,increment)	\
-		((unsigned long *)dest)[0] = ci;	\
+		((unsigned *)dest)[0] = ci;	\
 		dest = &dest[increment]
 
 #ifdef GENERIC
@@ -769,7 +769,7 @@ void    Render_TrueColourRGB_PutSync(int HorizontalCount, int Line)
 
     for (i=0; i<16; i+=PIXEL_STEP)
     {
-       ((unsigned long *)pScreen)[0] = 0x0;
+       ((unsigned *)pScreen)[0] = 0x0;
        pScreen+=BytesPerPixel;
     }
 
@@ -782,10 +782,10 @@ void    Render_TrueColourRGB_PutSync(int HorizontalCount, int Line)
     Render_CalcRenderAddress(HorizontalCount,Line);
 
 
-	((unsigned long *)pScreen)[0] = 0x0;
-	((unsigned long *)pScreen)[1] = 0x0;
-	((unsigned long *)pScreen)[2] = 0x0;
-	((unsigned long *)pScreen)[3] = 0x0;
+	((unsigned *)pScreen)[0] = 0x0;
+	((unsigned *)pScreen)[1] = 0x0;
+	((unsigned *)pScreen)[2] = 0x0;
+	((unsigned *)pScreen)[3] = 0x0;
 	pScreen+=(4*4);
 	Render_UpdateRenderAddress;
 }
@@ -801,7 +801,7 @@ void    Render_TrueColourRGB_PutBorder(int HorizontalCount, int Line)
 
     for (i=0; i<16; i+=PIXEL_STEP)
     {
-       ((unsigned long *)pScreen)[0] = BorderColour;
+       ((unsigned *)pScreen)[0] = BorderColour;
        pScreen+=BytesPerPixel;
     }
 
@@ -817,24 +817,24 @@ void    Render_TrueColourRGB_PutBorder(int HorizontalCount, int Line)
 	BorderColour = ConvertedColourTable[16];
 	BorderColour = BorderColour | (BorderColour<<16);
 
-	((unsigned long *)pScreen)[0] = BorderColour;
-	((unsigned long *)pScreen)[1] = BorderColour;
-	((unsigned long *)pScreen)[2] = BorderColour;
-	((unsigned long *)pScreen)[3] = BorderColour;
+	((unsigned *)pScreen)[0] = BorderColour;
+	((unsigned *)pScreen)[1] = BorderColour;
+	((unsigned *)pScreen)[2] = BorderColour;
+	((unsigned *)pScreen)[3] = BorderColour;
 	pScreen+=(4*4);
 
 	Render_UpdateRenderAddress;
 }
 #endif
 
-void    Render_Paletted_PutDataWord(int HorizontalCount,unsigned long GraphicsData, int Line)
+void    Render_Paletted_PutDataWord(int HorizontalCount,unsigned GraphicsData, int Line)
 {
     int i;
     PIXEL_DATA *pThisPixelData;
 
 	Render_CalcRenderAddress(HorizontalCount,Line);
 
-    pThisPixelData = &pPixelData[(unsigned long)((GraphicsData>>8) & 0x0ff)];
+    pThisPixelData = &pPixelData[(unsigned)((GraphicsData>>8) & 0x0ff)];
 
     for (i=0; i<8; i+=PIXEL_STEP)
     {
@@ -845,7 +845,7 @@ void    Render_Paletted_PutDataWord(int HorizontalCount,unsigned long GraphicsDa
         pScreen+=BytesPerPixel;
     }
 
-    pThisPixelData = &pPixelData[(unsigned long)(GraphicsData & 0x0ff)];
+    pThisPixelData = &pPixelData[(unsigned)(GraphicsData & 0x0ff)];
 
     for (i=0; i<8; i+=PIXEL_STEP)
     {
@@ -902,7 +902,7 @@ void    Render_SetHorizontalPixelScroll(int PixelScroll)
 
 #ifdef GENERIC
 /* faster, but may not be accurate enough */
-void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long GraphicsData, int Line, unsigned long Mask, int *pPixels)
+void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned GraphicsData, int Line, unsigned Mask, int *pPixels)
 {
     int i;
 
@@ -913,7 +913,7 @@ void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long G
 	GraphicsData = GraphicsData>>(ModeHorizontalPixelScroll>>2);
 
     {
-        pThisPixelData = &pPixelData[(unsigned long)(GraphicsData & 0x0ff00)>>8];
+        pThisPixelData = &pPixelData[(unsigned)(GraphicsData & 0x0ff00)>>8];
 
         for (i=0; i<8; i+=PIXEL_STEP)
         {
@@ -934,7 +934,7 @@ void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long G
     }
 
     {
-        pThisPixelData = &pPixelData[(unsigned long)(GraphicsData & 0x0ff)];
+        pThisPixelData = &pPixelData[(unsigned)(GraphicsData & 0x0ff)];
 
         for (i=0; i<8; i+=PIXEL_STEP)
         {
@@ -957,7 +957,7 @@ void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long G
 	Render_UpdateRenderAddress;
 }
 #else
-void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long GraphicsData, int Line, unsigned long Mask, int *pPixels)
+void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned GraphicsData, int Line, unsigned Mask, int *pPixels)
 {
 	int i;
     
@@ -974,20 +974,11 @@ void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long G
 	if ((Mask & 0x0ffff)==0x0ffff)
 	{
 		/* all screen pixels */
-		unsigned long PackedPixels;
+		unsigned PackedPixels;
 		int Pixel;
-		unsigned long ScreenPixel;
+		unsigned ScreenPixel;
 
-		PackedPixels = pPackedPixels[(unsigned long)(GraphicsData & 0x0ff00)>>8];
-
-		Pixel = (PackedPixels & 0x0f);
-		PackedPixels = PackedPixels>>8;
-		ScreenPixel = ConvertedColourTable[Pixel];
-
-		Pixel = (PackedPixels & 0x0f);
-		PackedPixels = PackedPixels>>8;
-		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[0] = ScreenPixel;
+		PackedPixels = pPackedPixels[(unsigned)(GraphicsData & 0x0ff00)>>8];
 
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>8;
@@ -996,9 +987,7 @@ void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long G
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>8;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[1] = ScreenPixel;
-
-		PackedPixels = pPackedPixels[(unsigned long)(GraphicsData & 0x0ff)];
+		((unsigned *)pScreen)[0] = ScreenPixel;
 
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>8;
@@ -1007,7 +996,9 @@ void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long G
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>8;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[2] = ScreenPixel;
+		((unsigned *)pScreen)[1] = ScreenPixel;
+
+		PackedPixels = pPackedPixels[(unsigned)(GraphicsData & 0x0ff)];
 
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>8;
@@ -1016,7 +1007,16 @@ void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long G
 		Pixel = (PackedPixels & 0x0f);
 		PackedPixels = PackedPixels>>8;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[3] = ScreenPixel;
+		((unsigned *)pScreen)[2] = ScreenPixel;
+
+		Pixel = (PackedPixels & 0x0f);
+		PackedPixels = PackedPixels>>8;
+		ScreenPixel = ConvertedColourTable[Pixel];
+
+		Pixel = (PackedPixels & 0x0f);
+		PackedPixels = PackedPixels>>8;
+		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
+		((unsigned *)pScreen)[3] = ScreenPixel;
 
 
 		pScreen+=(4*4);
@@ -1026,11 +1026,11 @@ void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long G
 	}
 	else if ((Mask & 0x0ffff)==0x0000)
     {
-		unsigned long PackedPixels;
+		unsigned PackedPixels;
 		int Pixel;
-		unsigned long ScreenPixel;
+		unsigned ScreenPixel;
 
-		PackedPixels = pPackedPixels[(unsigned long)(GraphicsData & 0x0ff00)>>8];
+		PackedPixels = pPackedPixels[(unsigned)(GraphicsData & 0x0ff00)>>8];
 
 		{
             Pixel = pPixels[0];
@@ -1046,7 +1046,7 @@ void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long G
 
 		PackedPixels = PackedPixels>>8;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[0] = ScreenPixel;
+		((unsigned *)pScreen)[0] = ScreenPixel;
 
 		{
             Pixel = pPixels[4];
@@ -1062,9 +1062,9 @@ void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long G
 
 		PackedPixels = PackedPixels>>8;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[1] = ScreenPixel;
+		((unsigned *)pScreen)[1] = ScreenPixel;
 
-		PackedPixels = pPackedPixels[(unsigned long)(GraphicsData & 0x0ff)];
+		PackedPixels = pPackedPixels[(unsigned)(GraphicsData & 0x0ff)];
 
 		{
             Pixel = pPixels[8];
@@ -1080,7 +1080,7 @@ void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long G
 
 		PackedPixels = PackedPixels>>8;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[2] = ScreenPixel;
+		((unsigned *)pScreen)[2] = ScreenPixel;
 
 		{
             Pixel = pPixels[12];
@@ -1096,7 +1096,7 @@ void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long G
 
 		PackedPixels = PackedPixels>>8;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[3] = ScreenPixel;
+		((unsigned *)pScreen)[3] = ScreenPixel;
 
 
 		pScreen+=(4*4);
@@ -1107,11 +1107,11 @@ void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long G
 	}
 	else
 	{
-		unsigned long PackedPixels;
+		unsigned PackedPixels;
 		int Pixel;
-		unsigned long ScreenPixel;
+		unsigned ScreenPixel;
 
-		PackedPixels = pPackedPixels[(unsigned long)(GraphicsData & 0x0ff00)>>8];
+		PackedPixels = pPackedPixels[(unsigned)(GraphicsData & 0x0ff00)>>8];
 
 		if ((Mask & (1<<0))!=0)
         {
@@ -1137,7 +1137,7 @@ void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long G
 
 		PackedPixels = PackedPixels>>8;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[0] = ScreenPixel;
+		((unsigned *)pScreen)[0] = ScreenPixel;
 
 		if ((Mask & (1<<4))!=0)
         {
@@ -1163,9 +1163,9 @@ void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long G
 
 			PackedPixels = PackedPixels>>8;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[1] = ScreenPixel;
+		((unsigned *)pScreen)[1] = ScreenPixel;
 
-		PackedPixels = pPackedPixels[(unsigned long)(GraphicsData & 0x0ff)];
+		PackedPixels = pPackedPixels[(unsigned)(GraphicsData & 0x0ff)];
 
 		if ((Mask & (1<<8))!=0)
         {
@@ -1191,7 +1191,7 @@ void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long G
 
 		PackedPixels = PackedPixels>>8;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[2] = ScreenPixel;
+		((unsigned *)pScreen)[2] = ScreenPixel;
 
 		if ((Mask & (1<<12))!=0)
         {
@@ -1217,7 +1217,7 @@ void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long G
 
 		PackedPixels = PackedPixels>>8;
 		ScreenPixel = ScreenPixel | (ConvertedColourTable[Pixel]<<16);
-		((unsigned long *)pScreen)[3] = ScreenPixel;
+		((unsigned *)pScreen)[3] = ScreenPixel;
 
 
 		pScreen+=(4*4);
@@ -1233,7 +1233,7 @@ void    Render_TrueColourRGB_PutDataWordPLUS(int HorizontalCount,unsigned long G
 
 
 /* faster, but may not be accurate enough */
-void    Render_Paletted_PutDataWordPLUS(int HorizontalCount,unsigned long GraphicsData, int Line, unsigned long Mask, int *pPixels)
+void    Render_Paletted_PutDataWordPLUS(int HorizontalCount,unsigned GraphicsData, int Line, unsigned Mask, int *pPixels)
 {
     int i;
 
@@ -1244,7 +1244,7 @@ void    Render_Paletted_PutDataWordPLUS(int HorizontalCount,unsigned long Graphi
 	GraphicsData = GraphicsData>>ModeHorizontalPixelScroll;
 
     {
-        pThisPixelData = &pPixelData[(unsigned long)(GraphicsData & 0x0ff00)>>8];
+        pThisPixelData = &pPixelData[(unsigned)(GraphicsData & 0x0ff00)>>8];
 
         for (i=0; i<8; i+=PIXEL_STEP)
         {
@@ -1265,7 +1265,7 @@ void    Render_Paletted_PutDataWordPLUS(int HorizontalCount,unsigned long Graphi
     }
 
     {
-        pThisPixelData = &pPixelData[(unsigned long)(GraphicsData & 0x0ff)];
+        pThisPixelData = &pPixelData[(unsigned)(GraphicsData & 0x0ff)];
 
         for (i=0; i<8; i+=PIXEL_STEP)
         {
@@ -1303,7 +1303,7 @@ void	my_memcpy(void *pDest, void *pSrc, unsigned long Length)
 
 		for (i=0; i<LengthInLongs; i++)
 		{
-			((unsigned long *)pDestPtr)[0] = ((unsigned long *)pSrcPtr)[0];
+			((unsigned long*)pDestPtr)[0] = ((unsigned long*)pSrcPtr)[0];
 			pDestPtr+=4; 
 			pSrcPtr+=4;
 		}
@@ -1541,7 +1541,7 @@ BOOL InitialiseRender(int ScreenResX, int ScreenResY, int BPP)
     ScreenWidth = BITS_PER_LINE;    
     ScreenHeight = LINES_PER_SCREEN+1;      
 
-    ScreenPitch = (unsigned long)ScreenWidth * ((BPP+7)>>3);
+    ScreenPitch = (unsigned)ScreenWidth * ((BPP+7)>>3);
     ScreenPitch += ((4-(ScreenPitch & 0x03)) & 0x03);
 
     pScreenBase = (unsigned char *)malloc(ScreenPitch * ScreenHeight);
@@ -1754,10 +1754,10 @@ BOOL    Render_SetDisplayWindowed(void)
 void    Render_GetPixelRGBAtXY(int X,int Y, unsigned char *r, unsigned char *g, unsigned char *b)
 {
     int     PixelBytes = (CurrentGraphicsFormat.BPP+7)>>3;
-    unsigned long PackedPixelData;
+    unsigned PackedPixelData;
     
     unsigned char *pScreenData = (unsigned char *)pScreenBase + ((Y+Y_CRTC_LINE_OFFSET)*ScreenPitch) + (((X_CRTC_CHAR_OFFSET<<(1+3))>>PIXEL_STEP_SHIFT)*PixelBytes) + (X*PixelBytes);
-    unsigned long localr, localg, localb;
+    unsigned localr, localg, localb;
 
     PackedPixelData = ReadPackedImageData(pScreenData, PixelBytes);
 
@@ -1816,9 +1816,9 @@ void    PlotPixel(int X, int Y)
         int             Offset = (ScreenPitch * (Y+Render_CPCYOffset)) + (Render_CPCXOffset * BytesPerPixel) + (X * BytesPerPixel);
         unsigned char *pScreen = pScreenBase + Offset;
 
-        unsigned long Pixel = 0x0fffffff;
+        unsigned Pixel = 0x0fffffff;
 
-        ((unsigned long *)pScreen)[0] = Pixel;
+        ((unsigned *)pScreen)[0] = Pixel;
 
 
 }

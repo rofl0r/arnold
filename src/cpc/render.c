@@ -24,19 +24,19 @@ static PIXEL_DATA      Mode1PixelData[256];
 static PIXEL_DATA      Mode2PixelData[256];
 static PIXEL_DATA          Mode3PixelData[256];
 
-static unsigned long		Mode0PackedPixels[256];
-static unsigned long 		Mode1PackedPixels[256];
-static unsigned long 		Mode2PackedPixels[256];
-static unsigned long		Mode3PackedPixels[256];
+static unsigned		Mode0PackedPixels[256];
+static unsigned 		Mode1PackedPixels[256];
+static unsigned 		Mode2PackedPixels[256];
+static unsigned		Mode3PackedPixels[256];
 
-unsigned long		Mode0PenIndex[256];
-unsigned long		Mode1PenIndex[256];
-unsigned long		Mode2PenIndex[256];
-unsigned long		Mode3PenIndex[256];
+unsigned		Mode0PenIndex[256];
+unsigned		Mode1PenIndex[256];
+unsigned		Mode2PenIndex[256];
+unsigned		Mode3PenIndex[256];
 
 #define PACK8_PIXELS(a,b,c,d,e,f,g,h)	((a<<0) | (b<<4) | (c<<8) | (d<<12) | (e<<16) | (f<<20) | (g<<24) | (h<<28))
 
-unsigned long *CPC_GetModePenIndexTable(int ModeIndex)
+unsigned *CPC_GetModePenIndexTable(int ModeIndex)
 {
     switch (ModeIndex)
     {
@@ -102,7 +102,7 @@ PIXEL_DATA *CPC_GetModePixelData(int ModeIndex)
 }
 
 
-unsigned long *CPC_GetModePackedPixelData(int ModeIndex)
+unsigned *CPC_GetModePackedPixelData(int ModeIndex)
 {
         switch (ModeIndex)
         {
