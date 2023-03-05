@@ -36,6 +36,8 @@
 
 static SOUND_PLAYBACK_FORMAT SoundFormat;
 
+long audio_waterlevel;
+
 const int audio_NumberOfChannels = 2;
 //static const int audio_NumberOfChannels = 1;
 //static const int audio_BitsPerSample = 16;

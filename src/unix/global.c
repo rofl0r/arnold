@@ -25,6 +25,8 @@
 #include "global.h"
 #include "roms.h"
 
+char currentDir[MAXCURDIR];
+
 /* only for debugging */
 #if 0
 #define	DBG_BUILTIN(a) fprintf(stderr,"BUILTIN: %s\n",a)

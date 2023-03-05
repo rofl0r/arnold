@@ -43,13 +43,13 @@ typedef rom_t cartridge_t;
 /*
  * Rom structures
  */
-rom_t		rom_amsdos;
-roms_t		roms_cpc464;
-roms_t		roms_cpc664;
-roms_t		roms_cpc6128;
-roms_t		roms_cpc6128s;
-roms_t		roms_kcc;
-cartridge_t	cartridge_cpcplus;
+extern rom_t		rom_amsdos;
+extern roms_t		roms_cpc464;
+extern roms_t		roms_cpc664;
+extern roms_t		roms_cpc6128;
+extern roms_t		roms_cpc6128s;
+extern roms_t		roms_kcc;
+extern cartridge_t	cartridge_cpcplus;
 
 /*
  * functions
