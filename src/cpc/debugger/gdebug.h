@@ -27,13 +27,13 @@ int		ASIC_DMA_GetOpcodeCount(int);
 void	ASIC_DMA_DissassembleInstruction(int, char *);
 
 
-enum
+enum DEBUG_STATE
 {
 	DEBUG_STOPPED,
 	DEBUG_RUNNING,
 	DEBUG_HIT_BREAKPOINT,
 	DEBUG_STEP_INTO
-} DEBUG_STATE;
+};
 
 
 /*****************************************************************************/

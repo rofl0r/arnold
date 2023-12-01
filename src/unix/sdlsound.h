@@ -27,7 +27,7 @@
 //#define AUDIO_WATERMARK 8192	/* FIXME */
 //#define AUDIO_WATERMARK 1024	/* FIXME */
 
-long audio_waterlevel;
+extern long audio_waterlevel;
 
 BOOL	sdl_open_audio(SDL_AudioSpec *audioSpec);
 

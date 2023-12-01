@@ -54,7 +54,7 @@ typedef unsigned short WORD;
 //#define DEBUGGING
 
 #define MAXCURDIR 1024
-char	currentDir[MAXCURDIR];
+extern char	currentDir[MAXCURDIR];
 
 BOOL	LoadFile(const char *, char **, unsigned long *);
 BOOL	SaveFile(const char *,char *,unsigned long);
