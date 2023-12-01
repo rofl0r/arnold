@@ -56,6 +56,7 @@ void init_main();
 
 
 /* 464 base system -> cassette only, 64k only */
+/* This is where the OS, Basic, etc ROMs for the 464 are setup */
 void ConfigCPC464()
 {
 	CPC_SetOSRom(roms_cpc464.os.start);
@@ -81,9 +82,12 @@ void ConfigCPC664()
 /* 6128 base system -> disc, 128k only */
 void ConfigCPC6128()
 {
+	const char *rPath = NULL;
+
 	CPC_SetOSRom(roms_cpc6128.os.start);
 	CPC_SetBASICRom(roms_cpc6128.basic.start);
 	CPC_SetDOSRom(rom_amsdos.start);
+
 	Amstrad_DiscInterface_Install();
 	Amstrad_RamExpansion_Install();
 	CPC_SetHardware(CPC_HW_CPC);
