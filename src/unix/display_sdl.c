@@ -178,18 +178,20 @@ void sdl_UnlockGraphicsBuffer(void) {
 }
 
 void scale32_array_fw_memcpy(Uint16 pitch, Uint32 *pixels32, int w, int h, int bpp) {
-	int x, y, x2, y2;
-	int ll = pitch/bpp;
+	unsigned int x, x2;
+	int y, y2;
+	unsigned int ll = pitch/bpp;
 	Uint32 *src, *dst, *dst2, pel, *srcstop;
-	int i;
 
 	y2 = h-1;
 	for ( y = h/2-1; y >= 0; y-- ) {
 		x2 = 0;
+		unsigned y2_by_ll = y2*ll;
+		unsigned y_by_ll = y*ll;
 		for (x = 0; x < w/2; x ++) {
-			pixels32[y2*ll+x2] = pixels32[y*ll+x];
+			pixels32[y2_by_ll+x2] = pixels32[y_by_ll+x];
 			x2++;
-			pixels32[y2*ll+x2] = pixels32[y*ll+x];
+			pixels32[y2_by_ll+x2] = pixels32[y_by_ll+x];
 			x2++;
 		}
 		memcpy(pixels32+(y2-1)*ll, pixels32+y2*ll, pitch);
