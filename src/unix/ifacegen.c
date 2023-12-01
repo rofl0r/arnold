@@ -73,9 +73,9 @@ BOOL GenericInterface_InsertDiskImage(int DriveID, const char*Filename)
 
 	if (pDiskImage!=NULL)
 	{
-		BOOL bStatus;
+		int status;
 
-		bStatus = DiskImage_InsertDisk(DriveID, pDiskImage, DiskImageLength);
+		status = DiskImage_InsertDisk(DriveID, pDiskImage, DiskImageLength);
 
 		if (DriveID==0)
 			setDiskPathDriveA(Filename);
@@ -86,7 +86,7 @@ BOOL GenericInterface_InsertDiskImage(int DriveID, const char*Filename)
 
 		free(pDiskImage);
 	
-		return bStatus;
+		return status == ARNOLD_STATUS_OK;
 	}
 
 	return FALSE;
