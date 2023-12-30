@@ -90,6 +90,8 @@ unsigned long *pLength)
 				/* report position */
 				FileSize = ftell(fh);
 
+				/* fprintf(stderr, "Host_LoadFile: size %d\n", FileSize); */
+
 				fseek(fh, 0, SEEK_SET);
 			
 				if (FileSize!=0)

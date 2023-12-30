@@ -51,15 +51,69 @@ extern BOOL toggleFullscreenLater;
 #endif
 
 /* Forward declarations */
-void init_main();
+void init_main(int argc, char *argv[]);
 //char *getLocalIfNull(char *s);
 
+static void
+ConfigRomOverrides()
+{
+	const char *rPath = NULL;
+	char filename[512] = { 0, };
+	char *pRomData = NULL;
+	unsigned long RomSize = 0;
+
+	rPath = getRomDirectory();
+	/*
+	 * If we have a ROM directory then check in each
+	 * for the ROMs that we could load.
+	 */
+	if (rPath == NULL) {
+		return;
+	}
+
+	/* OS ROM image */
+	filename[0] = 0x0;
+	snprintf(filename, sizeof(filename) - 1,
+	    "%s/%s", rPath, "os.rom");
+	LoadFile(filename, &pRomData, &RomSize);
+	if (pRomData != NULL) {
+		CPC_SetOSRom(pRomData);	/* XXX size? */
+		free(pRomData);
+	}
+	pRomData = NULL;
+	RomSize = 0;
+
+	/* BASIC */
+	filename[0] = 0x0;
+	snprintf(filename, sizeof(filename) - 1,
+	    "%s/%s", rPath, "basic.rom");
+	LoadFile(filename, &pRomData, &RomSize);
+	if (pRomData != NULL) {
+		CPC_SetBASICRom(pRomData);	/* XXX size? */
+		free(pRomData);
+	}
+	pRomData = NULL;
+	RomSize = 0;
+
+	/* DOS */
+	filename[0] = 0x0;
+	snprintf(filename, sizeof(filename) - 1,
+	    "%s/%s", rPath, "amsdos.rom");
+	LoadFile(filename, &pRomData, &RomSize);
+	if (pRomData != NULL) {
+		CPC_SetDOSRom(pRomData);	/* XXX size? */
+		free(pRomData);
+	}
+	pRomData = NULL;
+	RomSize = 0;
+}
 
 /* 464 base system -> cassette only, 64k only */
 void ConfigCPC464()
 {
 	CPC_SetOSRom(roms_cpc464.os.start);
 	CPC_SetBASICRom(roms_cpc464.basic.start);
+	ConfigRomOverrides();
 	Amstrad_DiscInterface_DeInstall();
 	Amstrad_RamExpansion_DeInstall();
 	CPC_SetHardware(CPC_HW_CPC);
@@ -72,6 +126,7 @@ void ConfigCPC664()
 	CPC_SetOSRom(roms_cpc664.os.start);
 	CPC_SetBASICRom(roms_cpc664.basic.start);
 	CPC_SetDOSRom(rom_amsdos.start);
+	ConfigRomOverrides();
 	Amstrad_DiscInterface_Install();
 	Amstrad_RamExpansion_DeInstall();
 	CPC_SetHardware(CPC_HW_CPC);
@@ -81,9 +136,11 @@ void ConfigCPC664()
 /* 6128 base system -> disc, 128k only */
 void ConfigCPC6128()
 {
+	/* Setup default ROMs first */
 	CPC_SetOSRom(roms_cpc6128.os.start);
 	CPC_SetBASICRom(roms_cpc6128.basic.start);
 	CPC_SetDOSRom(rom_amsdos.start);
+	ConfigRomOverrides();
 	Amstrad_DiscInterface_Install();
 	Amstrad_RamExpansion_Install();
 	CPC_SetHardware(CPC_HW_CPC);
@@ -96,6 +153,7 @@ void ConfigCPC6128s()
 	CPC_SetOSRom(roms_cpc6128s.os.start);
 	CPC_SetBASICRom(roms_cpc6128s.basic.start);
 	CPC_SetDOSRom(rom_amsdos.start);
+	ConfigRomOverrides();
 	Amstrad_DiscInterface_Install();
 	Amstrad_RamExpansion_Install();
 	CPC_SetHardware(CPC_HW_CPC);
@@ -127,6 +185,7 @@ void ConfigKCCompact()
 {
 	CPC_SetOSRom(roms_kcc.os.start);
 	CPC_SetBASICRom(roms_kcc.basic.start);
+	ConfigRomOverrides();
 	Amstrad_DiscInterface_DeInstall();
 	Amstrad_RamExpansion_DeInstall();
 	CPC_SetHardware(CPC_HW_KCCOMPACT);
@@ -206,27 +265,28 @@ int main(int argc, char *argv[])
 
 void sdl_InitialiseJoysticks(void);
 
+/* name, has_arg, flag, val */
+static struct option long_options[] = {
+	{"tape", required_argument, NULL, 't'},
+	{"drivea", required_argument, NULL, 'a'},
+	{"driveb", required_argument, NULL, 'b'},
+	{"cart", required_argument, NULL, 'c'},
+	{"frameskip", required_argument, NULL, 'f'},
+	{"crtctype", required_argument, NULL, 'r'},
+	{"cpctype", required_argument, NULL, 'p'},
+	{"snapshot", required_argument, NULL, 's'},
+	{"kbdtype", required_argument, NULL, 'k'},
+	{"soundplugin", required_argument, NULL, 'o'},
+#ifdef HAVE_SDL
+	{"doublesize", no_argument, NULL, 'd'},
+	{"fullscreen", no_argument, NULL, 'u'},
+#endif
+	{"help", no_argument, NULL, 'h'},
+	{NULL, 0, NULL, 0}
+};
+
 void init_main(int argc, char *argv[]) {
 	int kbd = -1;
-	/* name, has_arg, flag, val */
-	static struct option long_options[] = {
-		{"tape", 1, 0, 't'},
-		{"drivea", 1, 0, 'a'},
-		{"driveb", 1, 0, 'b'},
-		{"cart", 1, 0, 'c'},
-		{"frameskip", 1, 0, 'f'},
-		{"crtctype", 1, 0, 'r'},
-		{"cpctype", 1, 0, 'p'},
-		{"snapshot", 1, 0, 's'},
-		{"kbdtype", 1, 0, 'k'},
-		{"soundplugin", 1, 0, 'o'},
-#ifdef HAVE_SDL
-		{"doublesize", 0, 0, 'd'},
-		{"fullscreen", 0, 0, 'u'},
-#endif
-		{"help", 0, 0, 'h'},
-		{0, 0, 0, 0}
-	};
 	int c;
 	int digit_optind = 0;
 	char *tape = NULL;
@@ -294,6 +354,7 @@ void init_main(int argc, char *argv[]) {
 
 		}
 	}
+
 	printf("tape: %s\n", tape);
 
 	CPCEmulation_InitialiseDefaultSetup();
