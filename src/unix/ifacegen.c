@@ -39,7 +39,7 @@ BOOL Multiface_LoadRomFromFile(const MULTIFACE_ROM_TYPE RomType, const char *pFi
 	int Status = 0;
 
     /* attempt to load rom data */
-    LoadFile((const char *)pFilename,&pRomData, &RomSize);
+    LoadFile((const char *)pFilename, (char**)&pRomData, &RomSize);
 
 	if (pRomData!=NULL)
 	{
@@ -69,7 +69,7 @@ BOOL GenericInterface_InsertDiskImage(int DriveID, const char*Filename)
 	unsigned long DiskImageLength;
 
     /* load disk image file to memory */
-    LoadFile(Filename, &pDiskImage, &DiskImageLength);
+    LoadFile(Filename, (char**)&pDiskImage, &DiskImageLength);
 
 	if (pDiskImage!=NULL)
 	{
@@ -97,7 +97,7 @@ BOOL	GenericInterface_LoadRom(int RomIndex, const char*FilenameBuffer)
 	unsigned char *pRomData;
 	unsigned long RomDataSize;
 
-	LoadFile(FilenameBuffer, &pRomData, &RomDataSize);
+	LoadFile(FilenameBuffer, (char**)&pRomData, &RomDataSize);
 	if (pRomData!=NULL)
 	{
 		ExpansionRom_SetRomData(pRomData, RomDataSize, RomIndex);
@@ -117,7 +117,7 @@ BOOL	GenericInterface_LoadSnapshot(const char*SnapshotFilename)
 	unsigned char *pSnapshotData;
 	unsigned long SnapshotDataLength;
 
-	LoadFile(SnapshotFilename, &pSnapshotData, &SnapshotDataLength);
+	LoadFile(SnapshotFilename, (char**)&pSnapshotData, &SnapshotDataLength);
 
 	if (pSnapshotData!=NULL)
 	{
@@ -159,7 +159,7 @@ BOOL	GenericInterface_InsertTape(const char*Filename)
 	unsigned char *pTapeImage;
 	unsigned long TapeImageLength;
 
-	LoadFile(Filename, &pTapeImage, &TapeImageLength);
+	LoadFile(Filename, (char**)&pTapeImage, &TapeImageLength);
 
 	if (pTapeImage!=NULL)
 	{
@@ -191,7 +191,7 @@ BOOL	GenericInterface_InsertCartridge(const char*pFilename)
 	unsigned char *pCartridgeData;
 	unsigned long CartridgeLength;
 
-	LoadFile(pFilename, &pCartridgeData, &CartridgeLength);
+	LoadFile(pFilename, (char**)&pCartridgeData, &CartridgeLength);
 
 	if (pCartridgeData!=NULL)
 	{

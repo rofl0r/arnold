@@ -281,7 +281,7 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | ((Result>>16) & 0x01); \
 
 #define BIT_INDEX(BitIndex, IndexReg)                           \
 {                                                                       \
-        BIT_MP(BitIndex,RD_BYTE_INDEX(IndexReg));                               \
+        BIT_MP(BitIndex,RD_BYTE_INDEX());                               \
 }           
 
 /*------------------*/
@@ -716,7 +716,7 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
                                                                 \
                                                                 \
  		SETUP_INDEXED_ADDRESS(Index); \
-       R.TempByte = RD_BYTE_INDEX(Index);      \
+       R.TempByte = RD_BYTE_INDEX();      \
                                                                                 \
         AND_A_X(R.TempByte);                                    \
 }
@@ -746,7 +746,7 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
         /*Z80_BYTE      Data;*/                         \
                                                                 \
 		SETUP_INDEXED_ADDRESS(Index); \
-        R.TempByte = RD_BYTE_INDEX(Index);      \
+        R.TempByte = RD_BYTE_INDEX();      \
                                                                         \
         XOR_A_X(R.TempByte);                                    \
 }
@@ -775,7 +775,7 @@ Z80_FLAGS_REG = Z80_FLAGS_REG | (Register & 0x001)
         /*Z80_BYTE      Data;*/                         \
                                                                 \
 		SETUP_INDEXED_ADDRESS(Index); \
-        R.TempByte = RD_BYTE_INDEX(Index);      \
+        R.TempByte = RD_BYTE_INDEX();      \
                                                                         \
         OR_A_X(R.TempByte);                                     \
 }

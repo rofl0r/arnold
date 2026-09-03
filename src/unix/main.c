@@ -51,7 +51,7 @@ extern BOOL toggleFullscreenLater;
 #endif
 
 /* Forward declarations */
-void init_main();
+void init_main(int argc, char *argv[]);
 //char *getLocalIfNull(char *s);
 
 
