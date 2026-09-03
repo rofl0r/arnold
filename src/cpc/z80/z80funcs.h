@@ -168,7 +168,7 @@ INLINE static Z80_BYTE  RD_BYTE_INDEX()
      return Z80_RD_BYTE(R.MemPtr.W);       
 }
 
-INLINE static int WR_BYTE_INDEX(Z80_BYTE Data)	
+INLINE static void WR_BYTE_INDEX(Z80_BYTE Data)
 {	
 	Z80_WR_BYTE(R.MemPtr.W, Data); 
 } 
