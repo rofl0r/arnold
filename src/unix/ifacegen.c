@@ -35,11 +35,11 @@
 BOOL Multiface_LoadRomFromFile(const MULTIFACE_ROM_TYPE RomType, const char *pFilename)
 {
     unsigned long   RomSize;
-    unsigned char   *pRomData;
+    char   *pRomData;
 	int Status = 0;
 
     /* attempt to load rom data */
-    LoadFile((const char *)pFilename, (char**)&pRomData, &RomSize);
+    LoadFile((const char *)pFilename, &pRomData, &RomSize);
 
 	if (pRomData!=NULL)
 	{
@@ -52,7 +52,7 @@ BOOL Multiface_LoadRomFromFile(const MULTIFACE_ROM_TYPE RomType, const char *pFi
 			setMultifacePLUSPath(pFilename);
 		}
 
-		Status = Multiface_SetRomData(RomType, pRomData, RomSize);
+		Status = Multiface_SetRomData(RomType, (unsigned char*)pRomData, RomSize);
 
 		free(pRomData);
 	
@@ -94,13 +94,13 @@ BOOL GenericInterface_InsertDiskImage(int DriveID, const char*Filename)
 
 BOOL	GenericInterface_LoadRom(int RomIndex, const char*FilenameBuffer)
 {
-	unsigned char *pRomData;
+	char *pRomData;
 	unsigned long RomDataSize;
 
-	LoadFile(FilenameBuffer, (char**)&pRomData, &RomDataSize);
+	LoadFile(FilenameBuffer, &pRomData, &RomDataSize);
 	if (pRomData!=NULL)
 	{
-		ExpansionRom_SetRomData(pRomData, RomDataSize, RomIndex);
+		ExpansionRom_SetRomData((unsigned char *)pRomData, RomDataSize, RomIndex);
 
 		setInsertedRomPath(RomIndex, FilenameBuffer);
 	
@@ -114,16 +114,16 @@ BOOL	GenericInterface_LoadRom(int RomIndex, const char*FilenameBuffer)
 
 BOOL	GenericInterface_LoadSnapshot(const char*SnapshotFilename)
 {
-	unsigned char *pSnapshotData;
+	char *pSnapshotData;
 	unsigned long SnapshotDataLength;
 
-	LoadFile(SnapshotFilename, (char**)&pSnapshotData, &SnapshotDataLength);
+	LoadFile(SnapshotFilename, &pSnapshotData, &SnapshotDataLength);
 
 	if (pSnapshotData!=NULL)
 	{
 		BOOL bStatus;
 
-		bStatus = Snapshot_Insert(pSnapshotData, SnapshotDataLength);
+		bStatus = Snapshot_Insert((unsigned char *)pSnapshotData, SnapshotDataLength);
 
 		free(pSnapshotData);
 	
@@ -156,16 +156,16 @@ BOOL	GenericInterface_SnapshotSave(const char*FilenameBuffer, int SnapshotVersio
 
 BOOL	GenericInterface_InsertTape(const char*Filename)
 {
-	unsigned char *pTapeImage;
+	char *pTapeImage;
 	unsigned long TapeImageLength;
 
-	LoadFile(Filename, (char**)&pTapeImage, &TapeImageLength);
+	LoadFile(Filename, &pTapeImage, &TapeImageLength);
 
 	if (pTapeImage!=NULL)
 	{
 		BOOL bStatus;
 
-		bStatus = TapeImage_Insert(pTapeImage, TapeImageLength);
+		bStatus = TapeImage_Insert((unsigned char*)pTapeImage, TapeImageLength);
 
 		setInsertedTapePath(Filename);
 
@@ -188,14 +188,14 @@ BOOL	GenericInterface_InsertTape(const char*Filename)
 
 BOOL	GenericInterface_InsertCartridge(const char*pFilename)
 {
-	unsigned char *pCartridgeData;
+	char *pCartridgeData;
 	unsigned long CartridgeLength;
 
-	LoadFile(pFilename, (char**)&pCartridgeData, &CartridgeLength);
+	LoadFile(pFilename, &pCartridgeData, &CartridgeLength);
 
 	if (pCartridgeData!=NULL)
 	{
-		Cartridge_AttemptInsert(pCartridgeData, CartridgeLength);
+		Cartridge_AttemptInsert((unsigned char *)pCartridgeData, CartridgeLength);
 
 		setInsertedCartPath(pFilename);
 
