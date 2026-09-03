@@ -168,7 +168,7 @@ INLINE static Z80_BYTE  RD_BYTE_INDEX()
      return Z80_RD_BYTE(R.MemPtr.W);       
 }
 
-INLINE static WR_BYTE_INDEX(Z80_BYTE Data)	
+INLINE static void WR_BYTE_INDEX(Z80_BYTE Data)
 {	
 	Z80_WR_BYTE(R.MemPtr.W, Data); 
 } 
@@ -199,7 +199,7 @@ INLINE static void ADD_A_n(void)
         /*Z80_BYTE      Data;*/                                 \
                                                                         \
  		SETUP_INDEXED_ADDRESS(Index); \
-       R.TempByte = RD_BYTE_INDEX(Index);      \
+       R.TempByte = RD_BYTE_INDEX();      \
                                                                         \
         ADD_A_X(R.TempByte);                                    \
 }
@@ -228,7 +228,7 @@ INLINE static void ADC_A_n(void)
         /*Z80_BYTE      Data;*/                         \
                                                                 \
 		SETUP_INDEXED_ADDRESS(Index); \
-        R.TempByte = RD_BYTE_INDEX(Index);      \
+        R.TempByte = RD_BYTE_INDEX();      \
                                                                                 \
         ADC_A_X(R.TempByte);                                    \
 }
@@ -258,7 +258,7 @@ INLINE static void SUB_A_n(void)
         /*Z80_BYTE      Data;           */              \
                                                                 \
 		SETUP_INDEXED_ADDRESS(Index); \
-        R.TempByte = RD_BYTE_INDEX(Index);      \
+        R.TempByte = RD_BYTE_INDEX();      \
                                                                         \
         SUB_A_X(R.TempByte);                                    \
 }
@@ -289,7 +289,7 @@ INLINE static void SBC_A_n(void)
         /*Z80_BYTE      Data;*/                         \
                                                                 \
 		SETUP_INDEXED_ADDRESS(Index); \
-        R.TempByte = RD_BYTE_INDEX(Index);      \
+        R.TempByte = RD_BYTE_INDEX();      \
                                                                         \
         SBC_A_X(R.TempByte);                                    \
 }
@@ -320,7 +320,7 @@ INLINE static void CP_A_n(void)
         /*int   Data;   */                              \
                                                                         \
 		SETUP_INDEXED_ADDRESS(Index); \
-        R.TempByte = RD_BYTE_INDEX(Index);      \
+        R.TempByte = RD_BYTE_INDEX();      \
                                                                         \
         CP_A_X(R.TempByte);                                     \
 }
