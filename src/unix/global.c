@@ -62,7 +62,7 @@ BOOL	loadBuiltin(unsigned char **pLocation, unsigned long *pLength,
 	return FALSE;
 }
 
-BOOL	LoadFile(const char *Filename, char **pLocation, 
+BOOL	LoadFile(const char *Filename, unsigned char **pLocation, 
 unsigned long *pLength)
 {
 	FILE	*fh;

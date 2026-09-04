@@ -39,7 +39,7 @@ BOOL Multiface_LoadRomFromFile(const MULTIFACE_ROM_TYPE RomType, const char *pFi
 	int Status = 0;
 
     /* attempt to load rom data */
-    LoadFile((const char *)pFilename,&pRomData, &RomSize);
+    LoadFile(pFilename, &pRomData, &RomSize);
 
 	if (pRomData!=NULL)
 	{
