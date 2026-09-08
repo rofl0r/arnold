@@ -122,16 +122,19 @@ const unsigned char *pOS;
 /* dos rom */
 static const unsigned char *pDOS;
 
+/* set the OS rom image */
 void CPC_SetOSRom(const unsigned char *pOSRom)
 {
 	pOS = pOSRom;
 }
 
+/* set the BASIC rom image */
 void CPC_SetBASICRom(const unsigned char *pBASICROM)
 {
 	pBasic = pBASICROM;
 }
 
+/* set the DOS rom image */
 void CPC_SetDOSRom(const unsigned char *pDOSRom)
 {
 	pDOS = pDOSRom;

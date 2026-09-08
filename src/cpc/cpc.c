@@ -115,26 +115,43 @@ static unsigned long   NopCount = 0;
 /* DOS rom is NULL if no DOS is on the motherboard */
 /* basic rom */
 static const unsigned char *pBasic;
+/* An allocated buffer for the ROM, so they can be overridden */
+static unsigned char *pBasic_ROM;
 
 /* os rom */
 const unsigned char *pOS;
+/* An allocated buffer for the ROM, so they can be overridden */
+static unsigned char *pOS_Rom;
 
 /* dos rom */
 static const unsigned char *pDOS;
+/* An allocated buffer for the ROM, so they can be overridden */
+static unsigned char *pDOS_Rom;
 
 void CPC_SetOSRom(const unsigned char *pOSRom)
 {
-	pOS = pOSRom;
+	free(pOS_Rom);
+	pOS_Rom = malloc(16384);
+	memcpy(pOS_Rom, pOSRom, 16384);
+
+	pOS = pOS_Rom;
 }
 
 void CPC_SetBASICRom(const unsigned char *pBASICROM)
 {
-	pBasic = pBASICROM;
+	free(pBasic_ROM);
+	pBasic_ROM = malloc(16384);
+	memcpy(pBasic_ROM, pBASICROM, 16384);
+
+	pBasic = pBasic_ROM;
 }
 
 void CPC_SetDOSRom(const unsigned char *pDOSRom)
 {
-	pDOS = pDOSRom;
+	free(pDOS_Rom);
+	pDOS_Rom = malloc(16384);
+	memcpy(pDOS_Rom, pDOSRom, 16384);
+	pDOS = pDOS_Rom;
 }
 
 

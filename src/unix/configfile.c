@@ -235,9 +235,10 @@ void saveConfigFile()
 			fprintf(fh,"tapedir=%s\n",tapeDirectory);
 		if (cartDirectory)
 			fprintf(fh,"cartdir=%s\n",cartDirectory);
-		
+		if (romDirectory)
+			fprintf(fh,"romdir=%s\n",romDirectory);
 
-		/*if (diskPathDriveA)	// FIXME: Disabled because of segv
+		if (diskPathDriveA)	// FIXME: Disabled because of segv
 			fprintf(fh,"drivea=%s\n",diskPathDriveA);
 		if (diskPathDriveB)
 			fprintf(fh,"driveb=%s\n",diskPathDriveB);
@@ -248,7 +249,7 @@ void saveConfigFile()
 		if (multifaceCPCPath)
 			fprintf(fh,"mfcpcrom=%s\n",multifaceCPCPath);
 		if (multifacePLUSPath)
-			fprintf(fh,"mfplusrom=%s\n",multifacePLUSPath);*/
+			fprintf(fh,"mfplusrom=%s\n",multifacePLUSPath);
 		if (snapDirectory)
 			fprintf(fh,"snapdir=%s\n",snapDirectory);
 
@@ -427,7 +428,7 @@ void parseLine(const char *s)
 
 			if (strcmp(sVariable, KEY_ROMDIR)==0)
 			{
-
+				setRomDirectory(sValue);
 			}
 			else 
 			if (strcmp(sVariable, KEY_DISKDIR)==0)
@@ -512,7 +513,6 @@ void parseLine(const char *s)
 	}
 }
 
-
 const char *getRomDirectory() {
 	return romDirectory;
 }
@@ -534,7 +534,7 @@ const char *getSnapDirectory() {
 	return snapDirectory;
 }
 
-void setRomDirectory(const char *sPath) 
+void setRomDirectory(const char *sPath)
 {
 	setPath(&romDirectory, sPath);
 }
